@@ -8,6 +8,9 @@ import asyncio
 import hashlib
 import json
 import logging
+import math
+import statistics
+import ipaddress
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Dict, Any
@@ -15,17 +18,20 @@ from enum import Enum
 from contextlib import asynccontextmanager
 from concurrent.futures import ThreadPoolExecutor
 
+import httpx
 import openai as openai_mod
 import uvicorn
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends, status, Query
+import gridfs
+from bson import ObjectId
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends, status, Query, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from starlette.requests import Request
 from pydantic import BaseModel, Field, field_validator, model_validator
-from pymongo import MongoClient, ReturnDocument
+from pymongo import MongoClient, ReturnDocument, GEOSPHERE
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams, PointStruct, Filter, FieldCondition, MatchValue, PointIdsList
 from openai import AsyncOpenAI
@@ -75,9 +81,39 @@ JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_HOURS = 2
 EMBEDDING_DIM = 3072  # text-embedding-3-large
 
+OPENWEATHERMAP_API_KEY = os.getenv("OPENWEATHERMAP_API_KEY", "")
+
 openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
+
+# GridFS instance (initialized in startup_db)
+gfs = None
+
+# Census data for impact scoring (loaded at startup)
+CENSUS_DATA: Dict[str, Any] = {}
+
+# Load census data
+_census_path = BASE_DIR / "static" / "odisha_census_data.json"
+if _census_path.is_file():
+    with open(_census_path, "r", encoding="utf-8") as _cf:
+        CENSUS_DATA = json.load(_cf)
+
+# Allowed upload MIME types and limits
+ALLOWED_MIME_TYPES = {
+    "image/jpeg", "image/png", "image/webp", "image/gif",
+    "audio/mpeg", "audio/wav", "audio/ogg", "audio/mp4",
+    "video/mp4", "video/webm", "video/quicktime",
+}
+MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
+MAX_FILES_PER_GRIEVANCE = 5
+
+# Department survival necessity scores for impact scoring
+DEPT_SURVIVAL_SCORES = {
+    "rural_water_supply": 25, "sanitation": 20, "rural_housing": 18,
+    "mgnregs": 15, "infrastructure": 12, "rural_livelihoods": 10,
+    "panchayati_raj": 8, "general": 5,
+}
 
 # ---------------------------------------------------------------------------
 # Enums
@@ -215,6 +251,7 @@ class GrievanceCreate(BaseModel):
     citizen_email: Optional[str] = None
     citizen_phone: Optional[str] = None
     is_anonymous: bool = False
+    is_public: bool = False
     language: Language = Language.ENGLISH
     district: Optional[str] = None
     location: Optional[Geolocation] = None
@@ -228,6 +265,7 @@ class GrievanceResponse(BaseModel):
     citizen_email: Optional[str] = None
     citizen_phone: Optional[str] = None
     is_anonymous: bool = False
+    is_public: bool = False
     language: Language
     district: Optional[str] = None
     department: Department
@@ -238,6 +276,7 @@ class GrievanceResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     sla_deadline: Optional[datetime] = None
+    estimated_resolution_deadline: Optional[datetime] = None
     ai_resolution: Optional[str] = None
     manual_resolution: Optional[str] = None
     resolution_type: Optional[ResolutionType] = None
@@ -248,6 +287,11 @@ class GrievanceResponse(BaseModel):
     notes: List[Dict] = Field(default_factory=list)
     location: Optional[Geolocation] = None
     citizen_user_id: Optional[str] = None
+    attachments: List[Dict] = Field(default_factory=list)
+    impact_score: Optional[int] = None
+    scheme_match: Optional[Dict] = None
+    sub_tasks: List[Dict] = Field(default_factory=list)
+    systemic_issue_id: Optional[str] = None
 
 class GrievanceTrackResponse(BaseModel):
     id: str
@@ -330,14 +374,55 @@ class GrievanceNote(BaseModel):
 class GrievanceAssignment(BaseModel):
     officer_name: str = Field(..., max_length=200)
 
+class PublicGrievanceResponse(BaseModel):
+    id: str
+    title: str
+    description_snippet: str
+    department: str
+    priority: str
+    district: Optional[str] = None
+    location: Optional[Dict] = None
+    created_at: datetime
+    vouch_count: int = 0
+    evidence_count: int = 0
+    distance_km: Optional[float] = None
+
+class VouchRequest(BaseModel):
+    comment: Optional[str] = Field(None, max_length=500)
+
+class SystemicIssueResponse(BaseModel):
+    id: str
+    title: str
+    root_cause_analysis: str
+    department: str
+    district: Optional[str] = None
+    affected_area_center: Optional[Dict] = None
+    affected_radius_km: Optional[float] = None
+    grievance_ids: List[str] = Field(default_factory=list)
+    estimated_population_affected: int = 0
+    priority: str
+    status: str
+    created_at: datetime
+    updated_at: datetime
+    assigned_officer: Optional[str] = None
+
+class ForecastResponse(BaseModel):
+    id: str
+    forecast_date: datetime
+    forecast_period_start: datetime
+    forecast_period_end: datetime
+    predictions: List[Dict] = Field(default_factory=list)
+    generated_by: str = "system"
+
 class AnalyticsResponse(BaseModel):
     total_grievances: int
-    self_resolved: int = 0     # tier 1 confirmed by citizen
-    ai_drafted: int = 0        # grievances with AI draft available
+    self_resolved: int = 0
+    ai_drafted: int = 0
     escalated_to_human: int
     avg_resolution_time: float
     pending_count: int = 0
     sla_breached_count: int = 0
+    deadline_alerts: int = 0
     status_distribution: Dict[str, int] = Field(default_factory=dict)
     sentiment_distribution: Dict[str, int]
     department_distribution: Dict[str, int]
@@ -374,7 +459,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "default-src 'self'; "
             "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-            "img-src 'self' data:; "
+            "img-src 'self' data: blob:; "
+            "media-src 'self' blob:; "
             "font-src 'self' https://fonts.gstatic.com; "
             "connect-src 'self' https://cdn.jsdelivr.net; "
             "frame-ancestors 'none'"
@@ -385,6 +471,7 @@ app.add_middleware(SecurityHeadersMiddleware)
 db_client = None
 db = None
 qdrant = None
+gfs = None
 executor = ThreadPoolExecutor(max_workers=10)
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -411,9 +498,10 @@ async def lifespan(app: FastAPI):
 app.router.lifespan_context = lifespan
 
 async def startup_db():
-    global db_client, db
+    global db_client, db, gfs
     db_client = MongoClient(MONGODB_URL)
     db = db_client.grievance_system
+    gfs = gridfs.GridFS(db)
     loop = asyncio.get_event_loop()
     await loop.run_in_executor(executor, db.grievances.create_index, "created_at")
     await loop.run_in_executor(executor, db.grievances.create_index, "status")
@@ -421,7 +509,23 @@ async def startup_db():
     await loop.run_in_executor(executor, db.grievances.create_index, "priority")
     await loop.run_in_executor(executor, db.grievances.create_index, "tracking_number")
     await loop.run_in_executor(executor, lambda: db.users.create_index([("username", 1)], unique=True))
-    logger.info("Database initialized")
+    # 2dsphere index for geospatial queries on public feed
+    await loop.run_in_executor(executor, lambda: db.grievances.create_index([("location", GEOSPHERE)]))
+    await loop.run_in_executor(executor, lambda: db.grievances.create_index("citizen_user_id"))
+    await loop.run_in_executor(executor, lambda: db.grievances.create_index("is_public"))
+    # Spam tracking indexes
+    await loop.run_in_executor(executor, lambda: db.spam_tracking.create_index("_id"))
+    # Vouches indexes
+    await loop.run_in_executor(executor, lambda: db.vouches.create_index("grievance_id"))
+    await loop.run_in_executor(executor, lambda: db.vouches.create_index([("grievance_id", 1), ("user_id", 1)], unique=True))
+    # Systemic issues
+    await loop.run_in_executor(executor, lambda: db.systemic_issues.create_index("status"))
+    await loop.run_in_executor(executor, lambda: db.systemic_issues.create_index("department"))
+    # Officer analytics
+    await loop.run_in_executor(executor, lambda: db.officer_analytics.create_index("_id"))
+    # Forecasts
+    await loop.run_in_executor(executor, lambda: db.forecasts.create_index([("forecast_date", -1)]))
+    logger.info("Database initialized with all indexes")
 
 async def startup_qdrant():
     global qdrant
@@ -852,11 +956,576 @@ async def generate_eligibility_questions(eligibility_text: str, scheme_name: str
         return []
 
 # ---------------------------------------------------------------------------
+# Spam Detection Engine
+# ---------------------------------------------------------------------------
+class SpamDetector:
+    @staticmethod
+    async def check_and_update(user_id: str, title: str, description: str, ip: str) -> tuple:
+        """Returns (is_blocked: bool, reason: str). Updates spam_tracking."""
+        loop = asyncio.get_event_loop()
+        record = await loop.run_in_executor(executor, db.spam_tracking.find_one, {"_id": user_id})
+        if not record:
+            record = {
+                "_id": user_id, "filing_timestamps": [], "duplicate_hashes": [],
+                "spam_score": 0.0, "is_blocked": False, "blocked_at": None,
+                "photo_id_file_id": None, "photo_id_status": "none",
+                "admin_notified": False, "pattern_flags": [], "ip_addresses": [],
+            }
+        if record.get("is_blocked") and record.get("photo_id_status") != "approved":
+            return True, "Account blocked due to spam activity. Please upload a photo ID to verify your identity."
+        now = datetime.now(timezone.utc)
+        content_hash = hashlib.sha256(f"{title}|{description}".lower().strip().encode()).hexdigest()
+        timestamps = record.get("filing_timestamps", [])
+        timestamps = [t for t in timestamps if (now - t).total_seconds() < 3600]
+        timestamps.append(now)
+        dup_hashes = record.get("duplicate_hashes", [])
+        dup_hashes = [h for h in dup_hashes if (now - h["ts"]).total_seconds() < 86400]
+        score = record.get("spam_score", 0.0)
+        reason_parts = []
+        # Frequency check: >5 in 1 hour
+        if len(timestamps) > 5:
+            score = min(score + 0.25, 1.0)
+            reason_parts.append("high filing frequency")
+        # Duplicate content check
+        if any(h["hash"] == content_hash for h in dup_hashes):
+            score = min(score + 0.3, 1.0)
+            reason_parts.append("duplicate content detected")
+        dup_hashes.append({"hash": content_hash, "ts": now})
+        # Short description spam
+        if len(description.strip()) < 20 and len(timestamps) > 2:
+            score = min(score + 0.15, 1.0)
+            reason_parts.append("very short descriptions")
+        ip_list = record.get("ip_addresses", [])
+        if ip and ip not in ip_list:
+            ip_list.append(ip)
+        is_blocked = score >= 0.7
+        update = {
+            "$set": {
+                "filing_timestamps": timestamps, "duplicate_hashes": dup_hashes,
+                "spam_score": round(score, 3), "is_blocked": is_blocked,
+                "ip_addresses": ip_list[-20:],
+            }
+        }
+        if is_blocked and not record.get("blocked_at"):
+            update["$set"]["blocked_at"] = now
+        await loop.run_in_executor(executor, lambda: db.spam_tracking.update_one(
+            {"_id": user_id}, update, upsert=True))
+        if is_blocked:
+            return True, "Account blocked: " + ", ".join(reason_parts)
+        return False, ""
+
+# ---------------------------------------------------------------------------
+# Passive Pattern Analyzer
+# ---------------------------------------------------------------------------
+class PatternAnalyzer:
+    @staticmethod
+    async def analyze(user_id: str, title: str, description: str, ip: str):
+        """Background task: analyze filing patterns and update spam score."""
+        try:
+            loop = asyncio.get_event_loop()
+            text = f"{title} {description}"
+            flags = []
+            # Content similarity with user's recent filings
+            recent = await loop.run_in_executor(executor, lambda: list(
+                db.grievances.find({"citizen_user_id": user_id}).sort("created_at", -1).limit(10)))
+            if len(recent) >= 3 and qdrant:
+                try:
+                    new_emb = await get_openai_embedding(text)
+                    high_sim_count = 0
+                    for g in recent[1:]:
+                        old_emb = await get_openai_embedding(f"{g['title']} {g['description']}")
+                        sim = sum(a * b for a, b in zip(new_emb, old_emb)) / (
+                            (sum(a**2 for a in new_emb)**0.5) * (sum(b**2 for b in old_emb)**0.5) + 1e-10)
+                        if sim > 0.92:
+                            high_sim_count += 1
+                    if high_sim_count >= 2:
+                        flags.append({"type": "content_similarity", "detail": f"{high_sim_count} highly similar filings",
+                                      "timestamp": datetime.now(timezone.utc)})
+                except Exception:
+                    pass
+            # Keyword quality check
+            words = description.split()
+            if words:
+                caps_ratio = sum(1 for w in words if w.isupper()) / len(words)
+                if caps_ratio > 0.5 and len(words) > 5:
+                    flags.append({"type": "keyword_stuffing", "detail": f"{caps_ratio:.0%} uppercase words",
+                                  "timestamp": datetime.now(timezone.utc)})
+            # Cross-user duplicate detection
+            content_hash = hashlib.sha256(f"{title}|{description}".lower().strip().encode()).hexdigest()
+            dup_count = await loop.run_in_executor(executor, lambda: db.spam_tracking.count_documents({
+                "_id": {"$ne": user_id},
+                "duplicate_hashes.hash": content_hash}))
+            if dup_count > 0:
+                flags.append({"type": "cross_user_duplicate",
+                              "detail": f"Same content from {dup_count} other account(s)",
+                              "timestamp": datetime.now(timezone.utc)})
+            # IP correlation
+            if ip:
+                ip_users = await loop.run_in_executor(executor, lambda: db.spam_tracking.count_documents({
+                    "_id": {"$ne": user_id}, "ip_addresses": ip}))
+                if ip_users >= 2:
+                    flags.append({"type": "ip_correlation",
+                                  "detail": f"IP shared with {ip_users} other accounts",
+                                  "timestamp": datetime.now(timezone.utc)})
+            if flags:
+                # Compute weighted score adjustment
+                score_add = len(flags) * 0.1
+                await loop.run_in_executor(executor, lambda: db.spam_tracking.update_one(
+                    {"_id": user_id},
+                    {"$push": {"pattern_flags": {"$each": flags, "$slice": -50}},
+                     "$inc": {"spam_score": min(score_add, 0.3)}},
+                    upsert=True))
+        except Exception as e:
+            logger.error("Pattern analysis error: %s", e)
+
+# ---------------------------------------------------------------------------
+# Officer Anomaly Detector
+# ---------------------------------------------------------------------------
+class OfficerAnomalyDetector:
+    @staticmethod
+    async def check_after_resolution(officer_id: str, officer_name: str, resolution_text: str):
+        """Background task: check for anomalous officer resolution patterns."""
+        try:
+            loop = asyncio.get_event_loop()
+            now = datetime.now(timezone.utc)
+            today_str = now.strftime("%Y-%m-%d")
+            record = await loop.run_in_executor(executor, db.officer_analytics.find_one, {"_id": officer_id})
+            if not record:
+                record = {"_id": officer_id, "daily_resolution_counts": {},
+                          "avg_resolution_text_length": 0.0, "avg_time_to_resolve_hours": 0.0,
+                          "priority_distribution": {}, "anomaly_flags": [], "baseline_computed_at": now}
+            daily = record.get("daily_resolution_counts", {})
+            daily[today_str] = daily.get(today_str, 0) + 1
+            # Keep only last 30 days
+            cutoff = (now - timedelta(days=30)).strftime("%Y-%m-%d")
+            daily = {k: v for k, v in daily.items() if k >= cutoff}
+            new_flags = []
+            # Bulk rubber-stamping check
+            today_count = daily.get(today_str, 0)
+            if today_count > 15 and len(resolution_text or "") < 50:
+                new_flags.append({
+                    "id": str(uuid.uuid4()), "type": "bulk_resolve",
+                    "detail": f"{today_count} resolutions today with avg text <50 chars",
+                    "timestamp": now, "severity": "high"})
+            # Generic text check
+            if resolution_text and len(resolution_text.strip()) < 30:
+                new_flags.append({
+                    "id": str(uuid.uuid4()), "type": "generic_text",
+                    "detail": f"Resolution text only {len(resolution_text.strip())} chars",
+                    "timestamp": now, "severity": "medium"})
+            # Cherry-picking check: get officer's resolved priority distribution
+            resolved_by_officer = await loop.run_in_executor(executor, lambda: list(
+                db.grievances.find({"assigned_officer": officer_name, "status": "resolved",
+                                    "created_at": {"$gte": now - timedelta(days=30)}})))
+            pri_dist = {}
+            for g in resolved_by_officer:
+                pri_dist[g.get("priority", "medium")] = pri_dist.get(g.get("priority", "medium"), 0) + 1
+            urgent_high = pri_dist.get("urgent", 0) + pri_dist.get("high", 0)
+            total_resolved = sum(pri_dist.values())
+            if total_resolved > 10 and urgent_high == 0:
+                new_flags.append({
+                    "id": str(uuid.uuid4()), "type": "cherry_picking",
+                    "detail": f"0 urgent/high cases resolved out of {total_resolved} in 30 days",
+                    "timestamp": now, "severity": "medium"})
+            existing_flags = record.get("anomaly_flags", [])[-20:]
+            existing_flags.extend(new_flags)
+            await loop.run_in_executor(executor, lambda: db.officer_analytics.update_one(
+                {"_id": officer_id},
+                {"$set": {"daily_resolution_counts": daily, "priority_distribution": pri_dist,
+                          "anomaly_flags": existing_flags[-30:], "baseline_computed_at": now}},
+                upsert=True))
+        except Exception as e:
+            logger.error("Officer anomaly detection error: %s", e)
+
+# ---------------------------------------------------------------------------
+# Citizen Impact Scorer
+# ---------------------------------------------------------------------------
+class ImpactScorer:
+    @staticmethod
+    async def compute_score(grievance_doc: dict) -> int:
+        """Compute a 0-100 impact score based on multiple factors."""
+        score = 0
+        dept = grievance_doc.get("department", "general")
+        district = grievance_doc.get("district")
+        # 1. Survival necessity (0-25)
+        score += DEPT_SURVIVAL_SCORES.get(dept, 5)
+        # 2. Vulnerability index (0-25)
+        if district and district in CENSUS_DATA:
+            vi = CENSUS_DATA[district].get("vulnerability_index", 0.5)
+            score += int(vi * 25)
+        else:
+            score += 12  # default mid-range
+        # 3. Duration/urgency (0-20) — heuristic from description
+        desc = grievance_doc.get("description", "").lower()
+        duration_score = 10  # default
+        if any(w in desc for w in ["months", "year", "long time", "several weeks"]):
+            duration_score = 18
+        elif any(w in desc for w in ["weeks", "fortnight", "15 days"]):
+            duration_score = 14
+        elif any(w in desc for w in ["days", "last week", "few days"]):
+            duration_score = 8
+        elif any(w in desc for w in ["today", "yesterday", "just now"]):
+            duration_score = 4
+        score += duration_score
+        # 4. Recurrence (0-15)
+        try:
+            loop = asyncio.get_event_loop()
+            location = grievance_doc.get("location")
+            recurrence_filter = {"department": dept,
+                                 "created_at": {"$gte": datetime.now(timezone.utc) - timedelta(days=365)}}
+            if district:
+                recurrence_filter["district"] = district
+            prev_count = await loop.run_in_executor(executor,
+                                                     lambda: db.grievances.count_documents(recurrence_filter))
+            score += min(prev_count * 3, 15)
+        except Exception:
+            pass
+        # 5. Seasonal urgency (0-15)
+        month = datetime.now(timezone.utc).month
+        if dept == "rural_water_supply" and month in (3, 4, 5, 6):
+            score += 15
+        elif dept == "sanitation" and month in (5, 6):
+            score += 10
+        elif dept == "infrastructure" and month in (6, 7, 8, 9):
+            score += 10
+        return min(score, 100)
+
+# ---------------------------------------------------------------------------
+# Systemic Issue Detection (Constellation Engine)
+# ---------------------------------------------------------------------------
+class ConstellationEngine:
+    @staticmethod
+    async def analyze_new_grievance(grievance_doc: dict):
+        """Background task: check if this grievance forms part of a systemic cluster."""
+        try:
+            location = grievance_doc.get("location")
+            dept = grievance_doc.get("department")
+            if not location or not dept:
+                return
+            coords = location.get("coordinates", [])
+            if len(coords) != 2:
+                return
+            loop = asyncio.get_event_loop()
+            cutoff = datetime.now(timezone.utc) - timedelta(days=30)
+            # Find nearby same-department grievances
+            nearby = await loop.run_in_executor(executor, lambda: list(db.grievances.find({
+                "department": dept,
+                "status": {"$in": ["pending", "in_progress", "escalated"]},
+                "created_at": {"$gte": cutoff},
+                "location": {
+                    "$near": {
+                        "$geometry": {"type": "Point", "coordinates": coords},
+                        "$maxDistance": 10000  # 10km
+                    }
+                },
+                "_id": {"$ne": grievance_doc["_id"]}
+            }).limit(20)))
+            if len(nearby) < 4:  # need 5 total including current
+                return
+            # Check semantic similarity
+            if not qdrant:
+                return
+            new_text = f"{grievance_doc['title']} {grievance_doc['description']}"
+            new_emb = await get_openai_embedding(new_text)
+            similar_ids = [grievance_doc["_id"]]
+            for g in nearby:
+                if g.get("systemic_issue_id"):
+                    continue
+                old_text = f"{g['title']} {g['description']}"
+                old_emb = await get_openai_embedding(old_text)
+                sim = sum(a * b for a, b in zip(new_emb, old_emb)) / (
+                    (sum(a**2 for a in new_emb)**0.5) * (sum(b**2 for b in old_emb)**0.5) + 1e-10)
+                if sim > 0.75:
+                    similar_ids.append(g["_id"])
+            if len(similar_ids) < 5:
+                return
+            # Cluster found — generate root cause analysis via GPT
+            cluster_grievances = [grievance_doc] + [g for g in nearby if g["_id"] in similar_ids]
+            summaries = [f"- {g['title']}: {g['description'][:200]}" for g in cluster_grievances[:10]]
+            prompt = (
+                "Analyze these clustered grievances from the same area and department. "
+                "They appear to share a common root cause.\n\n"
+                + "\n".join(summaries) +
+                "\n\nRespond in JSON: {\"title\": \"brief systemic issue title\", "
+                "\"root_cause_analysis\": \"2-3 sentence analysis of the probable root cause\", "
+                "\"estimated_population_affected\": number}"
+            )
+            result = await openai_chat([{"role": "user", "content": prompt}], json_mode=True)
+            analysis = json.loads(result) if result else {}
+            # Compute centroid
+            all_coords = [g.get("location", {}).get("coordinates", [0, 0]) for g in cluster_grievances if g.get("location")]
+            if all_coords:
+                avg_lon = sum(c[0] for c in all_coords) / len(all_coords)
+                avg_lat = sum(c[1] for c in all_coords) / len(all_coords)
+            else:
+                avg_lon, avg_lat = coords[0], coords[1]
+            # Get highest priority in cluster
+            pri_order = {"urgent": 0, "high": 1, "medium": 2, "low": 3}
+            highest_pri = min(cluster_grievances, key=lambda g: pri_order.get(g.get("priority", "medium"), 2))
+            issue_doc = {
+                "_id": str(uuid.uuid4()),
+                "title": analysis.get("title", f"Systemic {dept} issue in {grievance_doc.get('district', 'unknown')}"),
+                "root_cause_analysis": analysis.get("root_cause_analysis", "Multiple related complaints detected in close proximity."),
+                "department": dept,
+                "district": grievance_doc.get("district"),
+                "affected_area_center": {"type": "Point", "coordinates": [avg_lon, avg_lat]},
+                "affected_radius_km": 10.0,
+                "grievance_ids": similar_ids,
+                "estimated_population_affected": analysis.get("estimated_population_affected", 0),
+                "priority": highest_pri.get("priority", "high"),
+                "status": "detected",
+                "created_at": datetime.now(timezone.utc),
+                "updated_at": datetime.now(timezone.utc),
+                "assigned_officer": None,
+            }
+            await loop.run_in_executor(executor, db.systemic_issues.insert_one, issue_doc)
+            # Mark all grievances with systemic_issue_id
+            await loop.run_in_executor(executor, lambda: db.grievances.update_many(
+                {"_id": {"$in": similar_ids}},
+                {"$set": {"systemic_issue_id": issue_doc["_id"]}}))
+            logger.info("Systemic issue detected: %s with %d grievances", issue_doc["title"], len(similar_ids))
+        except Exception as e:
+            logger.error("Constellation engine error: %s", e)
+
+# ---------------------------------------------------------------------------
+# Predictive Forecaster
+# ---------------------------------------------------------------------------
+class PredictiveForecaster:
+    @staticmethod
+    async def generate_forecast(weeks_ahead: int = 2) -> dict:
+        """Generate a predictive forecast based on historical data and external signals."""
+        loop = asyncio.get_event_loop()
+        now = datetime.now(timezone.utc)
+        # Step 1: Historical baselines (past 1 year by district+department+week)
+        year_ago = now - timedelta(days=365)
+        all_grievances = await loop.run_in_executor(executor, lambda: list(
+            db.grievances.find({"created_at": {"$gte": year_ago}},
+                               {"district": 1, "department": 1, "created_at": 1}).limit(10000)))
+        baselines = {}
+        for g in all_grievances:
+            d = g.get("district") or "Unknown"
+            dept = g.get("department") or "general"
+            week = g["created_at"].isocalendar()[1]
+            key = (d, dept, week)
+            baselines[key] = baselines.get(key, 0) + 1
+        # Step 2: Seasonal baseline for the target week
+        target_week = (now + timedelta(weeks=weeks_ahead)).isocalendar()[1]
+        predictions = []
+        districts_seen = set()
+        for (d, dept, week), count in baselines.items():
+            districts_seen.add(d)
+            if week == target_week:
+                predictions.append({
+                    "district": d, "department": dept,
+                    "baseline_count": count, "predicted_count": count,
+                    "spike_factor": 1.0, "confidence": 0.5,
+                    "triggers": ["seasonal_baseline"],
+                    "recommended_actions": []
+                })
+        # Step 3: Weather correlation (if API key available)
+        weather_data = {}
+        if OPENWEATHERMAP_API_KEY:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                for district in list(districts_seen)[:10]:
+                    try:
+                        resp = await client.get(
+                            f"https://api.openweathermap.org/data/2.5/forecast",
+                            params={"q": f"{district},IN", "appid": OPENWEATHERMAP_API_KEY, "units": "metric"})
+                        if resp.status_code == 200:
+                            weather_data[district] = resp.json()
+                    except Exception:
+                        pass
+        # Step 4: Apply weather multipliers
+        for pred in predictions:
+            d = pred["district"]
+            if d in weather_data:
+                forecasts_list = weather_data[d].get("list", [])
+                max_rain = max((f.get("rain", {}).get("3h", 0) for f in forecasts_list), default=0)
+                max_temp = max((f.get("main", {}).get("temp_max", 30) for f in forecasts_list), default=30)
+                if max_rain > 50:
+                    if pred["department"] in ("rural_water_supply", "infrastructure"):
+                        pred["predicted_count"] = int(pred["baseline_count"] * 2.5)
+                        pred["spike_factor"] = 2.5
+                        pred["triggers"].append("heavy_rainfall")
+                        pred["confidence"] = 0.75
+                elif max_rain > 20:
+                    if pred["department"] in ("rural_water_supply", "infrastructure", "sanitation"):
+                        pred["predicted_count"] = int(pred["baseline_count"] * 1.5)
+                        pred["spike_factor"] = 1.5
+                        pred["triggers"].append("moderate_rainfall")
+                if max_temp > 42:
+                    if pred["department"] == "rural_water_supply":
+                        pred["predicted_count"] = int(pred["predicted_count"] * 2)
+                        pred["spike_factor"] *= 2
+                        pred["triggers"].append("heat_wave")
+                        pred["confidence"] = 0.8
+        # Step 5: Seasonal calendar rules
+        month = (now + timedelta(weeks=weeks_ahead)).month
+        for pred in predictions:
+            if month in (5, 6) and pred["department"] == "sanitation":
+                pred["predicted_count"] = int(pred["predicted_count"] * 1.5)
+                pred["spike_factor"] *= 1.5
+                pred["triggers"].append("pre_monsoon_season")
+        # Step 6: Generate recommended actions via GPT for top spikes
+        predictions.sort(key=lambda p: p["spike_factor"], reverse=True)
+        top_preds = [p for p in predictions if p["spike_factor"] > 1.2][:5]
+        if top_preds:
+            pred_summary = "\n".join([
+                f"- {p['district']}, {p['department']}: {p['spike_factor']:.1f}x spike expected, triggers: {', '.join(p['triggers'])}"
+                for p in top_preds])
+            prompt = (
+                "You are an advisor for the Odisha Panchayati Raj & Drinking Water Department. "
+                "Based on these predicted grievance spikes for the next 2 weeks, suggest 1-2 specific "
+                "recommended actions for each prediction.\n\n" + pred_summary +
+                "\n\nRespond in JSON: {\"recommendations\": [{\"district\": \"...\", \"department\": \"...\", \"actions\": [\"...\", \"...\"]}]}"
+            )
+            try:
+                result = await openai_chat([{"role": "user", "content": prompt}], json_mode=True)
+                if result:
+                    recs = json.loads(result).get("recommendations", [])
+                    rec_map = {(r["district"], r["department"]): r.get("actions", []) for r in recs}
+                    for p in top_preds:
+                        p["recommended_actions"] = rec_map.get((p["district"], p["department"]), [])
+            except Exception:
+                pass
+        forecast_doc = {
+            "_id": str(uuid.uuid4()),
+            "forecast_date": now,
+            "forecast_period_start": now + timedelta(weeks=1),
+            "forecast_period_end": now + timedelta(weeks=1 + weeks_ahead),
+            "predictions": predictions[:50],
+            "weather_data_used": {d: True for d in weather_data},
+            "generated_by": "system",
+        }
+        await loop.run_in_executor(executor, db.forecasts.insert_one, forecast_doc)
+        return forecast_doc
+
+# ---------------------------------------------------------------------------
+# Scheme-Grievance Matcher
+# ---------------------------------------------------------------------------
+class SchemeGrievanceMatcher:
+    @staticmethod
+    async def find_matching_scheme(title: str, description: str, department: str) -> Optional[Dict]:
+        """Check if any scheme in the knowledge base matches this grievance."""
+        if not qdrant:
+            return None
+        try:
+            text = f"{title} {description}"
+            embedding = await get_openai_embedding(text)
+            dept_filter = Filter(must=[FieldCondition(key="department", match=MatchValue(value=department))])
+            results = qdrant.query_points(
+                collection_name="schemes", query=embedding, query_filter=dept_filter,
+                limit=1, with_payload=True, with_vectors=False)
+            if not results.points:
+                return None
+            top = results.points[0]
+            if top.score < 0.75:
+                return None
+            scheme_name = top.payload.get("name", "Unknown Scheme")
+            eligibility = top.payload.get("eligibility", "")
+            # Quick eligibility check via GPT
+            prompt = (
+                f"Given this grievance: \"{title} - {description[:500]}\"\n"
+                f"And this government scheme: {scheme_name}\nEligibility: {eligibility}\n\n"
+                "Is the citizen likely eligible for this scheme? "
+                "Respond in JSON: {\"eligible\": true/false, \"reasoning\": \"one sentence\"}"
+            )
+            result = await openai_chat([{"role": "user", "content": prompt}], json_mode=True)
+            elig_data = json.loads(result) if result else {"eligible": False, "reasoning": ""}
+            return {
+                "scheme_id": str(top.id), "scheme_name": scheme_name,
+                "relevance_score": round(top.score, 3),
+                "eligibility_likely": elig_data.get("eligible", False),
+                "eligibility_reasoning": elig_data.get("reasoning", ""),
+            }
+        except Exception as e:
+            logger.error("Scheme matching error: %s", e)
+            return None
+
+# ---------------------------------------------------------------------------
+# Cross-Department Dependency Analyzer
+# ---------------------------------------------------------------------------
+class CrossDeptAnalyzer:
+    @staticmethod
+    async def analyze_dependencies(title: str, description: str) -> Optional[List[Dict]]:
+        """Determine if a grievance requires multi-department coordination."""
+        try:
+            prompt = (
+                "You are an analyst for the Odisha Panchayati Raj & Drinking Water Department.\n"
+                "Departments: panchayati_raj, rural_water_supply, mgnregs, rural_housing, "
+                "rural_livelihoods, sanitation, infrastructure, general\n\n"
+                f"Grievance: {title} - {description[:1000]}\n\n"
+                "Does this grievance require action from MULTIPLE departments? "
+                "Only say yes if it genuinely needs coordination (e.g., waterlogged road needs drainage + road repair).\n"
+                "Respond in JSON:\n"
+                "{\"is_multi_department\": true/false, \"sub_tasks\": ["
+                "{\"department\": \"...\", \"task\": \"...\", \"depends_on\": [\"dept_name_or_empty\"]}]}"
+            )
+            result = await openai_chat([{"role": "user", "content": prompt}], json_mode=True)
+            if not result:
+                return None
+            data = json.loads(result)
+            if not data.get("is_multi_department"):
+                return None
+            sub_tasks = []
+            for st in data.get("sub_tasks", []):
+                sub_tasks.append({
+                    "id": str(uuid.uuid4()),
+                    "department": st.get("department", "general"),
+                    "task": st.get("task", ""),
+                    "depends_on": st.get("depends_on", []),
+                    "status": "pending",
+                    "assigned_officer": None,
+                })
+            return sub_tasks if len(sub_tasks) >= 2 else None
+        except Exception as e:
+            logger.error("Cross-dept analysis error: %s", e)
+            return None
+
+# ---------------------------------------------------------------------------
+# Service Memory Deadline Estimator
+# ---------------------------------------------------------------------------
+class DeadlineEstimator:
+    @staticmethod
+    async def estimate_from_service_memory(title: str, description: str, created_at: datetime) -> Optional[datetime]:
+        """Query service memory for similar resolved cases and estimate resolution deadline."""
+        if not qdrant:
+            return None
+        try:
+            text = f"{title} {description}"
+            embedding = await get_openai_embedding(text)
+            results = qdrant.query_points(
+                collection_name="service_memory", query=embedding,
+                limit=5, with_payload=True, with_vectors=False)
+            if not results.points:
+                return None
+            durations = []
+            loop = asyncio.get_event_loop()
+            for p in results.points:
+                gid = p.payload.get("grievance_id")
+                if not gid:
+                    continue
+                g = await loop.run_in_executor(executor, db.grievances.find_one,
+                                               {"_id": gid, "status": "resolved"})
+                if g and g.get("updated_at") and g.get("created_at"):
+                    dur = (g["updated_at"] - g["created_at"]).total_seconds()
+                    if dur > 0:
+                        durations.append(dur)
+            if not durations:
+                return None
+            median_secs = statistics.median(durations)
+            return created_at + timedelta(seconds=median_secs)
+        except Exception as e:
+            logger.error("Deadline estimation error: %s", e)
+            return None
+
+# ---------------------------------------------------------------------------
 # Core Grievance Processing
 # ---------------------------------------------------------------------------
 SELF_RESOLVE_CONFIDENCE_THRESHOLD = 0.60
 
-async def process_grievance(data: GrievanceCreate, db, user: Optional[dict] = None) -> GrievanceResponse:
+async def process_grievance(data: GrievanceCreate, db, user: Optional[dict] = None,
+                            attachment_ids: Optional[List[str]] = None) -> GrievanceResponse:
     text = f"{data.title} {data.description}"
     sentiment = await SentimentAnalyzer.analyze_sentiment(text)
     department, priority, officer_category, tier = await GrievanceClassifier.classify(data.title, data.description)
@@ -883,7 +1552,6 @@ async def process_grievance(data: GrievanceCreate, db, user: Optional[dict] = No
             ai_resolution, confidence_score = await ResolutionGenerator.generate_citizen_guidance(
                 data.title, data.description, citizen_name,
                 sentiment.value, data.language.value, all_context)
-            # If confidence too low for auto-send, demote to officer_action
             if confidence_score < SELF_RESOLVE_CONFIDENCE_THRESHOLD:
                 tier = ResolutionTier.OFFICER_ACTION
         else:
@@ -891,33 +1559,59 @@ async def process_grievance(data: GrievanceCreate, db, user: Optional[dict] = No
                 data.title, data.description, citizen_name,
                 sentiment.value, data.language.value, all_context)
 
-    # Status: never auto-resolve; escalation tier → escalated, everything else → pending
     g_status = GrievanceStatus.ESCALATED if tier == ResolutionTier.ESCALATION else GrievanceStatus.PENDING
 
     tracking = generate_tracking_number(db)
     sla = calculate_sla_deadline(priority)
+    now = datetime.now(timezone.utc)
+
+    # Estimate resolution deadline from service memory
+    estimated_deadline = await DeadlineEstimator.estimate_from_service_memory(data.title, data.description, now)
+
+    # Scheme-grievance matching
+    scheme_match = await SchemeGrievanceMatcher.find_matching_scheme(data.title, data.description, department.value)
+
+    # Cross-department dependency analysis
+    sub_tasks = await CrossDeptAnalyzer.analyze_dependencies(data.title, data.description)
+
     doc = {
         "_id": str(uuid.uuid4()), "tracking_number": tracking,
         "title": data.title, "description": data.description,
         "citizen_name": None if data.is_anonymous else data.citizen_name,
         "citizen_email": None if data.is_anonymous else data.citizen_email,
         "citizen_phone": None if data.is_anonymous else data.citizen_phone,
-        "is_anonymous": data.is_anonymous, "language": data.language.value,
+        "is_anonymous": data.is_anonymous,
+        "is_public": data.is_public and not data.is_anonymous,
+        "language": data.language.value,
         "district": data.district, "department": department.value,
         "priority": priority.value, "officer_category": officer_category.value,
         "status": g_status.value, "sentiment": sentiment.value,
         "resolution_tier": tier.value,
-        "created_at": datetime.now(timezone.utc), "updated_at": datetime.now(timezone.utc),
-        "sla_deadline": sla, "ai_resolution": ai_resolution,
+        "created_at": now, "updated_at": now,
+        "sla_deadline": sla,
+        "estimated_resolution_deadline": estimated_deadline,
+        "ai_resolution": ai_resolution,
         "manual_resolution": None, "resolution_type": None,
         "confidence_score": confidence_score, "assigned_officer": None,
         "resolution_feedback": None, "notes": [],
         "location": {"type": "Point", "coordinates": [data.location.longitude, data.location.latitude]}
             if data.location and data.location.longitude and data.location.latitude else None,
         "citizen_user_id": str(user["_id"]) if user else None,
+        "attachments": attachment_ids or [],
+        "scheme_match": scheme_match,
+        "sub_tasks": sub_tasks or [],
+        "systemic_issue_id": None,
+        "impact_score": None,
     }
     loop = asyncio.get_event_loop()
     await loop.run_in_executor(executor, db.grievances.insert_one, doc)
+
+    # Compute impact score (needs doc in DB for recurrence check)
+    impact_score = await ImpactScorer.compute_score(doc)
+    await loop.run_in_executor(executor, lambda: db.grievances.update_one(
+        {"_id": doc["_id"]}, {"$set": {"impact_score": impact_score}}))
+    doc["impact_score"] = impact_score
+
     return GrievanceResponse(**doc, id=doc["_id"])
 
 # ---------------------------------------------------------------------------
@@ -1061,17 +1755,100 @@ async def admin_delete_user(user_id: str,
 # GRIEVANCE ENDPOINTS
 # ---------------------------------------------------------------------------
 @app.post("/grievances", response_model=GrievanceResponse)
-async def create_grievance(data: GrievanceCreate, background_tasks: BackgroundTasks,
-                           user=Depends(get_optional_user), db=Depends(get_db)):
+async def create_grievance(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    user=Depends(get_optional_user),
+    db=Depends(get_db),
+    # Form fields (used when submitting with files via multipart/form-data)
+    title: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+    language: Optional[str] = Form(None),
+    district: Optional[str] = Form(None),
+    is_anonymous: Optional[str] = Form(None),
+    is_public: Optional[str] = Form(None),
+    citizen_name: Optional[str] = Form(None),
+    citizen_email: Optional[str] = Form(None),
+    citizen_phone: Optional[str] = Form(None),
+    latitude: Optional[str] = Form(None),
+    longitude: Optional[str] = Form(None),
+    files: List[UploadFile] = File(default=[]),
+):
     try:
-        result = await process_grievance(data, db, user)
-        # Strip officer-only AI drafts from the response when the caller is a citizen
-        # (or unauthenticated). Only self_resolvable guidance should be shown to citizens.
+        client_ip = request.client.host if request.client else ""
+        # Determine if this is a form submission or JSON body
+        ct = request.headers.get("content-type", "")
+        if title is not None and description is not None:
+            # multipart/form-data submission
+            loc = None
+            try:
+                lat_f = float(latitude) if latitude else None
+                lon_f = float(longitude) if longitude else None
+                if lat_f is not None and lon_f is not None:
+                    loc = Geolocation(latitude=lat_f, longitude=lon_f)
+            except (ValueError, TypeError):
+                pass
+            data = GrievanceCreate(
+                title=title, description=description,
+                language=Language(language) if language else Language.ENGLISH,
+                district=district or None,
+                is_anonymous=is_anonymous in ("true", "True", "1", "on") if is_anonymous else False,
+                is_public=is_public in ("true", "True", "1", "on") if is_public else False,
+                citizen_name=citizen_name, citizen_email=citizen_email,
+                citizen_phone=citizen_phone, location=loc,
+            )
+        else:
+            # JSON body fallback
+            body = await request.json()
+            data = GrievanceCreate(**body)
+
+        # Spam check
+        if user:
+            is_blocked, reason = await SpamDetector.check_and_update(
+                str(user["_id"]), data.title, data.description, client_ip)
+            if is_blocked:
+                raise HTTPException(status_code=403, detail=reason)
+
+        # Handle file uploads
+        attachment_ids = []
+        if files:
+            if len(files) > MAX_FILES_PER_GRIEVANCE:
+                raise HTTPException(status_code=400,
+                                    detail=f"Maximum {MAX_FILES_PER_GRIEVANCE} files allowed")
+            loop = asyncio.get_event_loop()
+            for f in files:
+                if f.content_type and f.content_type not in ALLOWED_MIME_TYPES:
+                    raise HTTPException(status_code=400,
+                                        detail=f"File type {f.content_type} not allowed")
+                content = await f.read()
+                if len(content) > MAX_FILE_SIZE:
+                    raise HTTPException(status_code=400,
+                                        detail=f"File {f.filename} exceeds 50MB limit")
+                fid = await loop.run_in_executor(executor, lambda c=content, fn=f.filename, ct=f.content_type: gfs.put(
+                    c, filename=fn, content_type=ct,
+                    metadata={"uploaded_at": datetime.now(timezone.utc).isoformat()}))
+                attachment_ids.append(str(fid))
+
+        result = await process_grievance(data, db, user, attachment_ids=attachment_ids)
+
+        # Background tasks: pattern analysis and constellation engine
+        if user:
+            background_tasks.add_task(PatternAnalyzer.analyze,
+                                      str(user["_id"]), data.title, data.description, client_ip)
+        # Get the full doc for constellation engine
+        loop = asyncio.get_event_loop()
+        full_doc = await loop.run_in_executor(executor, db.grievances.find_one, {"_id": result.id})
+        if full_doc:
+            background_tasks.add_task(ConstellationEngine.analyze_new_grievance, full_doc)
+
+        # Strip officer-only AI drafts for citizens
         is_citizen = user is None or user.get("role") == UserRole.CITIZEN.value
         if is_citizen and result.resolution_tier != ResolutionTier.SELF_RESOLVABLE:
             result.ai_resolution = None
             result.confidence_score = None
         return result
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error("Error creating grievance: %s", e)
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -1080,6 +1857,8 @@ async def create_grievance(data: GrievanceCreate, background_tasks: BackgroundTa
 async def get_grievances(
     status: Optional[GrievanceStatus] = None, department: Optional[Department] = None,
     priority: Optional[Priority] = None, district: Optional[str] = None,
+    group_by_date: bool = Query(False),
+    sort_by: Optional[str] = Query(None),
     limit: int = Query(50, ge=1, le=100), skip: int = Query(0, ge=0, le=10000),
     user=Depends(get_current_user), db=Depends(get_db)):
     try:
@@ -1094,18 +1873,49 @@ async def get_grievances(
             fq["district"] = district
         if user["role"] == UserRole.CITIZEN.value:
             fq["citizen_user_id"] = str(user["_id"])
-        def fetch():
-            return [convert_db_grievance(g) for g in
-                    db.grievances.find(fq).sort("created_at", -1).skip(skip).limit(limit)]
-        loop = asyncio.get_event_loop()
-        grievances = await loop.run_in_executor(executor, fetch)
-        # Strip officer-only AI drafts when the requesting user is a citizen
+
+        if group_by_date:
+            # Aggregation: group by date, sort by priority within each date
+            def fetch_grouped():
+                pipeline = [
+                    {"$match": fq},
+                    {"$addFields": {
+                        "date_group": {"$dateToString": {"format": "%Y-%m-%d", "date": "$created_at"}},
+                        "priority_order": {"$switch": {
+                            "branches": [
+                                {"case": {"$eq": ["$priority", "urgent"]}, "then": 0},
+                                {"case": {"$eq": ["$priority", "high"]}, "then": 1},
+                                {"case": {"$eq": ["$priority", "medium"]}, "then": 2},
+                            ], "default": 3
+                        }}
+                    }},
+                    {"$sort": {"date_group": -1, "priority_order": 1}},
+                    {"$skip": skip}, {"$limit": limit}
+                ]
+                return [convert_db_grievance(g) for g in db.grievances.aggregate(pipeline)]
+            loop = asyncio.get_event_loop()
+            grievances = await loop.run_in_executor(executor, fetch_grouped)
+        elif sort_by == "impact_score":
+            def fetch_by_impact():
+                return [convert_db_grievance(g) for g in
+                        db.grievances.find(fq).sort("impact_score", -1).skip(skip).limit(limit)]
+            loop = asyncio.get_event_loop()
+            grievances = await loop.run_in_executor(executor, fetch_by_impact)
+        else:
+            def fetch():
+                return [convert_db_grievance(g) for g in
+                        db.grievances.find(fq).sort("created_at", -1).skip(skip).limit(limit)]
+            loop = asyncio.get_event_loop()
+            grievances = await loop.run_in_executor(executor, fetch)
+
         if user["role"] == UserRole.CITIZEN.value:
             for g in grievances:
                 if g.get("resolution_tier") != "self_resolvable":
                     g["ai_resolution"] = None
                     g["confidence_score"] = None
         return [GrievanceResponse(**g, id=g["_id"]) for g in grievances]
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error("Error getting grievances: %s", e)
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -1163,6 +1973,9 @@ async def resolve_grievance(grievance_id: str, resolution: ManualResolution,
         g = await loop2.run_in_executor(executor, db.grievances.find_one, {"_id": grievance_id})
         if g:
             background_tasks.add_task(add_to_service_memory, g, resolution.resolution, resolution.officer)
+    # Officer anomaly detection
+    background_tasks.add_task(OfficerAnomalyDetector.check_after_resolution,
+                              str(user["_id"]), user["full_name"], resolution.resolution)
     def update():
         return db.grievances.update_one({"_id": grievance_id}, {"$set": update_data})
     loop = asyncio.get_event_loop()
@@ -1304,6 +2117,9 @@ async def approve_draft(grievance_id: str, req: ApproveDraftRequest,
     }
     # Also add to service memory
     background_tasks.add_task(add_to_service_memory, g, final_text, user["full_name"])
+    # Officer anomaly detection
+    background_tasks.add_task(OfficerAnomalyDetector.check_after_resolution,
+                              str(user["_id"]), user["full_name"], final_text)
     await loop.run_in_executor(executor, lambda: db.grievances.update_one(
         {"_id": grievance_id}, {"$set": update_data}))
     return await get_grievance(grievance_id, user, db)
@@ -1663,6 +2479,14 @@ async def get_analytics(days: int = Query(30, ge=1, le=365),
             "created_at": {"$gte": start_date},
             "status": {"$in": ["pending", "in_progress", "escalated"]},
             "sla_deadline": {"$lt": now}})
+        # Deadline alerts (near-breach: within 25% of remaining time)
+        deadline_alert_count = db.grievances.count_documents({
+            "created_at": {"$gte": start_date},
+            "status": {"$in": ["pending", "in_progress", "escalated"]},
+            "$or": [
+                {"sla_deadline": {"$lt": now}},
+                {"estimated_resolution_deadline": {"$lt": now, "$ne": None}},
+            ]})
         # Status distribution
         status_results = list(db.grievances.aggregate([
             {"$match": {"created_at": {"$gte": start_date}}},
@@ -1687,6 +2511,7 @@ async def get_analytics(days: int = Query(30, ge=1, le=365),
                 "escalated": escalated,
                 "sent": sent_results, "dept": dept_results, "avg_hours": avg_hours,
                 "pending_count": pending_count, "sla_breached_count": sla_breached_count,
+                "deadline_alert_count": deadline_alert_count,
                 "status_dist": status_dist,
                 "top_districts": top_districts, "top_complaints": top_complaints}
     loop = asyncio.get_event_loop()
@@ -1696,6 +2521,7 @@ async def get_analytics(days: int = Query(30, ge=1, le=365),
         ai_drafted=data["ai_drafted"],
         escalated_to_human=data["escalated"], avg_resolution_time=round(data["avg_hours"], 1),
         pending_count=data["pending_count"], sla_breached_count=data["sla_breached_count"],
+        deadline_alerts=data.get("deadline_alert_count", 0),
         status_distribution=data["status_dist"],
         sentiment_distribution={i["_id"]: i["count"] for i in data["sent"]},
         department_distribution={i["_id"]: i["count"] for i in data["dept"]},
@@ -1723,6 +2549,493 @@ async def get_geo_analytics(days: int = Query(30, ge=1, le=365),
                                 region_distribution={}, district_distribution=data["district_counts"])
 
 # ---------------------------------------------------------------------------
+# ATTACHMENT ENDPOINTS
+# ---------------------------------------------------------------------------
+@app.get("/grievances/{grievance_id}/attachments")
+async def get_attachments(grievance_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+    grievance_id = validate_uuid(grievance_id, "grievance_id")
+    loop = asyncio.get_event_loop()
+    g = await loop.run_in_executor(executor, db.grievances.find_one, {"_id": grievance_id})
+    if not g:
+        raise HTTPException(status_code=404, detail="Grievance not found")
+    att_ids = g.get("attachments", [])
+    result = []
+    for aid in att_ids:
+        try:
+            fobj = await loop.run_in_executor(executor, lambda a=aid: gfs.get(ObjectId(a)))
+            result.append({"id": aid, "filename": fobj.filename, "content_type": fobj.content_type,
+                           "length": fobj.length})
+        except Exception:
+            pass
+    return result
+
+@app.get("/attachments/{attachment_id}")
+async def get_attachment(attachment_id: str):
+    try:
+        loop = asyncio.get_event_loop()
+        fobj = await loop.run_in_executor(executor, lambda: gfs.get(ObjectId(attachment_id)))
+        def iterfile():
+            while True:
+                chunk = fobj.read(8192)
+                if not chunk:
+                    break
+                yield chunk
+        return StreamingResponse(iterfile(), media_type=fobj.content_type or "application/octet-stream",
+                                 headers={"Content-Disposition": f'inline; filename="{fobj.filename}"'})
+    except Exception:
+        raise HTTPException(status_code=404, detail="Attachment not found")
+
+# ---------------------------------------------------------------------------
+# IP GEOLOCATION ENDPOINT
+# ---------------------------------------------------------------------------
+@app.get("/location/from-ip")
+@limiter.limit("5/minute")
+async def location_from_ip(request: Request):
+    ip = request.headers.get("X-Forwarded-For", "").split(",")[0].strip()
+    if not ip:
+        ip = request.headers.get("X-Real-IP", "")
+    if not ip and request.client:
+        ip = request.client.host
+    if not ip:
+        raise HTTPException(status_code=400, detail="Could not determine IP address")
+    try:
+        addr = ipaddress.ip_address(ip)
+        if addr.is_private or addr.is_loopback:
+            raise HTTPException(status_code=400, detail="Private/localhost IP — use browser geolocation instead")
+    except ValueError:
+        pass
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(f"http://ip-api.com/json/{ip}",
+                                    params={"fields": "status,lat,lon,city,regionName,country"})
+            data = resp.json()
+            if data.get("status") != "success":
+                raise HTTPException(status_code=400, detail="IP geolocation failed")
+            return {"latitude": data.get("lat"), "longitude": data.get("lon"),
+                    "city": data.get("city"), "region": data.get("regionName"),
+                    "country": data.get("country")}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("IP geolocation error: %s", e)
+        raise HTTPException(status_code=500, detail="Geolocation service error")
+
+# ---------------------------------------------------------------------------
+# SPAM / PHOTO ID ENDPOINTS
+# ---------------------------------------------------------------------------
+@app.post("/auth/upload-photo-id")
+async def upload_photo_id(request: Request, file: UploadFile = File(...),
+                          user=Depends(get_current_user), db=Depends(get_db)):
+    if user["role"] != UserRole.CITIZEN.value:
+        raise HTTPException(status_code=403, detail="Only citizens can upload photo ID")
+    if file.content_type not in ("image/jpeg", "image/png", "image/webp"):
+        raise HTTPException(status_code=400, detail="Only JPEG, PNG, or WebP images allowed")
+    content = await file.read()
+    if len(content) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File exceeds 10MB limit")
+    loop = asyncio.get_event_loop()
+    fid = await loop.run_in_executor(executor, lambda: gfs.put(
+        content, filename=f"photo_id_{user['_id']}", content_type=file.content_type))
+    await loop.run_in_executor(executor, lambda: db.spam_tracking.update_one(
+        {"_id": str(user["_id"])},
+        {"$set": {"photo_id_file_id": str(fid), "photo_id_status": "pending_review"}},
+        upsert=True))
+    return {"detail": "Photo ID uploaded for review", "status": "pending_review"}
+
+@app.get("/admin/spam-flagged")
+async def get_spam_flagged(user=Depends(require_role(UserRole.ADMIN.value)), db=Depends(get_db)):
+    loop = asyncio.get_event_loop()
+    records = await loop.run_in_executor(executor, lambda: list(
+        db.spam_tracking.find({"is_blocked": True}).limit(50)))
+    result = []
+    for r in records:
+        u = await loop.run_in_executor(executor, db.users.find_one, {"_id": r["_id"]})
+        result.append({
+            "user_id": r["_id"],
+            "username": u["username"] if u else "unknown",
+            "full_name": u["full_name"] if u else "unknown",
+            "spam_score": r.get("spam_score", 0),
+            "blocked_at": r.get("blocked_at"),
+            "photo_id_status": r.get("photo_id_status", "none"),
+            "photo_id_file_id": r.get("photo_id_file_id"),
+            "pattern_flags": r.get("pattern_flags", [])[-5:],
+        })
+    return result
+
+@app.put("/admin/spam-flagged/{user_id}/review")
+async def review_spam_user(user_id: str, approved: bool = Query(...),
+                           user=Depends(require_role(UserRole.ADMIN.value)), db=Depends(get_db)):
+    user_id = validate_uuid(user_id, "user_id")
+    loop = asyncio.get_event_loop()
+    if approved:
+        await loop.run_in_executor(executor, lambda: db.spam_tracking.update_one(
+            {"_id": user_id},
+            {"$set": {"is_blocked": False, "spam_score": 0.0, "photo_id_status": "approved",
+                      "pattern_flags": []}}))
+        return {"detail": "User unblocked and verified"}
+    else:
+        await loop.run_in_executor(executor, lambda: db.spam_tracking.update_one(
+            {"_id": user_id}, {"$set": {"photo_id_status": "rejected"}}))
+        return {"detail": "Photo ID rejected, user remains blocked"}
+
+@app.get("/auth/spam-status")
+async def get_spam_status(user=Depends(get_current_user), db=Depends(get_db)):
+    loop = asyncio.get_event_loop()
+    record = await loop.run_in_executor(executor, db.spam_tracking.find_one, {"_id": str(user["_id"])})
+    if not record:
+        return {"is_blocked": False, "photo_id_status": "none"}
+    return {"is_blocked": record.get("is_blocked", False),
+            "photo_id_status": record.get("photo_id_status", "none")}
+
+# ---------------------------------------------------------------------------
+# DEADLINE CHECK / AUTO-ESCALATION ENDPOINT
+# ---------------------------------------------------------------------------
+@app.post("/grievances/check-deadlines")
+async def check_deadlines(user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value)),
+                          db=Depends(get_db)):
+    loop = asyncio.get_event_loop()
+    now = datetime.now(timezone.utc)
+    def find_breached():
+        return list(db.grievances.find({
+            "status": {"$in": ["pending", "in_progress"]},
+            "$or": [
+                {"sla_deadline": {"$lt": now}},
+                {"estimated_resolution_deadline": {"$lt": now, "$ne": None}}
+            ]
+        }).limit(100))
+    breached = await loop.run_in_executor(executor, find_breached)
+    escalated_ids = []
+    for g in breached:
+        if g["status"] != "escalated":
+            note = {"id": str(uuid.uuid4()), "content": "Auto-escalated: deadline breached",
+                    "officer": "System", "note_type": "internal",
+                    "created_at": now}
+            await loop.run_in_executor(executor, lambda gid=g["_id"]: db.grievances.update_one(
+                {"_id": gid},
+                {"$set": {"status": "escalated", "updated_at": now},
+                 "$push": {"notes": note}}))
+            escalated_ids.append(g["_id"])
+    return {"escalated_count": len(escalated_ids), "escalated_ids": escalated_ids}
+
+# ---------------------------------------------------------------------------
+# SUB-TASK ENDPOINTS (Cross-Department Dependencies)
+# ---------------------------------------------------------------------------
+@app.put("/grievances/{grievance_id}/sub-tasks/{sub_task_id}/status")
+async def update_sub_task_status(grievance_id: str, sub_task_id: str,
+                                  new_status: str = Query(...),
+                                  user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value)),
+                                  db=Depends(get_db)):
+    grievance_id = validate_uuid(grievance_id, "grievance_id")
+    loop = asyncio.get_event_loop()
+    g = await loop.run_in_executor(executor, db.grievances.find_one, {"_id": grievance_id})
+    if not g:
+        raise HTTPException(status_code=404, detail="Grievance not found")
+    sub_tasks = g.get("sub_tasks", [])
+    found = False
+    for st in sub_tasks:
+        if st["id"] == sub_task_id:
+            st["status"] = new_status
+            found = True
+            break
+    if not found:
+        raise HTTPException(status_code=404, detail="Sub-task not found")
+    all_resolved = all(st["status"] == "resolved" for st in sub_tasks) if sub_tasks else False
+    update = {"sub_tasks": sub_tasks, "updated_at": datetime.now(timezone.utc)}
+    if all_resolved:
+        update["status"] = GrievanceStatus.RESOLVED.value
+    await loop.run_in_executor(executor, lambda: db.grievances.update_one(
+        {"_id": grievance_id}, {"$set": update}))
+    return {"detail": "Sub-task updated", "all_resolved": all_resolved}
+
+@app.put("/grievances/{grievance_id}/sub-tasks/{sub_task_id}/assign")
+async def assign_sub_task(grievance_id: str, sub_task_id: str,
+                          assignment: GrievanceAssignment,
+                          user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value)),
+                          db=Depends(get_db)):
+    grievance_id = validate_uuid(grievance_id, "grievance_id")
+    loop = asyncio.get_event_loop()
+    g = await loop.run_in_executor(executor, db.grievances.find_one, {"_id": grievance_id})
+    if not g:
+        raise HTTPException(status_code=404, detail="Grievance not found")
+    sub_tasks = g.get("sub_tasks", [])
+    found = False
+    for st in sub_tasks:
+        if st["id"] == sub_task_id:
+            st["assigned_officer"] = assignment.officer_name
+            st["status"] = "in_progress"
+            found = True
+            break
+    if not found:
+        raise HTTPException(status_code=404, detail="Sub-task not found")
+    await loop.run_in_executor(executor, lambda: db.grievances.update_one(
+        {"_id": grievance_id}, {"$set": {"sub_tasks": sub_tasks, "updated_at": datetime.now(timezone.utc)}}))
+    return {"detail": "Sub-task assigned"}
+
+@app.get("/grievances/multi-department")
+async def get_multi_dept_grievances(
+    department: Optional[str] = None,
+    user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value)),
+    db=Depends(get_db)):
+    loop = asyncio.get_event_loop()
+    fq = {"sub_tasks": {"$exists": True, "$ne": []}}
+    if department:
+        fq["sub_tasks.department"] = department
+    grievances = await loop.run_in_executor(executor, lambda: [
+        convert_db_grievance(g) for g in db.grievances.find(fq).sort("created_at", -1).limit(50)])
+    return [GrievanceResponse(**g, id=g["_id"]) for g in grievances]
+
+# ---------------------------------------------------------------------------
+# SYSTEMIC ISSUES ENDPOINTS
+# ---------------------------------------------------------------------------
+@app.get("/systemic-issues")
+async def get_systemic_issues(
+    department: Optional[str] = None, district: Optional[str] = None,
+    issue_status: Optional[str] = Query(None, alias="status"),
+    user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value)),
+    db=Depends(get_db)):
+    fq = {}
+    if department: fq["department"] = department
+    if district: fq["district"] = district
+    if issue_status: fq["status"] = issue_status
+    loop = asyncio.get_event_loop()
+    issues = await loop.run_in_executor(executor, lambda: list(
+        db.systemic_issues.find(fq).sort("created_at", -1).limit(50)))
+    return [SystemicIssueResponse(**{**i, "id": i["_id"]}) for i in issues]
+
+@app.get("/systemic-issues/{issue_id}")
+async def get_systemic_issue(issue_id: str,
+                             user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value)),
+                             db=Depends(get_db)):
+    loop = asyncio.get_event_loop()
+    issue = await loop.run_in_executor(executor, db.systemic_issues.find_one, {"_id": issue_id})
+    if not issue:
+        raise HTTPException(status_code=404, detail="Systemic issue not found")
+    return SystemicIssueResponse(**{**issue, "id": issue["_id"]})
+
+@app.put("/systemic-issues/{issue_id}/status")
+async def update_systemic_issue_status(issue_id: str, new_status: str = Query(...),
+                                        user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value)),
+                                        db=Depends(get_db)):
+    loop = asyncio.get_event_loop()
+    result = await loop.run_in_executor(executor, lambda: db.systemic_issues.update_one(
+        {"_id": issue_id}, {"$set": {"status": new_status, "updated_at": datetime.now(timezone.utc)}}))
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Systemic issue not found")
+    return {"detail": "Status updated"}
+
+@app.put("/systemic-issues/{issue_id}/assign")
+async def assign_systemic_issue(issue_id: str, assignment: GrievanceAssignment,
+                                 user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value)),
+                                 db=Depends(get_db)):
+    loop = asyncio.get_event_loop()
+    result = await loop.run_in_executor(executor, lambda: db.systemic_issues.update_one(
+        {"_id": issue_id}, {"$set": {"assigned_officer": assignment.officer_name,
+                                      "status": "acknowledged", "updated_at": datetime.now(timezone.utc)}}))
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Systemic issue not found")
+    return {"detail": "Officer assigned"}
+
+# ---------------------------------------------------------------------------
+# FORECASTING ENDPOINTS
+# ---------------------------------------------------------------------------
+@app.post("/forecasts/generate")
+async def generate_forecast(user=Depends(require_role(UserRole.ADMIN.value)), db=Depends(get_db)):
+    forecast = await PredictiveForecaster.generate_forecast()
+    return ForecastResponse(**{**forecast, "id": forecast["_id"]})
+
+@app.get("/forecasts/latest")
+async def get_latest_forecast(user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value)),
+                              db=Depends(get_db)):
+    loop = asyncio.get_event_loop()
+    f = await loop.run_in_executor(executor, lambda: db.forecasts.find_one(sort=[("forecast_date", -1)]))
+    if not f:
+        return {"detail": "No forecasts available"}
+    return ForecastResponse(**{**f, "id": f["_id"]})
+
+@app.get("/forecasts")
+async def get_forecasts(limit: int = Query(10, ge=1, le=50),
+                        user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value)),
+                        db=Depends(get_db)):
+    loop = asyncio.get_event_loop()
+    forecasts = await loop.run_in_executor(executor, lambda: list(
+        db.forecasts.find().sort("forecast_date", -1).limit(limit)))
+    return [ForecastResponse(**{**f, "id": f["_id"]}) for f in forecasts]
+
+# ---------------------------------------------------------------------------
+# SCHEME-MATCHED GRIEVANCES ENDPOINT
+# ---------------------------------------------------------------------------
+@app.get("/grievances/scheme-matched")
+async def get_scheme_matched_grievances(
+    user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value)),
+    db=Depends(get_db)):
+    loop = asyncio.get_event_loop()
+    grievances = await loop.run_in_executor(executor, lambda: [
+        convert_db_grievance(g) for g in db.grievances.find({
+            "scheme_match": {"$exists": True, "$ne": None},
+            "status": {"$in": ["pending", "in_progress", "escalated"]}
+        }).sort("created_at", -1).limit(50)])
+    return [GrievanceResponse(**g, id=g["_id"]) for g in grievances]
+
+# ---------------------------------------------------------------------------
+# OFFICER ANOMALY ENDPOINTS
+# ---------------------------------------------------------------------------
+@app.get("/admin/officer-anomalies")
+async def get_officer_anomalies(user=Depends(require_role(UserRole.ADMIN.value)), db=Depends(get_db)):
+    loop = asyncio.get_event_loop()
+    records = await loop.run_in_executor(executor, lambda: list(
+        db.officer_analytics.find({"anomaly_flags": {"$exists": True, "$ne": []}}).limit(50)))
+    result = []
+    for r in records:
+        u = await loop.run_in_executor(executor, db.users.find_one, {"_id": r["_id"]})
+        result.append({
+            "officer_id": r["_id"],
+            "username": u["username"] if u else "unknown",
+            "full_name": u["full_name"] if u else "unknown",
+            "anomaly_flags": r.get("anomaly_flags", []),
+            "daily_resolution_counts": r.get("daily_resolution_counts", {}),
+            "priority_distribution": r.get("priority_distribution", {}),
+        })
+    return result
+
+@app.get("/admin/officer-anomalies/{officer_id}")
+async def get_officer_anomaly_detail(officer_id: str,
+                                      user=Depends(require_role(UserRole.ADMIN.value)), db=Depends(get_db)):
+    loop = asyncio.get_event_loop()
+    record = await loop.run_in_executor(executor, db.officer_analytics.find_one, {"_id": officer_id})
+    if not record:
+        raise HTTPException(status_code=404, detail="No analytics for this officer")
+    u = await loop.run_in_executor(executor, db.users.find_one, {"_id": officer_id})
+    return {**record, "username": u["username"] if u else "unknown",
+            "full_name": u["full_name"] if u else "unknown"}
+
+@app.put("/admin/officer-anomalies/{officer_id}/dismiss/{flag_id}")
+async def dismiss_anomaly_flag(officer_id: str, flag_id: str,
+                               user=Depends(require_role(UserRole.ADMIN.value)), db=Depends(get_db)):
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(executor, lambda: db.officer_analytics.update_one(
+        {"_id": officer_id}, {"$pull": {"anomaly_flags": {"id": flag_id}}}))
+    return {"detail": "Flag dismissed"}
+
+# ---------------------------------------------------------------------------
+# PUBLIC SOCIAL FEED ENDPOINTS
+# ---------------------------------------------------------------------------
+@app.get("/public/grievances")
+async def get_public_grievances(
+    lat: Optional[float] = None, lon: Optional[float] = None,
+    radius_km: float = Query(50, ge=1, le=500),
+    limit: int = Query(20, ge=1, le=100), skip: int = Query(0, ge=0),
+    db=Depends(get_db)):
+    loop = asyncio.get_event_loop()
+    if lat is not None and lon is not None:
+        def fetch_near():
+            return list(db.grievances.find({
+                "is_public": True,
+                "status": {"$ne": "resolved"},
+                "location": {
+                    "$near": {
+                        "$geometry": {"type": "Point", "coordinates": [lon, lat]},
+                        "$maxDistance": radius_km * 1000
+                    }
+                }
+            }).skip(skip).limit(limit))
+        try:
+            grievances = await loop.run_in_executor(executor, fetch_near)
+        except Exception:
+            grievances = await loop.run_in_executor(executor, lambda: list(
+                db.grievances.find({"is_public": True, "status": {"$ne": "resolved"}})
+                .sort("created_at", -1).skip(skip).limit(limit)))
+    else:
+        grievances = await loop.run_in_executor(executor, lambda: list(
+            db.grievances.find({"is_public": True, "status": {"$ne": "resolved"}})
+            .sort("created_at", -1).skip(skip).limit(limit)))
+    result = []
+    for g in grievances:
+        vouch_count = await loop.run_in_executor(executor,
+            lambda gid=g["_id"]: db.vouches.count_documents({"grievance_id": gid}))
+        evidence_count = await loop.run_in_executor(executor,
+            lambda gid=g["_id"]: db.vouches.count_documents({"grievance_id": gid, "evidence_file_ids": {"$ne": []}}))
+        dist_km = None
+        if lat is not None and lon is not None and g.get("location"):
+            gc = g["location"].get("coordinates", [])
+            if len(gc) == 2:
+                dlat = math.radians(gc[1] - lat)
+                dlon = math.radians(gc[0] - lon)
+                a = math.sin(dlat/2)**2 + math.cos(math.radians(lat)) * math.cos(math.radians(gc[1])) * math.sin(dlon/2)**2
+                dist_km = round(6371 * 2 * math.atan2(math.sqrt(a), math.sqrt(1-a)), 1)
+        result.append(PublicGrievanceResponse(
+            id=g["_id"], title=g["title"],
+            description_snippet=g["description"][:200] + ("..." if len(g["description"]) > 200 else ""),
+            department=g.get("department", "general"), priority=g.get("priority", "medium"),
+            district=g.get("district"), location=g.get("location"),
+            created_at=g["created_at"], vouch_count=vouch_count,
+            evidence_count=evidence_count, distance_km=dist_km))
+    return result
+
+@app.get("/public/grievances/{grievance_id}")
+async def get_public_grievance_detail(grievance_id: str, db=Depends(get_db)):
+    loop = asyncio.get_event_loop()
+    g = await loop.run_in_executor(executor, db.grievances.find_one,
+                                   {"_id": grievance_id, "is_public": True})
+    if not g:
+        raise HTTPException(status_code=404, detail="Public grievance not found")
+    vouches = await loop.run_in_executor(executor, lambda: list(
+        db.vouches.find({"grievance_id": grievance_id}).sort("created_at", -1).limit(50)))
+    for v in vouches:
+        v["id"] = str(v.pop("_id"))
+    g = convert_db_grievance(g)
+    return {"grievance": GrievanceResponse(**g, id=g["_id"]), "vouches": vouches}
+
+@app.post("/public/grievances/{grievance_id}/vouch")
+async def vouch_for_grievance(
+    grievance_id: str,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    user=Depends(get_current_user),
+    db=Depends(get_db),
+    comment: Optional[str] = Form(None),
+    files: List[UploadFile] = File(default=[]),
+):
+    loop = asyncio.get_event_loop()
+    g = await loop.run_in_executor(executor, db.grievances.find_one,
+                                   {"_id": grievance_id, "is_public": True})
+    if not g:
+        raise HTTPException(status_code=404, detail="Public grievance not found")
+    if g.get("citizen_user_id") == str(user["_id"]):
+        raise HTTPException(status_code=400, detail="Cannot vouch for your own grievance")
+    existing = await loop.run_in_executor(executor, lambda: db.vouches.find_one(
+        {"grievance_id": grievance_id, "user_id": str(user["_id"])}))
+    if existing:
+        raise HTTPException(status_code=400, detail="You have already vouched for this grievance")
+    evidence_ids = []
+    for f in files[:3]:
+        if f.content_type not in ALLOWED_MIME_TYPES:
+            continue
+        content = await f.read()
+        if len(content) > MAX_FILE_SIZE:
+            continue
+        fid = await loop.run_in_executor(executor, lambda c=content, fn=f.filename, ct=f.content_type: gfs.put(
+            c, filename=fn, content_type=ct))
+        evidence_ids.append(str(fid))
+    vouch_doc = {
+        "_id": str(uuid.uuid4()), "grievance_id": grievance_id,
+        "user_id": str(user["_id"]),
+        "comment": comment[:500] if comment else None,
+        "evidence_file_ids": evidence_ids,
+        "created_at": datetime.now(timezone.utc),
+    }
+    await loop.run_in_executor(executor, db.vouches.insert_one, vouch_doc)
+    return {"detail": "Vouch recorded", "vouch_id": vouch_doc["_id"]}
+
+@app.get("/public/grievances/{grievance_id}/vouches")
+async def get_vouches(grievance_id: str, db=Depends(get_db)):
+    loop = asyncio.get_event_loop()
+    vouches = await loop.run_in_executor(executor, lambda: list(
+        db.vouches.find({"grievance_id": grievance_id}).sort("created_at", -1).limit(50)))
+    for v in vouches:
+        v["id"] = str(v.pop("_id"))
+    return vouches
+
+# ---------------------------------------------------------------------------
 # HEALTH
 # ---------------------------------------------------------------------------
 @app.get("/health")
@@ -1742,6 +3055,8 @@ PAGES = [
     ("scheme-detail", "scheme_detail.html"),
     ("analytics-view", "analytics.html"),
     ("admin", "admin.html"),
+    ("community", "community.html"),
+    ("systemic-issue-detail", "systemic_issue_detail.html"),
 ]
 
 for _path, _template in PAGES:

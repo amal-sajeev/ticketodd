@@ -9,3 +9,5 @@ passlib[bcrypt]
 jinja2
 requests
 slowapi
+python-multipart
+httpx

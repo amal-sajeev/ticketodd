@@ -7,6 +7,21 @@
 </div>
 {% endblock %}
 {% block scripts %}
+<style>
+.deadline-badge { display:inline-block;padding:0.2rem 0.6rem;border-radius:8px;font-size:0.82rem;font-weight:600; }
+.deadline-green { background:rgba(76,175,80,0.15);color:#2E7D32; }
+.deadline-yellow { background:rgba(255,183,77,0.2);color:#E65100; }
+.deadline-red { background:rgba(239,83,80,0.15);color:#C62828; }
+.deadline-breached { background:rgba(239,83,80,0.25);color:#C62828;animation:pulse 1.5s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;}50%{opacity:0.5;} }
+.impact-circle { display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:50%;font-weight:700;font-size:1.1rem;color:#fff; }
+.attachment-grid { display:flex;flex-wrap:wrap;gap:0.75rem;margin-top:0.5rem; }
+.attachment-item { background:rgba(255,255,255,0.3);border-radius:10px;padding:0.5rem;text-align:center;max-width:160px; }
+.attachment-item img { max-width:140px;max-height:100px;border-radius:6px; }
+.sub-task-card { background:rgba(255,255,255,0.2);border-radius:10px;padding:0.75rem;margin-bottom:0.5rem;border-left:4px solid #42A5F5; }
+.sub-task-card.resolved { border-left-color:#66BB6A;opacity:0.7; }
+.scheme-match-card { background:rgba(76,175,80,0.08);border:1px solid rgba(76,175,80,0.25);border-radius:12px;padding:1rem;margin-top:1rem; }
+</style>
 <script>
 let officersList = [];
 const user = getUser();
@@ -21,6 +36,28 @@ if (requireAuth()) {
   loadDetail();
 }
 
+function deadlineBadge(deadline, label) {
+  if (!deadline) return '';
+  const now = new Date();
+  const dl = new Date(deadline);
+  const remaining = dl - now;
+  const total = dl - new Date(dl.getTime() - 7 * 24 * 3600000);
+  const ratio = remaining / total;
+  let cls = 'deadline-green';
+  if (remaining <= 0) cls = 'deadline-breached';
+  else if (ratio < 0.25) cls = 'deadline-red';
+  else if (ratio < 0.5) cls = 'deadline-yellow';
+  return `<div class="detail-row"><span class="label">${label}</span><span class="value"><span class="deadline-badge ${cls}">${formatDate(deadline)}</span></span></div>`;
+}
+
+function impactColor(score) {
+  if (score <= 30) return '#66BB6A';
+  if (score <= 60) return '#FFB74D';
+  if (score <= 80) return '#FF7043';
+  return '#EF5350';
+}
+
+
 async function loadDetail() {
   const id = new URLSearchParams(window.location.search).get('id');
   if (!id) { document.getElementById('detailContent').innerHTML = '<p>No grievance ID provided.</p>'; return; }
@@ -33,7 +70,46 @@ async function loadDetail() {
     const officerOptions = officersList.map(o =>
       `<option value="${escapeHtml(o.full_name)}"${o.full_name === g.assigned_officer ? ' selected' : ''}>${escapeHtml(o.full_name)} (${escapeHtml(o.department || 'general')})</option>`
     ).join('');
-    const user = getUser();
+
+    // Impact score display
+    const impactHtml = g.impact_score != null ? `<div class="detail-row"><span class="label">Impact Score</span><span class="value"><span class="impact-circle" style="background:${impactColor(g.impact_score)}">${g.impact_score}</span> / 100</span></div>` : '';
+
+    // Systemic issue link
+    const systemicHtml = g.systemic_issue_id ? `<div class="detail-row"><span class="label">Systemic Issue</span><span class="value"><a href="/systemic-issue-detail?id=${encodeURIComponent(g.systemic_issue_id)}" class="badge badge-escalated">Part of Systemic Issue →</a></span></div>` : '';
+
+    // Scheme match
+    let schemeHtml = '';
+    if (g.scheme_match) {
+      schemeHtml = `<div class="scheme-match-card">
+        <strong>🎯 Matching Government Scheme</strong><br>
+        <span style="font-size:1.05rem;font-weight:600;">${escapeHtml(g.scheme_match.scheme_name)}</span>
+        <span class="badge badge-dept" style="margin-left:0.5rem;">${Math.round(g.scheme_match.relevance_score * 100)}% match</span><br>
+        <span class="text-sm">${g.scheme_match.eligibility_likely ? '✅ Likely eligible' : '❓ Eligibility uncertain'}: ${escapeHtml(g.scheme_match.eligibility_reasoning || '')}</span>
+        <br><a href="/scheme-detail?id=${encodeURIComponent(g.scheme_match.scheme_id)}" class="text-sm">View scheme details →</a>
+      </div>`;
+    }
+
+    // Sub-tasks (cross-department dependencies)
+    let subTasksHtml = '';
+    if (g.sub_tasks && g.sub_tasks.length > 0) {
+      subTasksHtml = `<h3 class="mt-2">🔗 Cross-Department Tasks</h3>` +
+        g.sub_tasks.map(st => `
+          <div class="sub-task-card ${st.status === 'resolved' ? 'resolved' : ''}">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <strong>${escapeHtml(deptLabel(st.department))}</strong>
+              ${statusBadge(st.status)}
+            </div>
+            <p class="text-sm" style="margin:0.3rem 0;">${escapeHtml(st.task)}</p>
+            <span class="text-sm text-muted">Assigned: ${escapeHtml(st.assigned_officer || 'Unassigned')}</span>
+            ${!isCitizen && st.status !== 'resolved' ? `
+              <div style="margin-top:0.5rem;display:flex;gap:0.3rem;">
+                <button class="btn btn-success btn-sm subtask-resolve-btn" data-gid="${escapeHtml(g.id)}" data-stid="${escapeHtml(st.id)}">✓ Resolve</button>
+                <button class="btn btn-secondary btn-sm subtask-assign-btn" data-gid="${escapeHtml(g.id)}" data-stid="${escapeHtml(st.id)}">Assign</button>
+              </div>` : ''}
+          </div>`).join('');
+    }
+
+
     document.getElementById('detailContent').innerHTML = `
       <h1>#${escapeHtml(g.tracking_number)}</h1>
       <div class="two-col">
@@ -45,14 +121,23 @@ async function loadDetail() {
               <div class="detail-row"><span class="label">Status</span><span class="value">${statusBadge(g.status)}</span></div>
               <div class="detail-row"><span class="label">Department</span><span class="value">${deptBadge(g.department)}</span></div>
               <div class="detail-row"><span class="label">Priority</span><span class="value">${priorityBadge(g.priority)}</span></div>
+              ${impactHtml}
               <div class="detail-row"><span class="label">Sentiment</span><span class="value">${escapeHtml(g.sentiment)}</span></div>
               <div class="detail-row"><span class="label">District</span><span class="value">${escapeHtml(g.district || 'N/A')}</span></div>
-              <div class="detail-row"><span class="label">Language</span><span class="value">${escapeHtml(g.language)}</span></div>
               <div class="detail-row"><span class="label">Filed</span><span class="value">${formatDate(g.created_at)}</span></div>
-              <div class="detail-row"><span class="label">SLA Deadline</span><span class="value">${formatDate(g.sla_deadline)}</span></div>
+              ${deadlineBadge(g.sla_deadline, 'SLA Deadline')}
+              ${deadlineBadge(g.estimated_resolution_deadline, 'Est. Resolution')}
               <div class="detail-row"><span class="label">Citizen</span><span class="value">${g.is_anonymous ? 'Anonymous' : escapeHtml((g.citizen_name || '') + ' (' + (g.citizen_email || '') + ')')}</span></div>
               <div class="detail-row"><span class="label">Assigned</span><span class="value">${escapeHtml(g.assigned_officer || 'Unassigned')}</span></div>
+              ${systemicHtml}
             </div>
+
+            <!-- Attachments -->
+            <div id="attachmentsSection"></div>
+
+            ${schemeHtml}
+
+
             ${g.ai_resolution ? (() => {
               const tier = g.resolution_tier || 'officer_action';
               let label, extra = '';
@@ -60,25 +145,21 @@ async function loadDetail() {
                 if (tier === 'self_resolvable') {
                   label = '🤖 AI Guidance';
                   return `<div class="resolution-box ai"><div class="resolution-header">${label}</div><div class="resolution-content">${renderMarkdown(g.ai_resolution)}</div></div>`;
-                } else {
-                  return '';
-                }
+                } else { return ''; }
               } else {
                 if (tier === 'self_resolvable') {
                   label = 'AI Guidance (awaiting citizen confirmation)';
                 } else {
                   label = 'AI Draft for Review';
                   if (g.status !== 'resolved') {
-                    extra = `<div style="display:flex;gap:.5rem;margin-top:.75rem;">
-                      <button class="btn btn-success btn-sm approve-draft-btn" data-id="${escapeHtml(g.id)}">✓ Approve &amp; Send</button>
-                      <button class="btn btn-primary btn-sm edit-draft-btn" data-id="${escapeHtml(g.id)}">✎ Edit &amp; Send</button>
-                    </div>`;
+                    extra = '<div style="display:flex;gap:.5rem;margin-top:.75rem;"><button class="btn btn-success btn-sm approve-draft-btn" data-id="' + escapeHtml(g.id) + '">✓ Approve &amp; Send</button><button class="btn btn-primary btn-sm edit-draft-btn" data-id="' + escapeHtml(g.id) + '">✎ Edit &amp; Send</button></div>';
                   }
                 }
-                return `<div class="resolution-box ai"><div class="resolution-header">${label} (${Math.round((g.confidence_score||0)*100)}% confidence)</div><div class="resolution-content">${renderMarkdown(g.ai_resolution)}</div>${extra}</div>`;
+                return '<div class="resolution-box ai"><div class="resolution-header">' + label + ' (' + Math.round((g.confidence_score||0)*100) + '% confidence)</div><div class="resolution-content">' + renderMarkdown(g.ai_resolution) + '</div>' + extra + '</div>';
               }
             })() : ''}
             ${g.manual_resolution ? `<div class="resolution-box manual"><div class="resolution-header">Officer Resolution</div><div class="resolution-content">${renderMarkdown(g.manual_resolution)}</div></div>` : ''}
+            ${subTasksHtml}
             ${g.notes?.length ? '<h3 class="mt-2">📝 Notes</h3>' + g.notes.map(n => `<div class="note-item"><div class="note-meta">${escapeHtml(n.officer)} · ${escapeHtml(n.note_type)} · ${formatDate(n.created_at)}</div><p>${escapeHtml(n.content)}</p></div>`).join('') : ''}
           </div>
         </div>
@@ -86,10 +167,10 @@ async function loadDetail() {
         <div>
           <div class="glass-strong card" style="padding:1.5rem;">
             <h3>Feedback</h3>
-            ${g.status === 'resolved' ? '<p style="color:#2E7D32;font-weight:600;">✅ This grievance has been resolved.</p>' : '<p>Your grievance is being processed. You will be notified when there is an update.</p>'}
+            ${g.status === 'resolved' ? '<p style="color:#2E7D32;font-weight:600;">✅ This grievance has been resolved.</p>' : '<p>Your grievance is being processed.</p>'}
             ${g.ai_resolution && g.resolution_tier === 'self_resolvable' && g.status === 'pending' ? `
               <hr style="border-color:rgba(255,255,255,0.2);margin:1rem 0;">
-              <p style="font-weight:600;">Did the AI guidance help resolve your issue?</p>
+              <p style="font-weight:600;">Did the AI guidance help?</p>
               <div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
                 <button class="btn btn-success btn-sm citizen-confirm-yes" data-tracking="${escapeHtml(g.tracking_number)}">✓ Yes, resolved</button>
                 <button class="btn btn-secondary btn-sm citizen-confirm-no" data-tracking="${escapeHtml(g.tracking_number)}">✗ No, need help</button>
@@ -107,21 +188,15 @@ async function loadDetail() {
                 <option value="escalated"${g.status==='escalated'?' selected':''}>Escalated</option>
               </select></div>
             <button class="btn btn-primary btn-block btn-sm mb-2 update-status-btn" data-id="${escapeHtml(g.id)}">Update Status</button>
-
             <hr style="border-color:rgba(255,255,255,0.2);margin:1rem 0;">
             <div class="form-group"><label>Assign Officer</label>
-              <select class="form-control" id="assignName">
-                <option value="">-- Select Officer --</option>
-                ${officerOptions}
-              </select></div>
+              <select class="form-control" id="assignName"><option value="">-- Select --</option>${officerOptions}</select></div>
             <button class="btn btn-secondary btn-block btn-sm mb-2 assign-officer-btn" data-id="${escapeHtml(g.id)}">Assign</button>
-
             <hr style="border-color:rgba(255,255,255,0.2);margin:1rem 0;">
             <h3>Resolve Manually</h3>
             <div class="form-group"><textarea class="form-control" id="resolutionText" placeholder="Enter resolution..." style="min-height:160px;"></textarea></div>
             <div class="form-check mb-1"><input type="checkbox" id="addMemory" checked><label for="addMemory">Add to service memory</label></div>
             <button class="btn btn-success btn-block btn-sm mb-2 resolve-manual-btn" data-id="${escapeHtml(g.id)}">Submit Resolution</button>
-
             <hr style="border-color:rgba(255,255,255,0.2);margin:1rem 0;">
             <h3>Add Note</h3>
             <div class="form-group"><textarea class="form-control" id="noteText" placeholder="Note content..." style="min-height:60px;"></textarea></div>
@@ -130,15 +205,15 @@ async function loadDetail() {
           </div>
         </div>`}
       </div>`;
-    // Bind action buttons safely
+
+    // Load attachments
+    loadAttachments(g.id);
+
+    // Bind action buttons
     const gid = g.id;
     if (isCitizen) {
-      document.querySelector('.citizen-confirm-yes')?.addEventListener('click', (e) => {
-        citizenConfirm(e.target.dataset.tracking, true);
-      });
-      document.querySelector('.citizen-confirm-no')?.addEventListener('click', (e) => {
-        citizenConfirm(e.target.dataset.tracking, false);
-      });
+      document.querySelector('.citizen-confirm-yes')?.addEventListener('click', (e) => citizenConfirm(e.target.dataset.tracking, true));
+      document.querySelector('.citizen-confirm-no')?.addEventListener('click', (e) => citizenConfirm(e.target.dataset.tracking, false));
     } else {
       document.querySelector('.update-status-btn')?.addEventListener('click', () => updateStatus(gid));
       document.querySelector('.assign-officer-btn')?.addEventListener('click', () => assignOfficer(gid));
@@ -146,72 +221,82 @@ async function loadDetail() {
       document.querySelector('.add-note-btn')?.addEventListener('click', () => addNote(gid));
       document.querySelector('.approve-draft-btn')?.addEventListener('click', () => approveDraft(gid));
       document.querySelector('.edit-draft-btn')?.addEventListener('click', () => editDraft(gid));
+      // Sub-task buttons
+      document.querySelectorAll('.subtask-resolve-btn').forEach(btn => {
+        btn.addEventListener('click', () => updateSubTask(btn.dataset.gid, btn.dataset.stid, 'resolved'));
+      });
+      document.querySelectorAll('.subtask-assign-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const name = prompt('Enter officer name:');
+          if (name) assignSubTask(btn.dataset.gid, btn.dataset.stid, name);
+        });
+      });
     }
   } catch (e) { document.getElementById('detailContent').innerHTML = `<p style="color:#C62828;">Error: ${escapeHtml(e.message)}</p>`; }
+}
+
+async function loadAttachments(gid) {
+  try {
+    const atts = await api('GET', `/grievances/${gid}/attachments`);
+    if (!atts || !atts.length) return;
+    const section = document.getElementById('attachmentsSection');
+    section.innerHTML = '<h3 class="mt-2">📎 Attachments</h3><div class="attachment-grid">' +
+      atts.map(a => {
+        if (a.content_type?.startsWith('image/')) {
+          return `<div class="attachment-item"><img src="/attachments/${a.id}" alt="${escapeHtml(a.filename)}"><div class="text-sm">${escapeHtml(a.filename)}</div></div>`;
+        } else if (a.content_type?.startsWith('audio/')) {
+          return `<div class="attachment-item">🎵<audio controls src="/attachments/${a.id}" style="width:140px;"></audio><div class="text-sm">${escapeHtml(a.filename)}</div></div>`;
+        } else if (a.content_type?.startsWith('video/')) {
+          return `<div class="attachment-item"><video controls src="/attachments/${a.id}" style="max-width:140px;max-height:100px;"></video><div class="text-sm">${escapeHtml(a.filename)}</div></div>`;
+        }
+        return `<div class="attachment-item"><a href="/attachments/${a.id}" target="_blank">📄 ${escapeHtml(a.filename)}</a></div>`;
+      }).join('') + '</div>';
+  } catch {}
 }
 
 async function citizenConfirm(trackingNumber, helpful) {
   try {
     await api('PUT', '/grievances/confirm-resolution', { tracking_number: trackingNumber, helpful });
-    showToast(helpful ? 'Grievance marked as resolved!' : 'Forwarded to an officer for assistance.');
+    showToast(helpful ? 'Grievance marked as resolved!' : 'Forwarded to an officer.');
     loadDetail();
   } catch (e) { showToast(e.message, 'error'); }
 }
 async function updateStatus(id) {
-  try {
-    await api('PUT', `/grievances/${id}/status?new_status=${document.getElementById('newStatus').value}`);
-    showToast('Status updated'); loadDetail();
-  } catch (e) { showToast(e.message, 'error'); }
+  try { await api('PUT', `/grievances/${id}/status?new_status=${document.getElementById('newStatus').value}`); showToast('Status updated'); loadDetail(); } catch (e) { showToast(e.message, 'error'); }
 }
 async function assignOfficer(id) {
   const name = document.getElementById('assignName').value;
-  if (!name) { showToast('Select an officer first', 'error'); return; }
-  try {
-    await api('PUT', `/grievances/${id}/assign`, { officer_name: name });
-    showToast('Officer assigned'); loadDetail();
-  } catch (e) { showToast(e.message, 'error'); }
+  if (!name) { showToast('Select an officer', 'error'); return; }
+  try { await api('PUT', `/grievances/${id}/assign`, { officer_name: name }); showToast('Officer assigned'); loadDetail(); } catch (e) { showToast(e.message, 'error'); }
 }
 async function resolveManual(id) {
   const text = document.getElementById('resolutionText').value;
   if (!text) return;
-  try {
-    await api('PUT', `/grievances/${id}/resolve`, {
-      resolution: text, officer: getUser().full_name,
-      add_to_service_memory: document.getElementById('addMemory').checked });
-    showToast('Grievance resolved!'); loadDetail();
-  } catch (e) { showToast(e.message, 'error'); }
+  try { await api('PUT', `/grievances/${id}/resolve`, { resolution: text, officer: getUser().full_name, add_to_service_memory: document.getElementById('addMemory').checked }); showToast('Resolved!'); loadDetail(); } catch (e) { showToast(e.message, 'error'); }
 }
 async function addNote(id) {
   const text = document.getElementById('noteText').value;
   if (!text) return;
-  try {
-    await api('POST', `/grievances/${id}/notes`, {
-      content: text, officer: getUser().full_name,
-      note_type: document.getElementById('noteType').value });
-    showToast('Note added'); loadDetail();
-  } catch (e) { showToast(e.message, 'error'); }
+  try { await api('POST', `/grievances/${id}/notes`, { content: text, officer: getUser().full_name, note_type: document.getElementById('noteType').value }); showToast('Note added'); loadDetail(); } catch (e) { showToast(e.message, 'error'); }
 }
 async function approveDraft(id) {
-  try {
-    await api('PUT', `/grievances/${id}/approve-draft`, { resolution: null });
-    showToast('Draft approved and sent to citizen'); loadDetail();
-  } catch (e) { showToast(e.message, 'error'); }
+  try { await api('PUT', `/grievances/${id}/approve-draft`, { resolution: null }); showToast('Draft approved'); loadDetail(); } catch (e) { showToast(e.message, 'error'); }
 }
 function editDraft(id) {
-  // Pre-fill the manual resolution textarea with the AI draft so the officer can edit
   const aiBox = document.querySelector('.resolution-box.ai .resolution-content');
   if (aiBox) {
     const ta = document.getElementById('resolutionText');
-    // Strip HTML to get plain text (the AI draft is markdown rendered)
-    const temp = document.createElement('div');
-    temp.innerHTML = aiBox.innerHTML;
+    const temp = document.createElement('div'); temp.innerHTML = aiBox.innerHTML;
     ta.value = temp.textContent || temp.innerText || '';
-    // Auto-resize to fit content (minimum 260px)
-    ta.style.height = 'auto';
     ta.style.height = Math.max(260, ta.scrollHeight + 8) + 'px';
-    ta.focus();
-    ta.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    ta.focus(); ta.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
+}
+async function updateSubTask(gid, stid, status) {
+  try { await api('PUT', `/grievances/${gid}/sub-tasks/${stid}/status?new_status=${status}`); showToast('Sub-task updated'); loadDetail(); } catch (e) { showToast(e.message, 'error'); }
+}
+async function assignSubTask(gid, stid, name) {
+  try { await api('PUT', `/grievances/${gid}/sub-tasks/${stid}/assign`, { officer_name: name }); showToast('Sub-task assigned'); loadDetail(); } catch (e) { showToast(e.message, 'error'); }
 }
 </script>
 {% endblock %}

@@ -49,6 +49,27 @@
     <span id="userCount" style="margin-left:auto;align-self:center;opacity:0.7;font-size:0.9rem;"></span>
   </div>
 
+  <!-- Spam Flagged Users Section -->
+  <div class="glass-strong card mb-3" style="padding:1.25rem;" id="spamSection">
+    <h3 style="margin:0 0 0.75rem;">🚫 Spam Flagged Users</h3>
+    <div id="spamList"><div class="text-sm text-muted">Loading...</div></div>
+  </div>
+
+  <!-- Officer Anomalies Section -->
+  <div class="glass-strong card mb-3" style="padding:1.25rem;" id="anomalySection">
+    <h3 style="margin:0 0 0.75rem;">🔍 Officer Accountability Flags</h3>
+    <div id="anomalyList"><div class="text-sm text-muted">Loading...</div></div>
+  </div>
+
+  <!-- Forecast Generation -->
+  <div class="glass-strong card mb-3" style="padding:1.25rem;">
+    <h3 style="margin:0 0 0.75rem;">📊 Predictive Forecast</h3>
+    <p class="text-sm text-muted">Generate a 2-week grievance spike forecast based on historical data and weather patterns.</p>
+    <button class="btn btn-primary btn-sm" id="genForecastBtn" onclick="generateForecast()">Generate Forecast</button>
+    <span id="forecastStatus" class="text-sm" style="margin-left:0.5rem;"></span>
+  </div>
+
+
   <!-- User table -->
   <div class="glass-strong card" style="padding:1rem;overflow-x:auto;">
     <table style="width:100%;border-collapse:collapse;" id="userTable">
@@ -102,7 +123,69 @@ let currentFilter = '';
 if (requireAuth()) {
   const u = getUser();
   if (u.role !== 'admin') { window.location.href = '/officer-dashboard'; }
-  else { loadUsers(); }
+  else { loadUsers(); loadSpamFlagged(); loadOfficerAnomalies(); }
+}
+
+async function loadSpamFlagged() {
+  try {
+    const records = await api('GET', '/admin/spam-flagged');
+    const el = document.getElementById('spamList');
+    if (!records.length) { el.innerHTML = '<div class="text-sm text-muted">No spam-flagged users.</div>'; return; }
+    el.innerHTML = records.map(r => `
+      <div class="glass" style="padding:0.75rem;margin-bottom:0.5rem;border-left:4px solid #EF5350;border-radius:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <strong>${escapeHtml(r.full_name)} (@${escapeHtml(r.username)})</strong>
+          <span class="text-sm">Spam score: ${(r.spam_score * 100).toFixed(0)}%</span>
+        </div>
+        <div class="text-sm" style="margin:0.3rem 0;">
+          Photo ID: <strong>${escapeHtml(r.photo_id_status)}</strong>
+          ${r.photo_id_file_id ? ` · <a href="/attachments/${r.photo_id_file_id}" target="_blank">View Photo ID</a>` : ''}
+        </div>
+        ${r.pattern_flags.length ? '<div class="text-sm text-muted">Flags: ' + r.pattern_flags.map(f => escapeHtml(f.type + ': ' + f.detail)).join(', ') + '</div>' : ''}
+        <div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
+          <button class="btn btn-success btn-sm spam-approve-btn" data-uid="${escapeHtml(r.user_id)}">✓ Approve & Unblock</button>
+          <button class="btn btn-secondary btn-sm spam-reject-btn" data-uid="${escapeHtml(r.user_id)}">✗ Reject ID</button>
+        </div>
+      </div>`).join('');
+    document.querySelectorAll('.spam-approve-btn').forEach(b => b.addEventListener('click', () => reviewSpam(b.dataset.uid, true)));
+    document.querySelectorAll('.spam-reject-btn').forEach(b => b.addEventListener('click', () => reviewSpam(b.dataset.uid, false)));
+  } catch { document.getElementById('spamList').innerHTML = '<div class="text-sm text-muted">Failed to load.</div>'; }
+}
+
+async function reviewSpam(uid, approved) {
+  try { await api('PUT', `/admin/spam-flagged/${uid}/review?approved=${approved}`); showToast(approved ? 'User unblocked' : 'Photo ID rejected'); loadSpamFlagged(); } catch (e) { showToast(e.message, 'error'); }
+}
+
+async function loadOfficerAnomalies() {
+  try {
+    const records = await api('GET', '/admin/officer-anomalies');
+    const el = document.getElementById('anomalyList');
+    if (!records.length) { el.innerHTML = '<div class="text-sm text-muted">No anomalies detected.</div>'; return; }
+    el.innerHTML = records.map(r => `
+      <div class="glass" style="padding:0.75rem;margin-bottom:0.5rem;border-left:4px solid #FF9800;border-radius:8px;">
+        <strong>${escapeHtml(r.full_name)} (@${escapeHtml(r.username)})</strong>
+        <div style="margin-top:0.3rem;">
+          ${r.anomaly_flags.map(f => `
+            <div class="text-sm" style="margin:0.2rem 0;padding:0.3rem 0.5rem;background:rgba(255,152,0,0.08);border-radius:6px;display:flex;justify-content:space-between;align-items:center;">
+              <span><strong>${escapeHtml(f.type)}:</strong> ${escapeHtml(f.detail)} <span class="badge badge-priority-${escapeHtml(f.severity || 'medium')}">${escapeHtml(f.severity || 'medium')}</span></span>
+              <button class="btn btn-secondary btn-sm dismiss-flag-btn" data-oid="${escapeHtml(r.officer_id)}" data-fid="${escapeHtml(f.id)}" style="font-size:0.7rem;">Dismiss</button>
+            </div>`).join('')}
+        </div>
+      </div>`).join('');
+    document.querySelectorAll('.dismiss-flag-btn').forEach(b => b.addEventListener('click', () => dismissFlag(b.dataset.oid, b.dataset.fid)));
+  } catch { document.getElementById('anomalyList').innerHTML = '<div class="text-sm text-muted">Failed to load.</div>'; }
+}
+
+async function dismissFlag(oid, fid) {
+  try { await api('PUT', `/admin/officer-anomalies/${oid}/dismiss/${fid}`); showToast('Flag dismissed'); loadOfficerAnomalies(); } catch (e) { showToast(e.message, 'error'); }
+}
+
+async function generateForecast() {
+  const btn = document.getElementById('genForecastBtn');
+  const status = document.getElementById('forecastStatus');
+  btn.disabled = true; status.textContent = 'Generating...';
+  try { await api('POST', '/forecasts/generate'); status.textContent = '✅ Forecast generated!'; showToast('Forecast generated successfully'); } catch (e) { status.textContent = '❌ Failed'; showToast(e.message, 'error'); }
+  btn.disabled = false;
 }
 
 async function loadUsers() {

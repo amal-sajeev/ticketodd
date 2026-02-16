@@ -1,0 +1,242 @@
+{
+  "Angul": {
+    "population": 1271703,
+    "st_percentage": 13.5,
+    "sc_percentage": 18.4,
+    "literacy_rate": 72.2,
+    "rural_percentage": 83.8,
+    "vulnerability_index": 0.45
+  },
+  "Balangir": {
+    "population": 1648574,
+    "st_percentage": 23.1,
+    "sc_percentage": 17.0,
+    "literacy_rate": 65.5,
+    "rural_percentage": 90.3,
+    "vulnerability_index": 0.62
+  },
+  "Balasore": {
+    "population": 2317419,
+    "st_percentage": 11.3,
+    "sc_percentage": 20.5,
+    "literacy_rate": 80.7,
+    "rural_percentage": 87.2,
+    "vulnerability_index": 0.40
+  },
+  "Bargarh": {
+    "population": 1478833,
+    "st_percentage": 20.5,
+    "sc_percentage": 18.0,
+    "literacy_rate": 75.2,
+    "rural_percentage": 90.1,
+    "vulnerability_index": 0.50
+  },
+  "Bhadrak": {
+    "population": 1506522,
+    "st_percentage": 2.0,
+    "sc_percentage": 22.8,
+    "literacy_rate": 83.3,
+    "rural_percentage": 91.5,
+    "vulnerability_index": 0.35
+  },
+  "Boudh": {
+    "population": 439917,
+    "st_percentage": 12.5,
+    "sc_percentage": 22.4,
+    "literacy_rate": 72.5,
+    "rural_percentage": 95.1,
+    "vulnerability_index": 0.55
+  },
+  "Cuttack": {
+    "population": 2624470,
+    "st_percentage": 3.6,
+    "sc_percentage": 18.4,
+    "literacy_rate": 84.2,
+    "rural_percentage": 70.5,
+    "vulnerability_index": 0.28
+  },
+  "Deogarh": {
+    "population": 312164,
+    "st_percentage": 35.8,
+    "sc_percentage": 18.0,
+    "literacy_rate": 73.1,
+    "rural_percentage": 93.6,
+    "vulnerability_index": 0.60
+  },
+  "Dhenkanal": {
+    "population": 1192948,
+    "st_percentage": 13.3,
+    "sc_percentage": 19.8,
+    "literacy_rate": 79.4,
+    "rural_percentage": 89.7,
+    "vulnerability_index": 0.42
+  },
+  "Gajapati": {
+    "population": 577817,
+    "st_percentage": 54.3,
+    "sc_percentage": 7.5,
+    "literacy_rate": 54.3,
+    "rural_percentage": 94.0,
+    "vulnerability_index": 0.78
+  },
+  "Ganjam": {
+    "population": 3529031,
+    "st_percentage": 3.4,
+    "sc_percentage": 19.5,
+    "literacy_rate": 71.1,
+    "rural_percentage": 82.4,
+    "vulnerability_index": 0.42
+  },
+  "Jagatsinghpur": {
+    "population": 1136604,
+    "st_percentage": 0.6,
+    "sc_percentage": 21.5,
+    "literacy_rate": 87.1,
+    "rural_percentage": 90.2,
+    "vulnerability_index": 0.30
+  },
+  "Jajpur": {
+    "population": 1826275,
+    "st_percentage": 8.4,
+    "sc_percentage": 22.2,
+    "literacy_rate": 80.4,
+    "rural_percentage": 90.8,
+    "vulnerability_index": 0.38
+  },
+  "Jharsuguda": {
+    "population": 579505,
+    "st_percentage": 33.0,
+    "sc_percentage": 15.2,
+    "literacy_rate": 78.4,
+    "rural_percentage": 67.2,
+    "vulnerability_index": 0.48
+  },
+  "Kalahandi": {
+    "population": 1573054,
+    "st_percentage": 28.5,
+    "sc_percentage": 18.2,
+    "literacy_rate": 60.2,
+    "rural_percentage": 92.7,
+    "vulnerability_index": 0.72
+  },
+  "Kandhamal": {
+    "population": 731952,
+    "st_percentage": 53.6,
+    "sc_percentage": 18.2,
+    "literacy_rate": 65.0,
+    "rural_percentage": 93.1,
+    "vulnerability_index": 0.76
+  },
+  "Kendrapara": {
+    "population": 1440361,
+    "st_percentage": 0.6,
+    "sc_percentage": 21.2,
+    "literacy_rate": 85.5,
+    "rural_percentage": 95.5,
+    "vulnerability_index": 0.32
+  },
+  "Kendujhar": {
+    "population": 1802777,
+    "st_percentage": 45.4,
+    "sc_percentage": 11.6,
+    "literacy_rate": 69.0,
+    "rural_percentage": 87.6,
+    "vulnerability_index": 0.68
+  },
+  "Khordha": {
+    "population": 2251673,
+    "st_percentage": 5.0,
+    "sc_percentage": 14.8,
+    "literacy_rate": 87.5,
+    "rural_percentage": 48.8,
+    "vulnerability_index": 0.20
+  },
+  "Koraput": {
+    "population": 1379647,
+    "st_percentage": 50.6,
+    "sc_percentage": 14.2,
+    "literacy_rate": 49.2,
+    "rural_percentage": 84.3,
+    "vulnerability_index": 0.82
+  },
+  "Malkangiri": {
+    "population": 613192,
+    "st_percentage": 57.4,
+    "sc_percentage": 21.7,
+    "literacy_rate": 49.5,
+    "rural_percentage": 93.2,
+    "vulnerability_index": 0.85
+  },
+  "Mayurbhanj": {
+    "population": 2513895,
+    "st_percentage": 58.7,
+    "sc_percentage": 7.5,
+    "literacy_rate": 63.2,
+    "rural_percentage": 93.9,
+    "vulnerability_index": 0.75
+  },
+  "Nabarangpur": {
+    "population": 1220946,
+    "st_percentage": 55.0,
+    "sc_percentage": 14.5,
+    "literacy_rate": 48.2,
+    "rural_percentage": 94.8,
+    "vulnerability_index": 0.84
+  },
+  "Nayagarh": {
+    "population": 962215,
+    "st_percentage": 6.0,
+    "sc_percentage": 15.8,
+    "literacy_rate": 79.2,
+    "rural_percentage": 92.4,
+    "vulnerability_index": 0.38
+  },
+  "Nuapada": {
+    "population": 610382,
+    "st_percentage": 35.8,
+    "sc_percentage": 14.0,
+    "literacy_rate": 58.2,
+    "rural_percentage": 95.5,
+    "vulnerability_index": 0.74
+  },
+  "Puri": {
+    "population": 1698730,
+    "st_percentage": 0.4,
+    "sc_percentage": 19.5,
+    "literacy_rate": 85.4,
+    "rural_percentage": 82.8,
+    "vulnerability_index": 0.30
+  },
+  "Rayagada": {
+    "population": 967911,
+    "st_percentage": 55.8,
+    "sc_percentage": 14.5,
+    "literacy_rate": 50.0,
+    "rural_percentage": 86.5,
+    "vulnerability_index": 0.80
+  },
+  "Sambalpur": {
+    "population": 1044410,
+    "st_percentage": 34.1,
+    "sc_percentage": 17.5,
+    "literacy_rate": 76.2,
+    "rural_percentage": 73.2,
+    "vulnerability_index": 0.50
+  },
+  "Subarnapur": {
+    "population": 652107,
+    "st_percentage": 9.8,
+    "sc_percentage": 24.2,
+    "literacy_rate": 74.4,
+    "rural_percentage": 93.0,
+    "vulnerability_index": 0.52
+  },
+  "Sundargarh": {
+    "population": 2093437,
+    "st_percentage": 50.7,
+    "sc_percentage": 8.2,
+    "literacy_rate": 74.1,
+    "rural_percentage": 65.0,
+    "vulnerability_index": 0.55
+  }
+}

@@ -11,6 +11,8 @@
     <div class="form-group"><label>Priority</label>
       <select class="form-control" id="fPriority"><option value="">All</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select></div>
     <div class="form-group"><label>District</label><select class="form-control" id="fDistrict"></select></div>
+    <div class="form-group"><label>Sort</label>
+      <select class="form-control" id="fSort"><option value="date">By Date + Priority</option><option value="impact">By Impact Score</option></select></div>
     <div class="form-group"><label>Search</label><input type="text" class="form-control" id="fSearch" placeholder="Search..."></div>
   </div>
   <div id="queueCount" class="text-sm text-muted mb-1"></div>
@@ -18,23 +20,32 @@
 </div>
 {% endblock %}
 {% block scripts %}
+<style>
+.date-group-header { display:flex;align-items:center;gap:0.75rem;padding:0.6rem 0;margin-top:1rem;border-bottom:2px solid rgba(0,0,0,0.08); }
+.date-group-header h3 { margin:0;font-size:1rem;font-weight:700; }
+.date-group-header .count { background:rgba(0,0,0,0.06);padding:0.15rem 0.5rem;border-radius:10px;font-size:0.8rem; }
+.impact-circle-sm { display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;font-weight:700;font-size:0.8rem;color:#fff; }
+.breach-indicator { display:inline-block;padding:0.1rem 0.4rem;border-radius:6px;font-size:0.7rem;font-weight:700;background:rgba(239,83,80,0.2);color:#C62828;animation:pulse 1.5s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;}50%{opacity:0.5;} }
+.multi-dept-badge { display:inline-block;padding:0.1rem 0.4rem;border-radius:6px;font-size:0.7rem;font-weight:600;background:rgba(21,101,192,0.15);color:#1565C0; }
+.systemic-badge { display:inline-block;padding:0.1rem 0.4rem;border-radius:6px;font-size:0.7rem;font-weight:600;background:rgba(156,39,176,0.15);color:#7B1FA2; }
+</style>
 <script>
 if (requireAuth()) {
   document.getElementById('fDept').innerHTML = deptOptions('', true);
-  // District dropdown: "All" + all 30 districts
   document.getElementById('fDistrict').innerHTML = '<option value="">All Districts</option>' +
     ODISHA_DISTRICTS.map(d => `<option value="${d}">${d}</option>`).join('');
-  // Pre-select from URL ?district=
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get('district')) document.getElementById('fDistrict').value = urlParams.get('district');
   if (urlParams.get('status')) document.getElementById('fStatus').value = urlParams.get('status');
   if (urlParams.get('search')) document.getElementById('fSearch').value = urlParams.get('search');
   loadQueue();
-  ['fStatus','fDept','fPriority','fDistrict'].forEach(id => document.getElementById(id).addEventListener('change', loadQueue));
+  ['fStatus','fDept','fPriority','fDistrict','fSort'].forEach(id => document.getElementById(id).addEventListener('change', loadQueue));
   document.getElementById('fSearch').addEventListener('input', debounce(loadQueue, 300));
 }
 
 function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+function impactColor(s) { return s<=30?'#66BB6A':s<=60?'#FFB74D':s<=80?'#FF7043':'#EF5350'; }
 
 async function loadQueue() {
   showLoading('queueList');
@@ -43,30 +54,63 @@ async function loadQueue() {
   const d = document.getElementById('fDept').value; if (d) params.set('department', d);
   const p = document.getElementById('fPriority').value; if (p) params.set('priority', p);
   const dist = document.getElementById('fDistrict').value; if (dist) params.set('district', dist);
+  const sortBy = document.getElementById('fSort').value;
+  if (sortBy === 'impact') params.set('sort_by', 'impact_score');
+  else params.set('group_by_date', 'true');
   params.set('limit', '50');
   try {
     let grievances = await api('GET', '/grievances?' + params.toString());
     const search = document.getElementById('fSearch').value.toLowerCase();
-    if (search) grievances = grievances.filter(g =>
-      g.title.toLowerCase().includes(search) || g.description.toLowerCase().includes(search));
+    if (search) grievances = grievances.filter(g => g.title.toLowerCase().includes(search) || g.description.toLowerCase().includes(search));
     document.getElementById('queueCount').textContent = `${grievances.length} grievances found`;
     const list = document.getElementById('queueList');
     if (!grievances.length) { list.innerHTML = '<div class="glass card text-center" style="padding:2rem;">No matching grievances.</div>'; return; }
-    list.innerHTML = grievances.map(g => `
-      <div class="grievance-card glass card-animate status-${escapeHtml(g.status)} queue-card" data-id="${escapeHtml(g.id)}" style="cursor:pointer;">
-        <h4>#${escapeHtml(g.tracking_number)} — ${escapeHtml(g.title)}</h4>
-        <p>${escapeHtml(g.description).substring(0, 140)}...</p>
-        <div class="badges">
-          ${statusBadge(g.status)} ${deptBadge(g.department)} ${priorityBadge(g.priority)}
-          <span class="badge badge-dept">📍 ${escapeHtml(g.district || 'N/A')}</span>
-          <span class="badge badge-dept">${g.is_anonymous ? '🕵️ Anonymous' : '👤 ' + escapeHtml(g.citizen_name || 'N/A')}</span>
-          <span class="badge badge-dept">📅 ${formatDate(g.created_at)}</span>
-        </div>
-      </div>`).join('');
+
+    const now = new Date();
+    if (sortBy === 'date') {
+      // Group by date
+      const groups = {};
+      grievances.forEach(g => {
+        const dateKey = new Date(g.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+        if (!groups[dateKey]) groups[dateKey] = [];
+        groups[dateKey].push(g);
+      });
+      let html = '';
+      for (const [date, items] of Object.entries(groups)) {
+        html += `<div class="date-group-header"><h3>📅 ${date}</h3><span class="count">${items.length}</span></div>`;
+        html += items.map(g => renderQueueCard(g, now)).join('');
+      }
+      list.innerHTML = html;
+    } else {
+      list.innerHTML = grievances.map(g => renderQueueCard(g, now)).join('');
+    }
     document.querySelectorAll('.queue-card').forEach(card => {
       card.addEventListener('click', () => { window.location.href = '/grievance-detail?id=' + encodeURIComponent(card.dataset.id); });
     });
   } catch (e) { showToast(e.message, 'error'); }
+}
+
+function renderQueueCard(g, now) {
+  const breached = (g.sla_deadline && new Date(g.sla_deadline) < now && g.status !== 'resolved') ||
+                   (g.estimated_resolution_deadline && new Date(g.estimated_resolution_deadline) < now && g.status !== 'resolved');
+  const breachBadge = breached ? '<span class="breach-indicator">⏰ DEADLINE BREACHED</span>' : '';
+  const impactBadge = g.impact_score != null ? `<span class="impact-circle-sm" style="background:${impactColor(g.impact_score)}">${g.impact_score}</span>` : '';
+  const multiDept = g.sub_tasks?.length > 0 ? '<span class="multi-dept-badge">🔗 Multi-Dept</span>' : '';
+  const systemic = g.systemic_issue_id ? '<span class="systemic-badge">🔴 Systemic</span>' : '';
+  return `
+    <div class="grievance-card glass card-animate status-${escapeHtml(g.status)} queue-card" data-id="${escapeHtml(g.id)}" style="cursor:pointer;">
+      <div style="display:flex;align-items:center;gap:0.5rem;">
+        ${impactBadge}
+        <h4 style="margin:0;flex:1;">#${escapeHtml(g.tracking_number)} — ${escapeHtml(g.title)}</h4>
+      </div>
+      <p style="margin:0.3rem 0;">${escapeHtml(g.description).substring(0, 140)}...</p>
+      <div class="badges">
+        ${statusBadge(g.status)} ${deptBadge(g.department)} ${priorityBadge(g.priority)}
+        <span class="badge badge-dept">📍 ${escapeHtml(g.district || 'N/A')}</span>
+        <span class="badge badge-dept">${g.is_anonymous ? '🕵️ Anonymous' : '👤 ' + escapeHtml(g.citizen_name || 'N/A')}</span>
+        ${breachBadge} ${multiDept} ${systemic}
+      </div>
+    </div>`;
 }
 </script>
 {% endblock %}

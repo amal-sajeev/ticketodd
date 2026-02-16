@@ -60,6 +60,27 @@ async function api(method, endpoint, body = null) {
   }
 }
 
+// --- FormData API helper (for file uploads) ---
+async function apiFormData(method, endpoint, formData) {
+  const opts = { method, body: formData, headers: {} };
+  const token = getToken();
+  if (token) opts.headers['Authorization'] = `Bearer ${token}`;
+  try {
+    const res = await fetch(`${API}${endpoint}`, opts);
+    if (res.status === 401) { clearAuth(); window.location.href = '/login'; return null; }
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `Request failed (${res.status})`);
+    }
+    return await res.json();
+  } catch (e) {
+    if (e.message?.includes('Request failed')) throw e;
+    console.error('API Error:', e);
+    throw e;
+  }
+}
+
+
 // --- Utilities ---
 function deptLabel(d) {
   const labels = {
@@ -141,20 +162,23 @@ function renderNav() {
       <a href="/file-grievance">File Grievance</a>
       <a href="/track">Track</a>
       <a href="/chatbot">Chatbot</a>
-      <a href="/schemes">Schemes</a>`;
+      <a href="/schemes">Schemes</a>
+      <a href="/community">Community</a>`;
   } else if (user.role === 'admin') {
     links = `
       <a href="/officer-dashboard">Dashboard</a>
       <a href="/queue">Queue</a>
       <a href="/knowledge">Knowledge</a>
       <a href="/analytics-view">Analytics</a>
-      <a href="/admin">Admin</a>`;
+      <a href="/admin">Admin</a>
+      <a href="/community">Community</a>`;
   } else {
     links = `
       <a href="/officer-dashboard">Dashboard</a>
       <a href="/queue">Queue</a>
       <a href="/knowledge">Knowledge</a>
-      <a href="/analytics-view">Analytics</a>`;
+      <a href="/analytics-view">Analytics</a>
+      <a href="/community">Community</a>`;
   }
 
   nav.innerHTML = `

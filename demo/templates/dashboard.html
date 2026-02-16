@@ -4,7 +4,6 @@
 <div class="main-content">
   <h1 id="greeting">My Dashboard</h1>
   <p class="subtitle">Your grievance overview</p>
-
   <div class="card-grid-4 mb-3" id="metrics"></div>
 
   <h2>Recent Grievances</h2>
@@ -12,6 +11,12 @@
 </div>
 {% endblock %}
 {% block scripts %}
+<style>
+.date-group-header { display:flex;align-items:center;gap:0.75rem;padding:0.6rem 0;margin-top:1rem;border-bottom:2px solid rgba(0,0,0,0.08); }
+.date-group-header h3 { margin:0;font-size:1rem;font-weight:700; }
+.date-group-header .count { background:rgba(0,0,0,0.06);padding:0.15rem 0.5rem;border-radius:10px;font-size:0.8rem; }
+.impact-badge { display:inline-block;padding:0.15rem 0.5rem;border-radius:10px;font-size:0.75rem;font-weight:700;color:#fff;margin-left:0.3rem; }
+</style>
 <script>
 if (!requireAuth()) {}
 else {
@@ -20,10 +25,12 @@ else {
   loadDashboard();
 }
 
+function impactColor(s) { return s<=30?'#66BB6A':s<=60?'#FFB74D':s<=80?'#FF7043':'#EF5350'; }
+
 async function loadDashboard() {
   showLoading('metrics');
   try {
-    const grievances = await api('GET', '/grievances?limit=20');
+    const grievances = await api('GET', '/grievances?limit=30&group_by_date=true');
     const total = grievances.length;
     const resolved = grievances.filter(g => g.status === 'resolved').length;
     const pending = grievances.filter(g => ['pending','escalated'].includes(g.status)).length;
@@ -40,51 +47,58 @@ async function loadDashboard() {
       list.innerHTML = '<div class="glass card" style="text-align:center;padding:2rem;"><p>No grievances filed yet.</p><a href="/file-grievance" class="btn btn-primary mt-2">File Your First Grievance</a></div>';
       return;
     }
-    list.innerHTML = grievances.slice(0, 10).map(g => {
-      let selfResolvePrompt = '';
-      if (g.resolution_tier === 'self_resolvable' && g.status === 'pending' && g.ai_resolution) {
-        selfResolvePrompt = `
-          <div style="margin-top:0.75rem;padding:0.75rem 1rem;background:rgba(76,175,80,0.08);border-radius:0.75rem;border:1px solid rgba(76,175,80,0.25);">
-            <p style="font-size:0.85rem;font-weight:600;margin-bottom:0.4rem;">AI guidance is available — did it help?</p>
-            <div style="display:flex;gap:0.5rem;">
-              <button class="btn btn-success btn-sm confirm-yes-btn" style="font-size:.78rem;" data-tracking="${escapeHtml(g.tracking_number)}">Yes, resolved</button>
-              <button class="btn btn-secondary btn-sm confirm-no-btn" style="font-size:.78rem;" data-tracking="${escapeHtml(g.tracking_number)}">No, need help</button>
-              <a href="/grievance-detail?id=${encodeURIComponent(g.id)}" class="btn btn-primary btn-sm view-guidance-link" style="font-size:.78rem;">View guidance</a>
-            </div>
+
+    // Group by date
+    const groups = {};
+    grievances.forEach(g => {
+      const dateKey = new Date(g.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+      if (!groups[dateKey]) groups[dateKey] = [];
+      groups[dateKey].push(g);
+    });
+
+    let html = '';
+    for (const [date, items] of Object.entries(groups)) {
+      html += `<div class="date-group-header"><h3>📅 ${date}</h3><span class="count">${items.length} grievance${items.length !== 1 ? 's' : ''}</span></div>`;
+      html += items.map(g => {
+        let selfResolvePrompt = '';
+        if (g.resolution_tier === 'self_resolvable' && g.status === 'pending' && g.ai_resolution) {
+          selfResolvePrompt = `
+            <div style="margin-top:0.75rem;padding:0.75rem 1rem;background:rgba(76,175,80,0.08);border-radius:0.75rem;border:1px solid rgba(76,175,80,0.25);">
+              <p style="font-size:0.85rem;font-weight:600;margin-bottom:0.4rem;">AI guidance available — did it help?</p>
+              <div style="display:flex;gap:0.5rem;">
+                <button class="btn btn-success btn-sm confirm-yes-btn" style="font-size:.78rem;" data-tracking="${escapeHtml(g.tracking_number)}">Yes, resolved</button>
+                <button class="btn btn-secondary btn-sm confirm-no-btn" style="font-size:.78rem;" data-tracking="${escapeHtml(g.tracking_number)}">No, need help</button>
+                <a href="/grievance-detail?id=${encodeURIComponent(g.id)}" class="btn btn-primary btn-sm view-guidance-link" style="font-size:.78rem;">View</a>
+              </div>
+            </div>`;
+        }
+        const impactBadge = g.impact_score != null ? `<span class="impact-badge" style="background:${impactColor(g.impact_score)}">${g.impact_score}</span>` : '';
+        return `
+          <div class="grievance-card glass card-animate status-${g.status}" data-gid="${escapeHtml(g.id)}" style="cursor:pointer;">
+            <h4>#${escapeHtml(g.tracking_number)} — ${escapeHtml(g.title)}</h4>
+            <div class="badges">
+              ${statusBadge(g.status)} ${deptBadge(g.department)} ${priorityBadge(g.priority)} ${impactBadge}
+            </div>${selfResolvePrompt}
           </div>`;
-      }
-      return `
-        <div class="grievance-card glass card-animate status-${g.status}" data-gid="${escapeHtml(g.id)}" style="cursor:pointer;">
-          <h4>#${escapeHtml(g.tracking_number)} — ${escapeHtml(g.title)}</h4>
-          <div class="badges">
-            ${statusBadge(g.status)} ${deptBadge(g.department)} ${priorityBadge(g.priority)}
-            <span class="badge badge-dept">📅 ${formatDate(g.created_at)}</span>
-          </div>${selfResolvePrompt}
-        </div>`;
-    }).join('');
-    // Bind confirm resolution buttons safely
+      }).join('');
+    }
+    list.innerHTML = html;
+
+
     document.querySelectorAll('.confirm-yes-btn').forEach(btn => {
       btn.addEventListener('click', (e) => { e.stopPropagation(); confirmRes(btn.dataset.tracking, true); });
     });
     document.querySelectorAll('.confirm-no-btn').forEach(btn => {
       btn.addEventListener('click', (e) => { e.stopPropagation(); confirmRes(btn.dataset.tracking, false); });
     });
-    document.querySelectorAll('.view-guidance-link').forEach(link => {
-      link.addEventListener('click', (e) => { e.stopPropagation(); });
-    });
+    document.querySelectorAll('.view-guidance-link').forEach(link => link.addEventListener('click', e => e.stopPropagation()));
     document.querySelectorAll('.grievance-card[data-gid]').forEach(card => {
-      card.addEventListener('click', () => {
-        window.location.href = `/grievance-detail?id=${encodeURIComponent(card.dataset.gid)}`;
-      });
+      card.addEventListener('click', () => { window.location.href = `/grievance-detail?id=${encodeURIComponent(card.dataset.gid)}`; });
     });
   } catch (e) { showToast(e.message, 'error'); }
 }
 async function confirmRes(trackingNumber, helpful) {
-  try {
-    await api('PUT', '/grievances/confirm-resolution', { tracking_number: trackingNumber, helpful });
-    showToast(helpful ? 'Grievance marked as resolved!' : 'Forwarded to an officer for assistance.');
-    loadDashboard();
-  } catch (e) { showToast(e.message, 'error'); }
+  try { await api('PUT', '/grievances/confirm-resolution', { tracking_number: trackingNumber, helpful }); showToast(helpful ? 'Resolved!' : 'Forwarded to officer.'); loadDashboard(); } catch (e) { showToast(e.message, 'error'); }
 }
 </script>
 {% endblock %}

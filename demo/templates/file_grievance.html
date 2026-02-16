@@ -5,6 +5,18 @@
   <h1>📝 File a Grievance</h1>
   <p class="subtitle">Describe your issue and we'll process it with AI assistance</p>
 
+  <!-- Spam Block Banner -->
+  <div id="spamBanner" class="hidden" style="background:rgba(198,40,40,0.12);border:1px solid rgba(198,40,40,0.4);border-radius:12px;padding:1.25rem;margin-bottom:1.5rem;">
+    <h3 style="color:#C62828;margin:0 0 0.5rem;">⚠️ Account Restricted</h3>
+    <p id="spamReason" style="margin:0 0 1rem;">Your account has been flagged. Please upload a government-issued photo ID to verify your identity.</p>
+    <div id="photoIdUploadArea">
+      <input type="file" id="photoIdFile" accept="image/jpeg,image/png,image/webp" style="margin-bottom:0.5rem;">
+      <button class="btn btn-primary btn-sm" onclick="uploadPhotoId()">Upload Photo ID</button>
+      <p id="photoIdStatus" class="text-sm text-muted mt-1"></p>
+    </div>
+  </div>
+
+
   <div id="formArea">
     <form class="glass-strong card" id="grievanceForm" onsubmit="return submitGrievance(event)" style="padding:2rem;">
       <div class="form-group"><label>Grievance Title *</label><input type="text" class="form-control" id="title" placeholder="Brief summary of your issue" required maxlength="200"></div>
@@ -16,17 +28,38 @@
           </select></div>
         <div class="form-group"><label>District</label><select class="form-control" id="district"></select></div>
       </div>
+
+      <!-- Attachments -->
+      <div class="form-group">
+        <label>📎 Attachments (photos, audio, video — max 5 files, 50MB each)</label>
+        <input type="file" class="form-control" id="fileInput" multiple accept="image/*,audio/*,video/*" style="padding:0.5rem;">
+        <div id="filePreview" style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.5rem;"></div>
+      </div>
+
       <div class="form-check mb-2"><input type="checkbox" id="anonymous"><label for="anonymous">File anonymously</label></div>
+
+      <!-- Public checkbox -->
+      <div class="form-check mb-2" id="publicCheckGroup"><input type="checkbox" id="isPublic"><label for="isPublic">Make this grievance public (visible on community feed for other citizens to vouch)</label></div>
+
+
       <div class="form-row">
         <div class="form-group"><label>Your Name</label><input type="text" class="form-control" id="citizenName"></div>
         <div class="form-group"><label>Email</label><input type="email" class="form-control" id="citizenEmail"></div>
       </div>
-      <details class="mb-2"><summary class="text-sm text-muted" style="cursor:pointer;">📍 Location (Optional)</summary>
-        <div class="form-row mt-1">
-          <div class="form-group"><label>Latitude</label><input type="number" class="form-control" id="lat" step="any"></div>
-          <div class="form-group"><label>Longitude</label><input type="number" class="form-control" id="lon" step="any"></div>
+
+      <!-- Location with auto-detection -->
+      <div class="glass" style="padding:1rem;border-radius:12px;margin-bottom:1rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;">
+          <label style="margin:0;font-weight:600;">📍 Location</label>
+          <span id="locationStatus" class="text-sm" style="color:#888;">Detecting...</span>
         </div>
-      </details>
+        <div class="form-row">
+          <div class="form-group" style="margin-bottom:0;"><label class="text-sm">Latitude</label><input type="number" class="form-control" id="lat" step="any"></div>
+          <div class="form-group" style="margin-bottom:0;"><label class="text-sm">Longitude</label><input type="number" class="form-control" id="lon" step="any"></div>
+        </div>
+      </div>
+
+
       <button type="submit" class="btn btn-primary btn-block" id="submitBtn">🚀 Submit Grievance</button>
     </form>
   </div>
@@ -35,45 +68,180 @@
 {% endblock %}
 {% block scripts %}
 <script>
+let isBlocked = false;
+
+
 if (requireAuth()) {
   const u = getUser();
   document.getElementById('district').innerHTML = districtOptions();
   document.getElementById('citizenName').value = u?.full_name || '';
   document.getElementById('citizenEmail').value = u?.email || '';
+  checkSpamStatus();
+  detectLocation();
+  setupFilePreview();
+  setupAnonToggle();
 }
+
+// Toggle public checkbox visibility when anonymous is checked
+function setupAnonToggle() {
+  document.getElementById('anonymous').addEventListener('change', function() {
+    document.getElementById('publicCheckGroup').style.display = this.checked ? 'none' : '';
+    if (this.checked) document.getElementById('isPublic').checked = false;
+  });
+}
+
+// File preview
+function setupFilePreview() {
+  document.getElementById('fileInput').addEventListener('change', function() {
+    const preview = document.getElementById('filePreview');
+    preview.innerHTML = '';
+    Array.from(this.files).forEach(f => {
+      const tag = document.createElement('div');
+      tag.style.cssText = 'background:rgba(255,255,255,0.3);padding:0.3rem 0.6rem;border-radius:8px;font-size:0.82rem;display:flex;align-items:center;gap:0.3rem;';
+      const icon = f.type.startsWith('image/') ? '🖼️' : f.type.startsWith('audio/') ? '🎵' : '🎬';
+      tag.textContent = `${icon} ${f.name} (${(f.size/1024/1024).toFixed(1)}MB)`;
+      preview.appendChild(tag);
+    });
+  });
+}
+
+// Auto-detect location
+async function detectLocation() {
+  const statusEl = document.getElementById('locationStatus');
+  // Try browser geolocation first
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        document.getElementById('lat').value = pos.coords.latitude.toFixed(6);
+        document.getElementById('lon').value = pos.coords.longitude.toFixed(6);
+        statusEl.textContent = '✅ GPS location detected';
+        statusEl.style.color = '#2E7D32';
+      },
+      async () => { await fallbackIPLocation(statusEl); },
+      { timeout: 5000 }
+    );
+  } else {
+    await fallbackIPLocation(statusEl);
+  }
+}
+
+async function fallbackIPLocation(statusEl) {
+  try {
+    const data = await api('GET', '/location/from-ip');
+    if (data.latitude && data.longitude) {
+      document.getElementById('lat').value = data.latitude.toFixed(6);
+      document.getElementById('lon').value = data.longitude.toFixed(6);
+      statusEl.textContent = `📡 Approximate: ${data.city || ''}, ${data.region || ''}`;
+      statusEl.style.color = '#F57F17';
+    }
+  } catch {
+    statusEl.textContent = '❌ Location not available';
+    statusEl.style.color = '#888';
+  }
+}
+
+// Spam status check
+async function checkSpamStatus() {
+  try {
+    const status = await api('GET', '/auth/spam-status');
+    if (status.is_blocked) {
+      isBlocked = true;
+      document.getElementById('spamBanner').classList.remove('hidden');
+      document.getElementById('formArea').style.opacity = '0.4';
+      document.getElementById('formArea').style.pointerEvents = 'none';
+      if (status.photo_id_status === 'pending_review') {
+        document.getElementById('photoIdStatus').textContent = '⏳ Your photo ID is pending admin review.';
+        document.getElementById('photoIdUploadArea').querySelector('button').disabled = true;
+      } else if (status.photo_id_status === 'rejected') {
+        document.getElementById('photoIdStatus').textContent = '❌ Photo ID rejected. Please upload a clearer image.';
+      }
+    }
+  } catch {}
+}
+
+async function uploadPhotoId() {
+  const fileInput = document.getElementById('photoIdFile');
+  if (!fileInput.files.length) { showToast('Select a photo first', 'error'); return; }
+  const fd = new FormData();
+  fd.append('file', fileInput.files[0]);
+  try {
+    const res = await fetch('/auth/upload-photo-id', {
+      method: 'POST', body: fd,
+      headers: { 'Authorization': `Bearer ${getToken()}` }
+    });
+    if (!res.ok) throw new Error((await res.json()).detail || 'Upload failed');
+    showToast('Photo ID uploaded for review');
+    document.getElementById('photoIdStatus').textContent = '⏳ Pending admin review.';
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
 async function submitGrievance(e) {
   e.preventDefault();
+  if (isBlocked) { showToast('Account restricted. Upload photo ID first.', 'error'); return; }
   const btn = document.getElementById('submitBtn');
   btn.textContent = 'Processing...'; btn.disabled = true;
-  const body = {
-    title: document.getElementById('title').value,
-    description: document.getElementById('description').value,
-    language: document.getElementById('language').value,
-    district: document.getElementById('district').value || null,
-    is_anonymous: document.getElementById('anonymous').checked,
-    citizen_name: document.getElementById('citizenName').value || null,
-    citizen_email: document.getElementById('citizenEmail').value || null,
-  };
-  const lat = parseFloat(document.getElementById('lat').value);
-  const lon = parseFloat(document.getElementById('lon').value);
-  if (lat && lon) body.location = { latitude: lat, longitude: lon };
+
+  const fd = new FormData();
+  fd.append('title', document.getElementById('title').value);
+  fd.append('description', document.getElementById('description').value);
+  fd.append('language', document.getElementById('language').value);
+  fd.append('district', document.getElementById('district').value || '');
+  fd.append('is_anonymous', document.getElementById('anonymous').checked);
+  fd.append('is_public', document.getElementById('isPublic').checked);
+  fd.append('citizen_name', document.getElementById('citizenName').value || '');
+  fd.append('citizen_email', document.getElementById('citizenEmail').value || '');
+  const lat = document.getElementById('lat').value;
+  const lon = document.getElementById('lon').value;
+  if (lat) fd.append('latitude', lat);
+  if (lon) fd.append('longitude', lon);
+  // Attach files
+  const fileInput = document.getElementById('fileInput');
+  if (fileInput.files.length) {
+    Array.from(fileInput.files).forEach(f => fd.append('files', f));
+  }
+
   try {
-    const result = await api('POST', '/grievances', body);
+    const res = await fetch('/grievances', {
+      method: 'POST', body: fd,
+      headers: { 'Authorization': `Bearer ${getToken()}` }
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `Request failed (${res.status})`);
+    }
+    const result = await res.json();
     document.getElementById('formArea').classList.add('hidden');
     document.getElementById('resultArea').classList.remove('hidden');
+    let schemeHtml = '';
+    if (result.scheme_match) {
+      schemeHtml = `<div class="glass" style="padding:1rem;border-radius:12px;margin-top:1rem;border:1px solid rgba(76,175,80,0.3);">
+        <strong>🎯 Matching Scheme:</strong> ${escapeHtml(result.scheme_match.scheme_name)}<br>
+        <span class="text-sm">${escapeHtml(result.scheme_match.eligibility_reasoning || '')}</span>
+        <br><a href="/scheme-detail?id=${encodeURIComponent(result.scheme_match.scheme_id)}" class="text-sm">Learn more →</a>
+      </div>`;
+    }
+    let impactHtml = result.impact_score != null ? `<span class="badge" style="background:${impactColor(result.impact_score)};color:#fff;font-size:0.85rem;">Impact: ${result.impact_score}/100</span>` : '';
     document.getElementById('resultArea').innerHTML = `
       <div class="result-card glass-strong">
         <div style="font-size:3rem;margin-bottom:0.5rem;">✅</div>
         <h2>Grievance Submitted Successfully</h2>
         <div class="tracking-number">${escapeHtml(result.tracking_number)}</div>
-        <div class="mb-2">${statusBadge(result.status)} ${deptBadge(result.department)} ${priorityBadge(result.priority)}</div>
+        <div class="mb-2">${statusBadge(result.status)} ${deptBadge(result.department)} ${priorityBadge(result.priority)} ${impactHtml}</div>
         ${result.ai_resolution && result.resolution_tier === 'self_resolvable' ? `<div class="resolution-box ai mt-2" style="text-align:left;"><div class="resolution-header">🤖 AI Guidance</div><div class="resolution-content">${renderMarkdown(result.ai_resolution)}</div></div>` : ''}
+        ${schemeHtml}
         <div class="mt-3"><a href="/dashboard" class="btn btn-primary">Back to Dashboard</a> <a href="/file-grievance" class="btn btn-secondary" onclick="location.reload()">File Another</a></div>
       </div>`;
   } catch (err) {
     showToast(err.message || 'Failed to submit', 'error');
     btn.textContent = '🚀 Submit Grievance'; btn.disabled = false;
   }
+}
+
+function impactColor(score) {
+  if (score <= 30) return '#66BB6A';
+  if (score <= 60) return '#FFB74D';
+  if (score <= 80) return '#FF7043';
+  return '#EF5350';
 }
 </script>
 {% endblock %}

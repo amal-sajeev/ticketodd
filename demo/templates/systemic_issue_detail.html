@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Systemic Issue — PR&DW Portal{% endblock %}
+{% block content %}
+<div class="main-content wide">
+  <a href="/officer-dashboard" class="btn btn-secondary btn-sm mb-2">← Back to Dashboard</a>
+  <div id="issueContent"><div class="spinner"><span></span><span></span><span></span></div></div>
+</div>
+{% endblock %}
+{% block scripts %}
+<style>
+.issue-header { padding:1.5rem;border-left:6px solid #9C27B0; }
+.linked-grievance { padding:0.6rem 0.8rem;margin-bottom:0.4rem;cursor:pointer;transition:background 0.2s; }
+.linked-grievance:hover { background:rgba(255,255,255,0.3); }
+.severity-badge { display:inline-block;padding:0.2rem 0.6rem;border-radius:8px;font-size:0.82rem;font-weight:600; }
+.status-select { padding:0.3rem 0.6rem;border-radius:8px;border:1px solid rgba(0,0,0,0.15);font-size:0.85rem; }
+</style>
+<script>
+if (requireAuth()) loadIssue();
+
+async function loadIssue() {
+  const id = new URLSearchParams(window.location.search).get('id');
+  if (!id) { document.getElementById('issueContent').innerHTML = '<p>No issue ID provided.</p>'; return; }
+  try {
+    const [issue, officers] = await Promise.all([
+      api('GET', `/systemic-issues/${id}`),
+      api('GET', '/auth/officers').catch(() => [])
+    ]);
+    const officerOptions = (officers || []).map(o =>
+      `<option value="${escapeHtml(o.full_name)}"${o.full_name === issue.assigned_officer ? ' selected' : ''}>${escapeHtml(o.full_name)}</option>`).join('');
+
+    const statusColors = { detected: '#EF5350', acknowledged: '#FFB74D', in_progress: '#42A5F5', resolved: '#66BB6A' };
+
+    document.getElementById('issueContent').innerHTML = `
+      <div class="glass-strong card issue-header mb-3">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;">
+          <div>
+            <h1 style="margin:0 0 0.5rem;">🔴 ${escapeHtml(issue.title)}</h1>
+            <div class="badges mb-1">
+              <span class="badge badge-dept">${escapeHtml(deptLabel(issue.department))}</span>
+              <span class="badge badge-dept">📍 ${escapeHtml(issue.district || 'N/A')}</span>
+              <span class="badge badge-priority-${escapeHtml(issue.priority)}">${escapeHtml(issue.priority)}</span>
+              <span class="severity-badge" style="background:${statusColors[issue.status] || '#888'};color:#fff;">${escapeHtml(issue.status)}</span>
+            </div>
+            <p class="text-sm text-muted">Detected: ${formatDate(issue.created_at)} · ${issue.grievance_ids?.length || 0} linked grievances · ~${issue.estimated_population_affected || '?'} people affected${issue.affected_radius_km ? ` · ${issue.affected_radius_km}km radius` : ''}</p>
+          </div>
+          <div>
+            <p class="text-sm" style="margin:0 0 0.3rem;">Assigned: <strong>${escapeHtml(issue.assigned_officer || 'Unassigned')}</strong></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <div class="glass-strong card" style="padding:1.5rem;">
+            <h3>Root Cause Analysis</h3>
+            <p style="line-height:1.7;">${escapeHtml(issue.root_cause_analysis)}</p>
+          </div>
+
+          <div class="glass-strong card mt-2" style="padding:1.5rem;">
+            <h3>🔗 Linked Grievances (${issue.grievance_ids?.length || 0})</h3>
+            <div id="linkedGrievances"><div class="spinner"><span></span><span></span><span></span></div></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="glass-strong card" style="padding:1.5rem;">
+            <h3>Actions</h3>
+            <div class="form-group"><label>Update Status</label>
+              <select class="form-control status-select" id="issueStatus">
+                <option value="detected"${issue.status==='detected'?' selected':''}>Detected</option>
+                <option value="acknowledged"${issue.status==='acknowledged'?' selected':''}>Acknowledged</option>
+                <option value="in_progress"${issue.status==='in_progress'?' selected':''}>In Progress</option>
+                <option value="resolved"${issue.status==='resolved'?' selected':''}>Resolved</option>
+              </select></div>
+            <button class="btn btn-primary btn-block btn-sm mb-2" id="updateStatusBtn">Update Status</button>
+
+            <hr style="border-color:rgba(255,255,255,0.2);margin:1rem 0;">
+            <div class="form-group"><label>Assign Officer</label>
+              <select class="form-control" id="issueOfficer"><option value="">-- Select --</option>${officerOptions}</select></div>
+            <button class="btn btn-secondary btn-block btn-sm" id="assignOfficerBtn">Assign</button>
+          </div>
+        </div>
+      </div>`;
+
+    // Bind buttons
+    document.getElementById('updateStatusBtn').addEventListener('click', async () => {
+      const s = document.getElementById('issueStatus').value;
+      try { await api('PUT', `/systemic-issues/${id}/status?new_status=${s}`); showToast('Status updated'); loadIssue(); } catch (e) { showToast(e.message, 'error'); }
+    });
+    document.getElementById('assignOfficerBtn').addEventListener('click', async () => {
+      const n = document.getElementById('issueOfficer').value;
+      if (!n) { showToast('Select an officer', 'error'); return; }
+      try { await api('PUT', `/systemic-issues/${id}/assign`, { officer_name: n }); showToast('Officer assigned'); loadIssue(); } catch (e) { showToast(e.message, 'error'); }
+    });
+
+    // Load linked grievances
+    loadLinkedGrievances(issue.grievance_ids || []);
+  } catch (e) { document.getElementById('issueContent').innerHTML = `<p style="color:#C62828;">Error: ${escapeHtml(e.message)}</p>`; }
+}
+
+async function loadLinkedGrievances(ids) {
+  const el = document.getElementById('linkedGrievances');
+  if (!ids.length) { el.innerHTML = '<p class="text-sm text-muted">No linked grievances.</p>'; return; }
+  try {
+    // Fetch all grievances and filter to linked ones
+    const all = await api('GET', '/grievances?limit=100');
+    const linked = all.filter(g => ids.includes(g.id));
+    if (!linked.length) { el.innerHTML = '<p class="text-sm text-muted">Linked grievances not accessible.</p>'; return; }
+    el.innerHTML = linked.map(g => `
+      <div class="linked-grievance glass" style="border-radius:8px;" onclick="window.location.href='/grievance-detail?id=${encodeURIComponent(g.id)}'">
+        <strong>#${escapeHtml(g.tracking_number)}</strong> — ${escapeHtml(g.title)}
+        <div class="badges" style="margin-top:0.3rem;">${statusBadge(g.status)} ${priorityBadge(g.priority)} <span class="badge badge-dept">📍 ${escapeHtml(g.district || 'N/A')}</span></div>
+      </div>`).join('');
+  } catch { el.innerHTML = '<p class="text-sm text-muted">Could not load linked grievances.</p>'; }
+}
+</script>
+{% endblock %}

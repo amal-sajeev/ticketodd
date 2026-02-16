@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}Community Feed — PR&DW Portal{% endblock %}
+{% block content %}
+<div class="main-content wide">
+  <h1>🏘️ Community Grievance Feed</h1>
+  <p class="subtitle">Public grievances from citizens near you. Vouch to amplify issues and provide evidence.</p>
+
+  <div class="glass filter-bar" style="margin-bottom:1rem;">
+    <div class="form-group">
+      <label>📍 Your Location</label>
+      <span id="locationIndicator" class="text-sm" style="display:block;color:#888;">Detecting...</span>
+    </div>
+    <div class="form-group">
+      <label>Radius (km)</label>
+      <select class="form-control" id="radiusKm">
+        <option value="10">10 km</option>
+        <option value="25">25 km</option>
+        <option value="50" selected>50 km</option>
+        <option value="100">100 km</option>
+        <option value="500">All Odisha</option>
+      </select>
+    </div>
+    <div class="form-group" style="align-self:end;">
+      <button class="btn btn-primary btn-sm" onclick="loadFeed()">🔄 Refresh</button>
+    </div>
+  </div>
+
+  <div id="feedList"><div class="spinner"><span></span><span></span><span></span></div></div>
+</div>
+
+<!-- Vouch Modal -->
+<div id="vouchModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:1000;display:none;align-items:center;justify-content:center;">
+  <div class="glass-strong card" style="padding:1.5rem;max-width:500px;width:90%;margin:auto;position:relative;top:20%;">
+    <h3>🤝 Vouch for this Grievance</h3>
+    <input type="hidden" id="vouchGrievanceId">
+    <div class="form-group"><label>Comment (optional)</label><textarea class="form-control" id="vouchComment" placeholder="Share your experience or confirm this issue..." maxlength="500" style="min-height:80px;"></textarea></div>
+    <div class="form-group"><label>📎 Evidence (optional, max 3 files)</label><input type="file" class="form-control" id="vouchFiles" multiple accept="image/*,audio/*,video/*"></div>
+    <div style="display:flex;gap:0.5rem;margin-top:1rem;">
+      <button class="btn btn-primary" onclick="submitVouch()">Submit Vouch</button>
+      <button class="btn btn-secondary" onclick="closeVouchModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<style>
+.community-card { transition:transform 0.2s ease; }
+.community-card:hover { transform:translateY(-2px); }
+.vouch-count { display:inline-flex;align-items:center;gap:0.25rem;padding:0.2rem 0.6rem;border-radius:10px;background:rgba(76,175,80,0.15);color:#2E7D32;font-weight:600;font-size:0.85rem; }
+.distance-badge { display:inline-flex;align-items:center;gap:0.2rem;padding:0.15rem 0.5rem;border-radius:8px;background:rgba(21,101,192,0.1);color:#1565C0;font-size:0.8rem; }
+</style>
+<script>
+let userLat = null, userLon = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+  detectLocation();
+  document.getElementById('radiusKm').addEventListener('change', loadFeed);
+});
+
+async function detectLocation() {
+  const el = document.getElementById('locationIndicator');
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      pos => { userLat = pos.coords.latitude; userLon = pos.coords.longitude; el.textContent = '✅ GPS detected'; el.style.color = '#2E7D32'; loadFeed(); },
+      async () => { await ipFallback(el); },
+      { timeout: 5000 }
+    );
+  } else { await ipFallback(el); }
+}
+
+async function ipFallback(el) {
+  try {
+    const token = getToken();
+    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+    const res = await fetch('/location/from-ip', { headers });
+    if (res.ok) {
+      const d = await res.json();
+      userLat = d.latitude; userLon = d.longitude;
+      el.textContent = `📡 ${d.city || ''}, ${d.region || ''}`;
+      el.style.color = '#F57F17';
+    }
+  } catch {}
+  loadFeed();
+}
+
+async function loadFeed() {
+  const list = document.getElementById('feedList');
+  list.innerHTML = '<div class="spinner"><span></span><span></span><span></span></div>';
+  const radius = document.getElementById('radiusKm').value;
+  let url = `/public/grievances?radius_km=${radius}&limit=30`;
+  if (userLat != null && userLon != null) url += `&lat=${userLat}&lon=${userLon}`;
+  try {
+    const res = await fetch(url);
+    const grievances = await res.json();
+    if (!grievances.length) {
+      list.innerHTML = '<div class="glass card text-center" style="padding:2rem;"><p>No public grievances found nearby.</p><p class="text-sm text-muted">Try increasing the radius or check back later.</p></div>';
+      return;
+    }
+    list.innerHTML = grievances.map(g => `
+      <div class="glass card-animate community-card" style="padding:1rem;margin-bottom:0.75rem;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div style="flex:1;">
+            <h4 style="margin:0 0 0.3rem;">${escapeHtml(g.title)}</h4>
+            <p class="text-sm" style="margin:0 0 0.5rem;line-height:1.5;">${escapeHtml(g.description_snippet)}</p>
+            <div class="badges">
+              ${deptBadge(g.department)} ${priorityBadge(g.priority)}
+              <span class="badge badge-dept">📍 ${escapeHtml(g.district || 'N/A')}</span>
+              <span class="badge badge-dept">📅 ${formatDate(g.created_at)}</span>
+              ${g.distance_km != null ? `<span class="distance-badge">📏 ${g.distance_km} km away</span>` : ''}
+            </div>
+          </div>
+          <div style="text-align:center;min-width:80px;">
+            <div class="vouch-count">🤝 ${g.vouch_count}</div>
+            <div class="text-sm text-muted">${g.evidence_count} evidence</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:0.5rem;margin-top:0.75rem;">
+          <button class="btn btn-primary btn-sm vouch-btn" data-gid="${escapeHtml(g.id)}">🤝 Vouch for this</button>
+          <a href="/grievance-detail?id=${encodeURIComponent(g.id)}" class="btn btn-secondary btn-sm">View Details</a>
+        </div>
+      </div>`).join('');
+    document.querySelectorAll('.vouch-btn').forEach(b => b.addEventListener('click', () => openVouchModal(b.dataset.gid)));
+  } catch (e) { list.innerHTML = `<p style="color:#C62828;">Error loading feed: ${escapeHtml(e.message || 'Unknown error')}</p>`; }
+}
+
+function openVouchModal(gid) {
+  if (!isLoggedIn()) { showToast('Please log in to vouch', 'error'); window.location.href = '/login'; return; }
+  document.getElementById('vouchGrievanceId').value = gid;
+  document.getElementById('vouchComment').value = '';
+  document.getElementById('vouchFiles').value = '';
+  document.getElementById('vouchModal').style.display = 'flex';
+}
+
+function closeVouchModal() { document.getElementById('vouchModal').style.display = 'none'; }
+
+async function submitVouch() {
+  const gid = document.getElementById('vouchGrievanceId').value;
+  const fd = new FormData();
+  const comment = document.getElementById('vouchComment').value;
+  if (comment) fd.append('comment', comment);
+  const files = document.getElementById('vouchFiles').files;
+  Array.from(files).forEach(f => fd.append('files', f));
+  try {
+    const res = await fetch(`/public/grievances/${gid}/vouch`, {
+      method: 'POST', body: fd,
+      headers: { 'Authorization': `Bearer ${getToken()}` }
+    });
+    if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.detail || 'Failed'); }
+    showToast('Vouch recorded! Thank you for supporting your community.');
+    closeVouchModal();
+    loadFeed();
+  } catch (e) { showToast(e.message, 'error'); }
+}
+</script>
+{% endblock %}

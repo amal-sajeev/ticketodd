@@ -42,6 +42,18 @@
       </div>
     </div>
   </div>
+
+  <!-- Systemic Issues Section -->
+  <div class="glass card mb-3" style="padding:1.25rem;" id="systemicSection">
+    <h3 style="margin:0 0 0.75rem;">🔴 Systemic Issues Detected</h3>
+    <div id="systemicList"><div class="text-sm text-muted">Loading...</div></div>
+  </div>
+
+  <!-- Predictive Briefing Section -->
+  <div class="glass card mb-3" style="padding:1.25rem;" id="forecastSection">
+    <h3 style="margin:0 0 0.75rem;">📊 Predictive Briefing</h3>
+    <div id="forecastContent"><div class="text-sm text-muted">Loading...</div></div>
+  </div>
 </div>
 {% endblock %}
 {% block scripts %}
@@ -171,7 +183,8 @@ async function loadOfficerDash() {
       api('GET', '/grievances?limit=10')
     ]);
 
-    // --- KPI Cards (7) ---
+    // --- KPI Cards (8) ---
+    const deadlineAlerts = analytics.deadline_alerts || 0;
     document.getElementById('kpis').innerHTML = `
       <div class="metric-card glass card-animate"><div class="metric-icon">🎫</div><div class="metric-value">${analytics.total_grievances}</div><div class="metric-label">Total (30d)</div></div>
       <div class="metric-card glass card-animate"><div class="metric-icon">✅</div><div class="metric-value">${analytics.self_resolved}</div><div class="metric-label">Self-Resolved</div></div>
@@ -179,7 +192,8 @@ async function loadOfficerDash() {
       <div class="metric-card glass card-animate"><div class="metric-icon">⚠️</div><div class="metric-value">${analytics.escalated_to_human}</div><div class="metric-label">Escalated</div></div>
       <div class="metric-card glass card-animate"><div class="metric-icon">⏱️</div><div class="metric-value">${analytics.avg_resolution_time}h</div><div class="metric-label">Avg Resolution</div></div>
       <div class="metric-card glass card-animate"><div class="metric-icon">📋</div><div class="metric-value">${analytics.pending_count}</div><div class="metric-label">Pending</div></div>
-      <div class="metric-card glass card-animate" style="${analytics.sla_breached_count > 0 ? 'border:2px solid rgba(239,83,80,0.5);' : ''}"><div class="metric-icon">🚨</div><div class="metric-value">${analytics.sla_breached_count}</div><div class="metric-label">SLA Breached</div></div>`;
+      <div class="metric-card glass card-animate" style="${analytics.sla_breached_count > 0 ? 'border:2px solid rgba(239,83,80,0.5);' : ''}"><div class="metric-icon">🚨</div><div class="metric-value">${analytics.sla_breached_count}</div><div class="metric-label">SLA Breached</div></div>
+      <div class="metric-card glass card-animate" style="${deadlineAlerts > 0 ? 'border:2px solid rgba(255,152,0,0.5);' : ''}"><div class="metric-icon">⏰</div><div class="metric-value">${deadlineAlerts}</div><div class="metric-label">Deadline Alerts</div></div>`;
 
     // --- Status Distribution Bar ---
     const sd = analytics.status_distribution || {};
@@ -219,8 +233,52 @@ async function loadOfficerDash() {
     document.querySelectorAll('.recent-card').forEach(card => {
       card.addEventListener('click', () => { window.location.href = '/grievance-detail?id=' + encodeURIComponent(card.dataset.id); });
     });
+    // Load systemic issues and forecasts in parallel
+    loadSystemicIssues();
+    loadForecast();
   } catch (e) { showToast(e.message, 'error'); }
 }
+
+async function loadSystemicIssues() {
+  try {
+    const issues = await api('GET', '/systemic-issues?status=detected');
+    const el = document.getElementById('systemicList');
+    if (!issues.length) { el.innerHTML = '<div class="text-sm text-muted">No systemic issues detected.</div>'; return; }
+    el.innerHTML = issues.map(i => `
+      <div class="glass card-animate" style="padding:0.75rem;margin-bottom:0.5rem;border-left:4px solid #9C27B0;cursor:pointer;" onclick="window.location.href='/systemic-issue-detail?id=${encodeURIComponent(i.id)}'">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <strong>${escapeHtml(i.title)}</strong>
+          <span class="badge badge-priority-${escapeHtml(i.priority)}">${escapeHtml(i.priority)}</span>
+        </div>
+        <div class="text-sm" style="margin-top:0.3rem;">${escapeHtml(i.department)} · ${escapeHtml(i.district || 'N/A')} · ${i.grievance_ids?.length || 0} linked grievances · Est. ${i.estimated_population_affected || '?'} people affected</div>
+      </div>`).join('');
+  } catch { document.getElementById('systemicList').innerHTML = '<div class="text-sm text-muted">Could not load systemic issues.</div>'; }
+}
+
+async function loadForecast() {
+  try {
+    const f = await api('GET', '/forecasts/latest');
+    const el = document.getElementById('forecastContent');
+    if (!f || f.detail === 'No forecasts available' || !f.predictions) {
+      el.innerHTML = '<div class="text-sm text-muted">No forecasts available. Admins can generate one from the admin panel.</div>';
+      return;
+    }
+    const spikes = (f.predictions || []).filter(p => p.spike_factor > 1.2).sort((a, b) => b.spike_factor - a.spike_factor).slice(0, 5);
+    if (!spikes.length) {
+      el.innerHTML = '<div class="text-sm">No significant spikes predicted for the coming period.</div>';
+      return;
+    }
+    el.innerHTML = `<div class="text-sm text-muted mb-1">Period: ${formatDate(f.forecast_period_start)} – ${formatDate(f.forecast_period_end)}</div>` +
+      spikes.map(p => `
+        <div class="glass card-animate" style="padding:0.75rem;margin-bottom:0.5rem;border-left:4px solid ${p.spike_factor >= 2 ? '#EF5350' : '#FFB74D'};">
+          <strong>${escapeHtml(p.district)} — ${escapeHtml(deptLabel(p.department))}</strong>
+          <span style="float:right;font-weight:700;color:${p.spike_factor >= 2 ? '#C62828' : '#E65100'};">${p.spike_factor.toFixed(1)}x spike</span>
+          <div class="text-sm" style="margin-top:0.3rem;">Baseline: ${p.baseline_count} → Predicted: ${p.predicted_count} · Triggers: ${p.triggers.join(', ')}</div>
+          ${p.recommended_actions?.length ? '<div class="text-sm" style="margin-top:0.2rem;color:#1565C0;">📋 ' + p.recommended_actions.join(' | ') + '</div>' : ''}
+        </div>`).join('');
+  } catch { document.getElementById('forecastContent').innerHTML = '<div class="text-sm text-muted">Could not load forecast.</div>'; }
+}
+
 
 /* --------- SVG Map Rendering --------- */
 let _geoData = null;
