@@ -976,9 +976,15 @@ class SpamDetector:
         now = datetime.now(timezone.utc)
         content_hash = hashlib.sha256(f"{title}|{description}".lower().strip().encode()).hexdigest()
         timestamps = record.get("filing_timestamps", [])
+        # Ensure timestamps are tz-aware (MongoDB may return naive datetimes)
+        timestamps = [t.replace(tzinfo=timezone.utc) if t.tzinfo is None else t for t in timestamps]
         timestamps = [t for t in timestamps if (now - t).total_seconds() < 3600]
         timestamps.append(now)
         dup_hashes = record.get("duplicate_hashes", [])
+        # Ensure dup_hash timestamps are tz-aware
+        for h in dup_hashes:
+            if h["ts"].tzinfo is None:
+                h["ts"] = h["ts"].replace(tzinfo=timezone.utc)
         dup_hashes = [h for h in dup_hashes if (now - h["ts"]).total_seconds() < 86400]
         score = record.get("spam_score", 0.0)
         reason_parts = []
@@ -1849,6 +1855,10 @@ async def create_grievance(
         return result
     except HTTPException:
         raise
+    except (ValueError, TypeError) as e:
+        # Pydantic validation / type coercion errors → 422
+        logger.warning("Grievance validation error: %s", e)
+        raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
         logger.error("Error creating grievance: %s", e)
         raise HTTPException(status_code=500, detail="Internal server error")
