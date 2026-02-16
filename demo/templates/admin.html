@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+{% block title %}Admin Panel — PR&DW Portal{% endblock %}
+{% block content %}
+<div class="main-content wide">
+  <div class="flex-between mb-2">
+    <div><h1>🔒 User Management</h1><p class="subtitle">Create, edit, and manage system accounts</p></div>
+    <button class="btn btn-primary" onclick="showCreateForm()">+ Create User</button>
+  </div>
+
+  <!-- Create / Edit Form (hidden by default) -->
+  <div id="userForm" class="glass-strong card mb-2" style="padding:1.5rem;display:none;">
+    <h3 id="formTitle">Create New User</h3>
+    <input type="hidden" id="editUserId">
+    <div class="form-row">
+      <div class="form-group"><label>Full Name</label><input type="text" class="form-control" id="fFullName" required></div>
+      <div class="form-group"><label>Email</label><input type="email" class="form-control" id="fEmail" required></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Username</label><input type="text" class="form-control" id="fUsername" required minlength="3"></div>
+      <div class="form-group"><label>Password</label><input type="password" class="form-control" id="fPassword" minlength="6" placeholder="Min 6 characters"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Phone</label><input type="text" class="form-control" id="fPhone" placeholder="Optional"></div>
+      <div class="form-group">
+        <label>Role</label>
+        <select class="form-control" id="fRole" onchange="toggleFormDept()">
+          <option value="citizen">Citizen</option>
+          <option value="officer">Officer</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group" id="fDeptGroup" style="display:none;">
+      <label>Department</label>
+      <select class="form-control" id="fDepartment"></select>
+    </div>
+    <div style="display:flex;gap:0.5rem;margin-top:1rem;">
+      <button class="btn btn-primary" onclick="submitUser()">Save</button>
+      <button class="btn btn-secondary" onclick="hideForm()">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Role filter tabs -->
+  <div class="glass card mb-2" style="padding:0.75rem 1rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+    <button class="btn btn-sm filter-tab active" data-role="" onclick="filterRole(this, '')">All</button>
+    <button class="btn btn-sm filter-tab" data-role="citizen" onclick="filterRole(this, 'citizen')">Citizens</button>
+    <button class="btn btn-sm filter-tab" data-role="officer" onclick="filterRole(this, 'officer')">Officers</button>
+    <button class="btn btn-sm filter-tab" data-role="admin" onclick="filterRole(this, 'admin')">Admins</button>
+    <span id="userCount" style="margin-left:auto;align-self:center;opacity:0.7;font-size:0.9rem;"></span>
+  </div>
+
+  <!-- User table -->
+  <div class="glass-strong card" style="padding:1rem;overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;" id="userTable">
+      <thead>
+        <tr style="text-align:left;border-bottom:2px solid rgba(0,0,0,0.1);">
+          <th style="padding:0.65rem;">Name</th>
+          <th style="padding:0.65rem;">Username</th>
+          <th style="padding:0.65rem;">Email</th>
+          <th style="padding:0.65rem;">Role</th>
+          <th style="padding:0.65rem;">Department</th>
+          <th style="padding:0.65rem;">Created</th>
+          <th style="padding:0.65rem;text-align:right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="userTableBody">
+        <tr><td colspan="7" style="padding:2rem;text-align:center;"><div class="spinner"><span></span><span></span><span></span></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<style>
+  .filter-tab {
+    background: rgba(255,255,255,0.3); border: 1px solid rgba(255,255,255,0.4);
+    cursor: pointer; padding: 0.35rem 1rem; border-radius: 20px; font-size: 0.85rem;
+    transition: all 0.2s ease;
+  }
+  .filter-tab:hover { background: rgba(255,255,255,0.5); }
+  .filter-tab.active { background: rgba(21,101,192,0.8); color: #fff; border-color: rgba(21,101,192,0.9); }
+  .role-badge {
+    display: inline-block; padding: 0.2rem 0.6rem; border-radius: 12px;
+    font-size: 0.8rem; font-weight: 600; text-transform: capitalize;
+  }
+  .role-citizen { background: rgba(102,187,106,0.2); color: #2E7D32; }
+  .role-officer { background: rgba(21,101,192,0.2); color: #1565C0; }
+  .role-admin { background: rgba(198,40,40,0.2); color: #C62828; }
+  .action-btn {
+    background: none; border: none; cursor: pointer; padding: 0.3rem 0.5rem;
+    border-radius: 6px; font-size: 0.85rem; transition: background 0.2s;
+  }
+  .action-btn:hover { background: rgba(0,0,0,0.08); }
+  .action-btn.delete:hover { background: rgba(198,40,40,0.15); }
+  #userTable tbody tr { border-bottom: 1px solid rgba(0,0,0,0.05); transition: background 0.15s; }
+  #userTable tbody tr:hover { background: rgba(255,255,255,0.3); }
+</style>
+<script>
+let allUsers = [];
+let currentFilter = '';
+
+if (requireAuth()) {
+  const u = getUser();
+  if (u.role !== 'admin') { window.location.href = '/officer-dashboard'; }
+  else { loadUsers(); }
+}
+
+async function loadUsers() {
+  try {
+    const url = currentFilter ? `/admin/users?role=${currentFilter}` : '/admin/users';
+    allUsers = await api('GET', url);
+    renderTable();
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+function renderTable() {
+  const tbody = document.getElementById('userTableBody');
+  document.getElementById('userCount').textContent = `${allUsers.length} user${allUsers.length !== 1 ? 's' : ''}`;
+  if (!allUsers.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="padding:2rem;text-align:center;opacity:0.6;">No users found</td></tr>';
+    return;
+  }
+  tbody.innerHTML = allUsers.map(u => `
+    <tr>
+      <td style="padding:0.65rem;font-weight:500;">${escapeHtml(u.full_name)}</td>
+      <td style="padding:0.65rem;font-family:monospace;font-size:0.9rem;">${escapeHtml(u.username)}</td>
+      <td style="padding:0.65rem;">${escapeHtml(u.email)}</td>
+      <td style="padding:0.65rem;"><span class="role-badge role-${escapeHtml(u.role)}">${escapeHtml(u.role)}</span></td>
+      <td style="padding:0.65rem;">${u.department ? deptLabel(u.department) : '<span style="opacity:0.4;">—</span>'}</td>
+      <td style="padding:0.65rem;font-size:0.9rem;">${formatDate(u.created_at)}</td>
+      <td style="padding:0.65rem;text-align:right;white-space:nowrap;">
+        <button class="action-btn user-edit-btn" data-id="${escapeHtml(u.id)}" title="Edit">✏️ Edit</button>
+        <button class="action-btn delete user-del-btn" data-id="${escapeHtml(u.id)}" data-username="${escapeHtml(u.username)}" title="Delete">🗑️ Delete</button>
+      </td>
+    </tr>`).join('');
+  // Bind event handlers safely (no inline onclick)
+  document.querySelectorAll('.user-edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => editUser(btn.dataset.id));
+  });
+  document.querySelectorAll('.user-del-btn').forEach(btn => {
+    btn.addEventListener('click', () => deleteUser(btn.dataset.id, btn.dataset.username));
+  });
+}
+
+function filterRole(btn, role) {
+  document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentFilter = role;
+  loadUsers();
+}
+
+// --- Form ---
+document.getElementById('fDepartment').innerHTML = deptOptions();
+
+function toggleFormDept() {
+  const role = document.getElementById('fRole').value;
+  document.getElementById('fDeptGroup').style.display = (role === 'officer') ? 'block' : 'none';
+}
+
+function showCreateForm() {
+  document.getElementById('formTitle').textContent = 'Create New User';
+  document.getElementById('editUserId').value = '';
+  document.getElementById('fFullName').value = '';
+  document.getElementById('fEmail').value = '';
+  document.getElementById('fUsername').value = '';
+  document.getElementById('fUsername').disabled = false;
+  document.getElementById('fPassword').value = '';
+  document.getElementById('fPassword').placeholder = 'Min 6 characters';
+  document.getElementById('fPassword').required = true;
+  document.getElementById('fPhone').value = '';
+  document.getElementById('fRole').value = 'officer';
+  toggleFormDept();
+  document.getElementById('userForm').style.display = 'block';
+  document.getElementById('fFullName').focus();
+}
+
+function editUser(id) {
+  const u = allUsers.find(x => x.id === id);
+  if (!u) return;
+  document.getElementById('formTitle').textContent = `Edit: ${u.full_name}`;
+  document.getElementById('editUserId').value = u.id;
+  document.getElementById('fFullName').value = u.full_name;
+  document.getElementById('fEmail').value = u.email;
+  document.getElementById('fUsername').value = u.username;
+  document.getElementById('fUsername').disabled = true;
+  document.getElementById('fPassword').value = '';
+  document.getElementById('fPassword').placeholder = 'Leave blank to keep current';
+  document.getElementById('fPassword').required = false;
+  document.getElementById('fPhone').value = u.phone || '';
+  document.getElementById('fRole').value = u.role;
+  document.getElementById('fDepartment').innerHTML = deptOptions(u.department);
+  toggleFormDept();
+  document.getElementById('userForm').style.display = 'block';
+  document.getElementById('fFullName').focus();
+}
+
+function hideForm() {
+  document.getElementById('userForm').style.display = 'none';
+}
+
+async function submitUser() {
+  const editId = document.getElementById('editUserId').value;
+  const role = document.getElementById('fRole').value;
+  const password = document.getElementById('fPassword').value;
+
+  if (!editId && (!password || password.length < 6)) {
+    showToast('Password is required (min 6 characters)', 'error'); return;
+  }
+
+  try {
+    if (editId) {
+      // Update
+      const body = {
+        full_name: document.getElementById('fFullName').value,
+        email: document.getElementById('fEmail').value,
+        phone: document.getElementById('fPhone').value || null,
+        role: role,
+      };
+      if (role === 'officer') body.department = document.getElementById('fDepartment').value;
+      if (password) body.password = password;
+      await api('PUT', `/admin/users/${editId}`, body);
+      showToast('User updated');
+    } else {
+      // Create
+      const body = {
+        full_name: document.getElementById('fFullName').value,
+        email: document.getElementById('fEmail').value,
+        phone: document.getElementById('fPhone').value || null,
+        username: document.getElementById('fUsername').value,
+        password: password,
+        role: role,
+      };
+      if (role === 'officer') body.department = document.getElementById('fDepartment').value;
+      await api('POST', '/admin/users', body);
+      showToast('User created');
+    }
+    hideForm();
+    loadUsers();
+  } catch (e) {
+    showToast(e.message, 'error');
+  }
+}
+
+async function deleteUser(id, username) {
+  if (!confirm(`Delete user "${username}"? This cannot be undone.`)) return;
+  try {
+    await api('DELETE', `/admin/users/${id}`);
+    showToast('User deleted');
+    loadUsers();
+  } catch (e) { showToast(e.message, 'error'); }
+}
+</script>
+{% endblock %}

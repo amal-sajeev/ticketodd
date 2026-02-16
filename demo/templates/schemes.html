@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}PR&DW Schemes{% endblock %}
+{% block content %}
+<div class="main-content">
+  <h1>📋 Government Schemes</h1>
+  <p class="subtitle">Browse and search Panchayati Raj & Drinking Water Department schemes</p>
+  <div class="glass filter-bar mb-2">
+    <div class="form-group" style="flex:2;"><label>Search</label><input type="text" class="form-control" id="searchQ" placeholder="e.g. farmer support, health insurance..."></div>
+    <div class="form-group"><label>Department</label><select class="form-control" id="deptFilter"></select></div>
+    <div style="padding-bottom:2px;"><button class="btn btn-primary" onclick="searchSchemes()">Search</button></div>
+  </div>
+  <div id="schemeList"></div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('deptFilter').innerHTML = deptOptions('', true);
+loadSchemes();
+
+async function loadSchemes() {
+  showLoading('schemeList');
+  const dept = document.getElementById('deptFilter').value;
+  const params = dept ? `?department=${dept}` : '';
+  try {
+    const schemes = await api('GET', '/knowledge/schemes' + params);
+    renderSchemes(schemes);
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+async function searchSchemes() {
+  const q = document.getElementById('searchQ').value.trim();
+  if (!q) { loadSchemes(); return; }
+  showLoading('schemeList');
+  try {
+    const schemes = await api('POST', `/knowledge/schemes/search?query=${encodeURIComponent(q)}`);
+    renderSchemes(schemes);
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+function renderSchemes(schemes) {
+  const el = document.getElementById('schemeList');
+  if (!schemes?.length) { el.innerHTML = '<div class="glass card text-center" style="padding:2rem;">No schemes found.</div>'; return; }
+  el.innerHTML = '<div class="card-grid">' + schemes.map(s => {
+    const hasQ = (s.eligibility_questions || []).length > 0;
+    return `
+    <div class="scheme-card glass card card-animate">
+      <h4>${escapeHtml(s.name)}</h4>
+      <p>${escapeHtml(s.description)}</p>
+      <p><strong>Eligibility:</strong> ${escapeHtml(s.eligibility)}</p>
+      <p><strong>How to Apply:</strong> ${escapeHtml(s.how_to_apply)}</p>
+      <div class="flex-between mt-1">${deptBadge(s.department)}
+        <a href="/scheme-detail?id=${s.id}" class="btn btn-primary btn-sm">${hasQ ? '📋 Check Eligibility' : 'View Details'}</a>
+      </div>
+    </div>`;
+  }).join('') + '</div>';
+}
+
+document.getElementById('deptFilter').addEventListener('change', loadSchemes);
+document.getElementById('searchQ').addEventListener('keydown', e => { if (e.key === 'Enter') searchSchemes(); });
+</script>
+{% endblock %}

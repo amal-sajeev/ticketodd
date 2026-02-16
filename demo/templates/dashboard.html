@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — PR&DW Portal{% endblock %}
+{% block content %}
+<div class="main-content">
+  <h1 id="greeting">My Dashboard</h1>
+  <p class="subtitle">Your grievance overview</p>
+
+  <div class="card-grid-4 mb-3" id="metrics"></div>
+
+  <h2>Recent Grievances</h2>
+  <div id="grievanceList"></div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+if (!requireAuth()) {}
+else {
+  const user = getUser();
+  document.getElementById('greeting').textContent = `Welcome, ${user.full_name}`;
+  loadDashboard();
+}
+
+async function loadDashboard() {
+  showLoading('metrics');
+  try {
+    const grievances = await api('GET', '/grievances?limit=20');
+    const total = grievances.length;
+    const resolved = grievances.filter(g => g.status === 'resolved').length;
+    const pending = grievances.filter(g => ['pending','escalated'].includes(g.status)).length;
+    const inProgress = grievances.filter(g => g.status === 'in_progress').length;
+
+    document.getElementById('metrics').innerHTML = `
+      <div class="metric-card glass card-animate"><div class="metric-icon">📋</div><div class="metric-value">${total}</div><div class="metric-label">Total Filed</div></div>
+      <div class="metric-card glass card-animate"><div class="metric-icon">✅</div><div class="metric-value">${resolved}</div><div class="metric-label">Resolved</div></div>
+      <div class="metric-card glass card-animate"><div class="metric-icon">⏳</div><div class="metric-value">${pending}</div><div class="metric-label">Pending</div></div>
+      <div class="metric-card glass card-animate"><div class="metric-icon">🔄</div><div class="metric-value">${inProgress}</div><div class="metric-label">In Progress</div></div>`;
+
+    const list = document.getElementById('grievanceList');
+    if (!grievances.length) {
+      list.innerHTML = '<div class="glass card" style="text-align:center;padding:2rem;"><p>No grievances filed yet.</p><a href="/file-grievance" class="btn btn-primary mt-2">File Your First Grievance</a></div>';
+      return;
+    }
+    list.innerHTML = grievances.slice(0, 10).map(g => {
+      let selfResolvePrompt = '';
+      if (g.resolution_tier === 'self_resolvable' && g.status === 'pending' && g.ai_resolution) {
+        selfResolvePrompt = `
+          <div style="margin-top:0.75rem;padding:0.75rem 1rem;background:rgba(76,175,80,0.08);border-radius:0.75rem;border:1px solid rgba(76,175,80,0.25);">
+            <p style="font-size:0.85rem;font-weight:600;margin-bottom:0.4rem;">AI guidance is available — did it help?</p>
+            <div style="display:flex;gap:0.5rem;">
+              <button class="btn btn-success btn-sm confirm-yes-btn" style="font-size:.78rem;" data-tracking="${escapeHtml(g.tracking_number)}">Yes, resolved</button>
+              <button class="btn btn-secondary btn-sm confirm-no-btn" style="font-size:.78rem;" data-tracking="${escapeHtml(g.tracking_number)}">No, need help</button>
+              <a href="/grievance-detail?id=${encodeURIComponent(g.id)}" class="btn btn-primary btn-sm view-guidance-link" style="font-size:.78rem;">View guidance</a>
+            </div>
+          </div>`;
+      }
+      return `
+        <div class="grievance-card glass card-animate status-${g.status}" data-gid="${escapeHtml(g.id)}" style="cursor:pointer;">
+          <h4>#${escapeHtml(g.tracking_number)} — ${escapeHtml(g.title)}</h4>
+          <div class="badges">
+            ${statusBadge(g.status)} ${deptBadge(g.department)} ${priorityBadge(g.priority)}
+            <span class="badge badge-dept">📅 ${formatDate(g.created_at)}</span>
+          </div>${selfResolvePrompt}
+        </div>`;
+    }).join('');
+    // Bind confirm resolution buttons safely
+    document.querySelectorAll('.confirm-yes-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => { e.stopPropagation(); confirmRes(btn.dataset.tracking, true); });
+    });
+    document.querySelectorAll('.confirm-no-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => { e.stopPropagation(); confirmRes(btn.dataset.tracking, false); });
+    });
+    document.querySelectorAll('.view-guidance-link').forEach(link => {
+      link.addEventListener('click', (e) => { e.stopPropagation(); });
+    });
+    document.querySelectorAll('.grievance-card[data-gid]').forEach(card => {
+      card.addEventListener('click', () => {
+        window.location.href = `/grievance-detail?id=${encodeURIComponent(card.dataset.gid)}`;
+      });
+    });
+  } catch (e) { showToast(e.message, 'error'); }
+}
+async function confirmRes(trackingNumber, helpful) {
+  try {
+    await api('PUT', '/grievances/confirm-resolution', { tracking_number: trackingNumber, helpful });
+    showToast(helpful ? 'Grievance marked as resolved!' : 'Forwarded to an officer for assistance.');
+    loadDashboard();
+  } catch (e) { showToast(e.message, 'error'); }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Seva — PR&DW Assistant{% endblock %}
+{% block content %}
+<div class="main-content" style="max-width:800px;">
+  <div class="flex-between mb-2">
+    <div><h1>💬 Seva — PR&DW Assistant</h1><p class="subtitle mb-0">Ask about drinking water, MGNREGS, housing, panchayat governance, or file a grievance</p></div>
+    <select class="form-control" id="chatLang" style="width:auto;">
+      <option value="english">English</option><option value="odia">Odia (ଓଡ଼ିଆ)</option><option value="hindi">Hindi (हिन्दी)</option>
+    </select>
+  </div>
+  <div class="glass-strong chat-container" style="padding:0;">
+    <div class="chat-messages" id="chatMessages">
+      <div class="bot-group">
+        <div class="bot-header"><div class="bot-avatar">🏛️</div><span class="bot-name">Seva</span></div>
+        <div class="chat-bubble bot">Hello! I'm <strong>Seva</strong>, your Panchayati Raj & Drinking Water Department assistant. How can I help you today? I can assist with JJM water connections, MGNREGS, PMAY-G housing, BGBO infrastructure, panchayat governance, or help you file a grievance.</div>
+      </div>
+    </div>
+    <div class="chat-input-area">
+      <input type="text" id="chatInput" placeholder="Type your message..." autocomplete="off">
+      <button class="btn btn-primary btn-sm" onclick="sendMessage()" id="sendBtn">Send</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/chatbot.js"></script>
+{% endblock %}

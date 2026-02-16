@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Scheme Details — PR&DW Portal{% endblock %}
+{% block content %}
+<div class="main-content" style="max-width:800px;">
+  <a href="/schemes" class="btn btn-secondary btn-sm mb-2">← Back to Schemes</a>
+  <div id="schemeContent"><div class="spinner"><span></span><span></span><span></span></div></div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const schemeId = new URLSearchParams(window.location.search).get('id');
+let schemeData = null;
+let answers = {};
+
+if (!schemeId) {
+  document.getElementById('schemeContent').innerHTML = '<p>No scheme ID provided.</p>';
+} else {
+  loadScheme();
+}
+
+async function loadScheme() {
+  try {
+    schemeData = await api('GET', `/knowledge/schemes/${schemeId}`);
+    renderScheme();
+  } catch (e) {
+    document.getElementById('schemeContent').innerHTML = `<div class="glass card" style="padding:2rem;text-align:center;"><p style="color:#C62828;">Scheme not found.</p></div>`;
+  }
+}
+
+function renderScheme() {
+  const s = schemeData;
+  const questions = s.eligibility_questions || [];
+  const hasQuestions = questions.length > 0;
+
+  document.getElementById('schemeContent').innerHTML = `
+    <div class="glass-strong card card-animate" style="padding:2rem;">
+      <div class="flex-between mb-1">
+        <h1 style="font-size:1.5rem;margin-bottom:0;">${escapeHtml(s.name)}</h1>
+        ${deptBadge(s.department)}
+      </div>
+      <p style="line-height:1.7;margin-bottom:1rem;">${escapeHtml(s.description)}</p>
+      <div class="detail-section">
+        <h3>Eligibility Criteria</h3>
+        <p style="line-height:1.7;color:#37474F;">${escapeHtml(s.eligibility)}</p>
+      </div>
+      <div class="detail-section">
+        <h3>How to Apply</h3>
+        <p style="line-height:1.7;color:#37474F;">${escapeHtml(s.how_to_apply)}</p>
+      </div>
+    </div>
+
+    ${hasQuestions ? `
+    <div class="glass-strong card card-animate mt-2" style="padding:2rem;" id="questionnaireCard">
+      <h2 style="margin-bottom:0.25rem;">Check Your Eligibility</h2>
+      <p class="text-sm text-muted mb-2">Answer these simple questions to see if you may be eligible.</p>
+      <div id="questionsList"></div>
+      <button class="btn btn-primary btn-block mt-2" id="checkBtn" onclick="checkEligibility()" disabled>Check My Eligibility</button>
+    </div>
+    <div id="resultArea" class="hidden mt-2"></div>
+    ` : `
+    <div class="glass card mt-2" style="padding:1.5rem;text-align:center;">
+      <p class="text-muted">Eligibility questionnaire not yet available for this scheme. Please review the criteria above.</p>
+    </div>
+    `}`;
+
+  if (hasQuestions) renderQuestions(questions);
+}
+
+function renderQuestions(questions) {
+  const el = document.getElementById('questionsList');
+  answers = {};
+  el.innerHTML = questions.map((q, i) => `
+    <div class="glass card" style="padding:1rem 1.25rem;margin-bottom:0.75rem;">
+      <p style="font-weight:500;margin-bottom:0.75rem;">${i + 1}. ${escapeHtml(q.question)}</p>
+      <div class="flex gap-1">
+        <button class="btn btn-sm answer-btn" data-q="${i}" data-val="yes" onclick="selectAnswer(${i}, 'yes', this)"
+          style="min-width:80px;background:rgba(255,255,255,0.25);color:#37474F;border:2px solid transparent;">Yes</button>
+        <button class="btn btn-sm answer-btn" data-q="${i}" data-val="no" onclick="selectAnswer(${i}, 'no', this)"
+          style="min-width:80px;background:rgba(255,255,255,0.25);color:#37474F;border:2px solid transparent;">No</button>
+      </div>
+    </div>`).join('');
+}
+
+function selectAnswer(index, value, btn) {
+  answers[index] = value;
+  // Reset siblings
+  btn.parentElement.querySelectorAll('.answer-btn').forEach(b => {
+    b.style.border = '2px solid transparent';
+    b.style.background = 'rgba(255,255,255,0.25)';
+    b.style.color = '#37474F';
+  });
+  // Highlight selected
+  if (value === 'yes') {
+    btn.style.border = '2px solid #2E7D32'; btn.style.background = 'rgba(46,125,50,0.15)'; btn.style.color = '#2E7D32';
+  } else {
+    btn.style.border = '2px solid #C62828'; btn.style.background = 'rgba(198,40,40,0.15)'; btn.style.color = '#C62828';
+  }
+  // Enable check button when all answered
+  const total = (schemeData.eligibility_questions || []).length;
+  document.getElementById('checkBtn').disabled = Object.keys(answers).length < total;
+}
+
+function checkEligibility() {
+  const questions = schemeData.eligibility_questions || [];
+  let matches = 0;
+  questions.forEach((q, i) => {
+    if (answers[i] === q.eligible_answer) matches++;
+  });
+  const total = questions.length;
+  const pct = total > 0 ? (matches / total) * 100 : 0;
+  const resultEl = document.getElementById('resultArea');
+  resultEl.classList.remove('hidden');
+
+  let color, icon, title, message;
+  if (pct === 100) {
+    color = 'rgba(46,125,50,0.12)'; icon = '✅'; title = 'You Appear Eligible!';
+    message = `You matched all ${total} criteria. Here's how to apply:<br><br><strong>${escapeHtml(schemeData.how_to_apply)}</strong>`;
+  } else if (pct >= 50) {
+    color = 'rgba(255,152,0,0.12)'; icon = '⚠️'; title = 'You May Be Partially Eligible';
+    message = `You matched ${matches} out of ${total} criteria. You may still qualify — we recommend contacting the ${deptLabel(schemeData.department)} department for clarification.`;
+  } else {
+    color = 'rgba(198,40,40,0.1)'; icon = '❌'; title = 'You May Not Be Eligible';
+    message = `You matched ${matches} out of ${total} criteria. This scheme may not be the right fit, but you can <a href="/schemes" class="auth-link">browse other schemes</a> or <a href="/chatbot" class="auth-link">ask the chatbot</a> for help.`;
+  }
+
+  resultEl.innerHTML = `
+    <div class="glass-strong card card-animate" style="padding:2rem;text-align:center;background:${color};">
+      <div style="font-size:2.5rem;margin-bottom:0.5rem;">${icon}</div>
+      <h2>${title}</h2>
+      <p style="margin-top:0.75rem;line-height:1.7;">${message}</p>
+    </div>`;
+
+  resultEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+</script>
+{% endblock %}

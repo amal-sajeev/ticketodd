@@ -1,0 +1,373 @@
+{% extends "base.html" %}
+{% block title %}Officer Dashboard — PR&DW Portal{% endblock %}
+{% block content %}
+<div class="main-content wide">
+  <h1>Officer Dashboard</h1>
+  <p class="subtitle">System overview, district map, and recent activity</p>
+
+  <!-- KPI Cards -->
+  <div class="card-grid-6 mb-3" id="kpis"></div>
+
+  <!-- Status Distribution Bar -->
+  <div class="glass card mb-3" style="padding:1rem 1.5rem;" id="statusBarSection">
+    <div style="display:flex;align-items:center;gap:1rem;margin-bottom:0.5rem;">
+      <h3 style="margin:0;">Status Overview</h3>
+      <span id="statusBarLabel" class="text-sm text-muted"></span>
+    </div>
+    <div id="statusBar" style="display:flex;height:28px;border-radius:14px;overflow:hidden;background:rgba(0,0,0,0.06);"></div>
+    <div id="statusLegend" style="display:flex;gap:1.5rem;margin-top:0.5rem;flex-wrap:wrap;"></div>
+  </div>
+
+  <!-- Main two-column: Recent Grievances (left) + District Map (right) -->
+  <div class="dash-columns mb-3">
+    <!-- Recent Grievances -->
+    <div class="glass card" style="padding:1.25rem;overflow:hidden;display:flex;flex-direction:column;">
+      <h3 style="margin:0 0 0.75rem;">Recent Grievances</h3>
+      <div id="recentList" style="flex:1;overflow-y:auto;max-height:460px;"></div>
+    </div>
+
+    <!-- District Map -->
+    <div class="glass card" style="padding:1.25rem;display:flex;flex-direction:column;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.5rem;">
+        <h3 style="margin:0;">District Map</h3>
+        <div id="mapLegend" style="display:flex;align-items:center;gap:0.4rem;font-size:0.75rem;"></div>
+      </div>
+      <p class="text-sm text-muted" style="margin:0 0 0.5rem;">Click a district to view its queue</p>
+      <div id="mapContainer" style="position:relative;flex:1;">
+        <svg id="odishaMap" viewBox="0 0 800 650" preserveAspectRatio="xMidYMid meet"
+             style="width:100%;height:100%;border-radius:10px;"></svg>
+        <div id="mapTooltip" style="position:absolute;display:none;pointer-events:none;background:rgba(26,26,46,0.92);
+             color:#fff;padding:0.4rem 0.7rem;border-radius:8px;font-size:0.82rem;box-shadow:0 4px 16px rgba(0,0,0,0.25);
+             backdrop-filter:blur(8px);white-space:nowrap;z-index:10;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<style>
+  .card-grid-6 { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; }
+  .status-segment { transition: width 0.6s ease; min-width: 2px; }
+  .status-legend-item { display: flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; }
+  .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+  /* Two-column layout */
+  .dash-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    align-items: start;
+  }
+
+  /* Recent grievances compact cards */
+  #recentList .grievance-card {
+    padding: 0.7rem 0.9rem !important;
+    margin-bottom: 0.5rem;
+  }
+  #recentList .grievance-card h4 {
+    font-size: 0.85rem;
+    margin: 0 0 0.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #recentList .grievance-card p {
+    font-size: 0.78rem;
+    margin: 0 0 0.35rem;
+    line-height: 1.3;
+    color: rgba(26,26,46,0.7);
+  }
+  #recentList .badges { gap: 0.3rem; flex-wrap: wrap; }
+  #recentList .badge { font-size: 0.7rem; padding: 0.15rem 0.4rem; }
+
+  /* SVG Map styles */
+  #odishaMap .district-path {
+    stroke: rgba(255,255,255,0.7);
+    stroke-width: 1;
+    stroke-linejoin: round;
+    cursor: pointer;
+    transition: fill 0.25s ease, stroke-width 0.2s ease, filter 0.2s ease;
+  }
+  #odishaMap .district-path:hover {
+    stroke: #fff;
+    stroke-width: 2.5;
+    filter: brightness(1.15) drop-shadow(0 2px 6px rgba(0,0,0,0.3));
+  }
+  #odishaMap .district-label {
+    font-size: 13px;
+    font-weight: 700;
+    fill: #1a1a2e;
+    text-anchor: middle;
+    pointer-events: none;
+    paint-order: stroke fill;
+    stroke: rgba(255,255,255,0.9);
+    stroke-width: 3px;
+    stroke-linejoin: round;
+  }
+  .legend-bar {
+    width: 140px; height: 10px; border-radius: 5px;
+    background: linear-gradient(to right, rgba(200,230,210,0.7), #66BB6A, #FFB74D, #FF7043, #EF5350);
+  }
+  @media (max-width: 900px) {
+    .dash-columns { grid-template-columns: 1fr; }
+    .card-grid-6 { grid-template-columns: repeat(2, 1fr); }
+    #recentList { max-height: 300px !important; }
+  }
+</style>
+<script>
+if (!requireAuth()) {}
+else { loadOfficerDash(); }
+
+const STATUS_COLORS = {
+  pending: '#FFB74D',
+  in_progress: '#42A5F5',
+  resolved: '#66BB6A',
+  escalated: '#EF5350'
+};
+const STATUS_LABELS = {
+  pending: 'Pending',
+  in_progress: 'In Progress',
+  resolved: 'Resolved',
+  escalated: 'Escalated'
+};
+
+function heatColor(count, maxCount) {
+  if (count === 0) return 'rgba(200, 230, 210, 0.5)';
+  const ratio = Math.min(count / Math.max(maxCount, 1), 1);
+  if (ratio <= 0.33) {
+    // green to amber
+    const t = ratio / 0.33;
+    const r = Math.round(102 + (255 - 102) * t);
+    const g = Math.round(187 + (183 - 187) * t);
+    const b = Math.round(106 + (77 - 106) * t);
+    return `rgba(${r},${g},${b},0.55)`;
+  } else if (ratio <= 0.66) {
+    // amber to orange
+    const t = (ratio - 0.33) / 0.33;
+    const r = Math.round(255);
+    const g = Math.round(183 - 100 * t);
+    const b = Math.round(77 - 40 * t);
+    return `rgba(${r},${g},${b},0.6)`;
+  } else {
+    // orange to red
+    const t = (ratio - 0.66) / 0.34;
+    const r = Math.round(255 - 16 * t);
+    const g = Math.round(83 - 43 * t);
+    const b = Math.round(37 + 43 * t);
+    return `rgba(${r},${g},${b},0.65)`;
+  }
+}
+
+function textColor(count, maxCount) {
+  const ratio = count / Math.max(maxCount, 1);
+  return ratio > 0.5 ? '#fff' : '#1a1a2e';
+}
+
+async function loadOfficerDash() {
+  showLoading('kpis');
+  try {
+    const [analytics, grievances] = await Promise.all([
+      api('GET', '/analytics?days=30'),
+      api('GET', '/grievances?limit=10')
+    ]);
+
+    // --- KPI Cards (7) ---
+    document.getElementById('kpis').innerHTML = `
+      <div class="metric-card glass card-animate"><div class="metric-icon">🎫</div><div class="metric-value">${analytics.total_grievances}</div><div class="metric-label">Total (30d)</div></div>
+      <div class="metric-card glass card-animate"><div class="metric-icon">✅</div><div class="metric-value">${analytics.self_resolved}</div><div class="metric-label">Self-Resolved</div></div>
+      <div class="metric-card glass card-animate"><div class="metric-icon">📝</div><div class="metric-value">${analytics.ai_drafted}</div><div class="metric-label">AI Drafted</div></div>
+      <div class="metric-card glass card-animate"><div class="metric-icon">⚠️</div><div class="metric-value">${analytics.escalated_to_human}</div><div class="metric-label">Escalated</div></div>
+      <div class="metric-card glass card-animate"><div class="metric-icon">⏱️</div><div class="metric-value">${analytics.avg_resolution_time}h</div><div class="metric-label">Avg Resolution</div></div>
+      <div class="metric-card glass card-animate"><div class="metric-icon">📋</div><div class="metric-value">${analytics.pending_count}</div><div class="metric-label">Pending</div></div>
+      <div class="metric-card glass card-animate" style="${analytics.sla_breached_count > 0 ? 'border:2px solid rgba(239,83,80,0.5);' : ''}"><div class="metric-icon">🚨</div><div class="metric-value">${analytics.sla_breached_count}</div><div class="metric-label">SLA Breached</div></div>`;
+
+    // --- Status Distribution Bar ---
+    const sd = analytics.status_distribution || {};
+    const totalStatus = Object.values(sd).reduce((a, b) => a + b, 0) || 1;
+    document.getElementById('statusBarLabel').textContent = `${totalStatus} total grievances`;
+    let barHTML = '';
+    let legendHTML = '';
+    for (const [key, label] of Object.entries(STATUS_LABELS)) {
+      const count = sd[key] || 0;
+      const pct = ((count / totalStatus) * 100).toFixed(1);
+      if (count > 0) {
+        barHTML += `<div class="status-segment" style="width:${pct}%;background:${STATUS_COLORS[key]};" title="${label}: ${count} (${pct}%)"></div>`;
+      }
+      legendHTML += `<div class="status-legend-item"><span class="status-dot" style="background:${STATUS_COLORS[key]};"></span>${label}: ${count}</div>`;
+    }
+    document.getElementById('statusBar').innerHTML = barHTML;
+    document.getElementById('statusLegend').innerHTML = legendHTML;
+
+    // --- District Map ---
+    const districtMap = {};
+    (analytics.top_districts || []).forEach(d => { districtMap[d.district] = d.count; });
+    const maxCount = Math.max(...Object.values(districtMap), 1);
+    await renderDistrictMap(districtMap, maxCount);
+
+    // --- Recent Grievances ---
+    const list = document.getElementById('recentList');
+    if (!grievances.length) { list.innerHTML = '<div class="text-center text-muted" style="padding:2rem;">No grievances yet.</div>'; return; }
+    list.innerHTML = grievances.map(g => `
+      <div class="grievance-card glass card-animate status-${escapeHtml(g.status)} recent-card" data-id="${escapeHtml(g.id)}" style="cursor:pointer;">
+        <h4>#${escapeHtml(g.tracking_number)} — ${escapeHtml(g.title)}</h4>
+        <p>${escapeHtml(g.description).substring(0, 80)}...</p>
+        <div class="badges">
+          ${statusBadge(g.status)} ${priorityBadge(g.priority)}
+          <span class="badge badge-dept">📍 ${escapeHtml(g.district || 'N/A')}</span>
+        </div>
+      </div>`).join('');
+    document.querySelectorAll('.recent-card').forEach(card => {
+      card.addEventListener('click', () => { window.location.href = '/grievance-detail?id=' + encodeURIComponent(card.dataset.id); });
+    });
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+/* --------- SVG Map Rendering --------- */
+let _geoData = null;
+async function loadGeoData() {
+  if (_geoData) return _geoData;
+  const resp = await fetch('/static/odisha_districts.json');
+  _geoData = await resp.json();
+  return _geoData;
+}
+
+function geoProject(lon, lat, bounds, svgW, svgH, padding) {
+  const [minLon, minLat, maxLon, maxLat] = bounds;
+  const geoW = maxLon - minLon;
+  const geoH = maxLat - minLat;
+  const drawW = svgW - padding * 2;
+  const drawH = svgH - padding * 2;
+  const scale = Math.min(drawW / geoW, drawH / geoH);
+  const offsetX = padding + (drawW - geoW * scale) / 2;
+  const offsetY = padding + (drawH - geoH * scale) / 2;
+  const x = offsetX + (lon - minLon) * scale;
+  const y = offsetY + (maxLat - lat) * scale; // flip Y
+  return [x, y];
+}
+
+function coordsToPath(ring, bounds, svgW, svgH, padding) {
+  if (ring.length < 3) return ''; // skip degenerate rings
+  return ring.map((c, i) => {
+    const [x, y] = geoProject(c[0], c[1], bounds, svgW, svgH, padding);
+    return (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1);
+  }).join(' ') + ' Z';
+}
+
+function centroid(ring) {
+  let cx = 0, cy = 0;
+  ring.forEach(c => { cx += c[0]; cy += c[1]; });
+  return [cx / ring.length, cy / ring.length];
+}
+
+// Manual SVG-pixel offsets [dx, dy] to fix overlapping / misplaced labels
+const LABEL_NUDGE = {
+  'Deogarh':       [12, 10],
+  'Sambalpur':     [-18, 8],
+  'Subarnapur':    [0, 8],
+  'Dhenkanal':     [0, -4],
+  'Jajpur':        [8, 10],
+  'Bhadrak':       [-38, -10],
+  'Kendrapara':    [-12, 24],
+  'Jagatsinghpur': [30, -30],
+  'Khordha':       [-4, 10],
+  'Puri':          [-86, 18],
+  'Nayagarh':      [-18, 2],
+  'Cuttack':       [0, -6],
+  'Angul':         [0, 6],
+  'Balasore':      [-26, 20],
+  'Gajapati':      [-6, 4],
+  'Ganjam':        [-4, -65],
+  'Kandhamal':     [0, 0],
+  'Boudh':         [4, -10],
+};
+
+async function renderDistrictMap(districtCounts, maxCount) {
+  const geo = await loadGeoData();
+  const svg = document.getElementById('odishaMap');
+  const tooltip = document.getElementById('mapTooltip');
+
+  // Compute bounding box
+  let minLon = Infinity, minLat = Infinity, maxLon = -Infinity, maxLat = -Infinity;
+  geo.features.forEach(f => {
+    const rings = f.geometry.type === 'Polygon'
+      ? f.geometry.coordinates
+      : f.geometry.coordinates.flat(1);
+    rings.forEach(ring => ring.forEach(c => {
+      if (c[0] < minLon) minLon = c[0];
+      if (c[0] > maxLon) maxLon = c[0];
+      if (c[1] < minLat) minLat = c[1];
+      if (c[1] > maxLat) maxLat = c[1];
+    }));
+  });
+  const bounds = [minLon, minLat, maxLon, maxLat];
+  const svgW = 800, svgH = 650, pad = 20;
+
+  let pathsHTML = '';
+  let labelsHTML = '';
+
+  geo.features.forEach(f => {
+    const name = f.properties.name;
+    const count = districtCounts[name] || 0;
+    const fillColor = heatColor(count, maxCount);
+
+    // Build SVG path
+    let d = '';
+    if (f.geometry.type === 'Polygon') {
+      f.geometry.coordinates.forEach(ring => {
+        d += coordsToPath(ring, bounds, svgW, svgH, pad) + ' ';
+      });
+    } else {
+      f.geometry.coordinates.forEach(polygon => {
+        polygon.forEach(ring => {
+          d += coordsToPath(ring, bounds, svgW, svgH, pad) + ' ';
+        });
+      });
+    }
+
+    pathsHTML += `<path class="district-path" d="${d.trim()}" fill="${fillColor}"
+      data-district="${name}" data-count="${count}" />`;
+
+    // Compute label centroid from outer ring + manual nudge
+    const outerRing = f.geometry.type === 'Polygon'
+      ? f.geometry.coordinates[0]
+      : f.geometry.coordinates[0][0];
+    const [cLon, cLat] = centroid(outerRing);
+    let [cx, cy] = geoProject(cLon, cLat, bounds, svgW, svgH, pad);
+    const nudge = LABEL_NUDGE[name];
+    if (nudge) { cx += nudge[0]; cy += nudge[1]; }
+    labelsHTML += `<text class="district-label" x="${cx.toFixed(1)}" y="${cy.toFixed(1)}">${name}</text>`;
+  });
+
+  svg.innerHTML = pathsHTML + labelsHTML;
+
+  // Legend
+  document.getElementById('mapLegend').innerHTML = `
+    <span>0</span>
+    <div class="legend-bar"></div>
+    <span>${maxCount}</span>
+  `;
+
+  // Tooltip + click interactivity
+  svg.querySelectorAll('.district-path').forEach(path => {
+    path.addEventListener('mouseenter', e => {
+      const name = path.dataset.district;
+      const count = path.dataset.count;
+      tooltip.innerHTML = `<strong>${name}</strong><br>${count} grievance${count !== '1' ? 's' : ''}`;
+      tooltip.style.display = 'block';
+    });
+    path.addEventListener('mousemove', e => {
+      const container = document.getElementById('mapContainer');
+      const rect = container.getBoundingClientRect();
+      tooltip.style.left = (e.clientX - rect.left + 12) + 'px';
+      tooltip.style.top = (e.clientY - rect.top - 10) + 'px';
+    });
+    path.addEventListener('mouseleave', () => {
+      tooltip.style.display = 'none';
+    });
+    path.addEventListener('click', () => {
+      window.location.href = '/queue?district=' + encodeURIComponent(path.dataset.district);
+    });
+  });
+}
+</script>
+{% endblock %}

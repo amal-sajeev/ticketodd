@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Analytics — PR&DW Portal{% endblock %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+{% endblock %}
+{% block content %}
+<div class="main-content wide">
+  <div class="flex-between mb-2">
+    <div><h1>📊 Analytics</h1><p class="subtitle">Grievance statistics and trends</p></div>
+    <select class="form-control" id="period" style="width:auto;" onchange="loadAnalytics()">
+      <option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="90">Last 90 days</option>
+    </select>
+  </div>
+  <div class="card-grid mb-3" style="grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));" id="statsCards"></div>
+  <div class="card-grid mb-3" style="grid-template-columns:1fr 1fr;align-items:start;">
+    <div class="glass card" style="padding:1.5rem;"><h3>Department Distribution</h3><div style="position:relative;height:300px;"><canvas id="deptChart"></canvas></div></div>
+    <div class="glass card" style="padding:1.5rem;"><h3>Sentiment Analysis</h3><div style="position:relative;height:300px;"><canvas id="sentChart"></canvas></div></div>
+  </div>
+  <div class="card-grid mb-3" style="grid-template-columns:1fr 2fr;">
+    <div class="glass card" style="padding:1.5rem;">
+      <h3>Top Districts</h3>
+      <div id="topDistricts"></div>
+    </div>
+    <div class="glass card" style="padding:1.5rem;">
+      <h3>Top Complaints</h3>
+      <div id="topComplaints"></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/analytics.js"></script>
+{% endblock %}

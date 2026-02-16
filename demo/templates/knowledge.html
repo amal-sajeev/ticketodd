@@ -1,0 +1,397 @@
+{% extends "base.html" %}
+{% block title %}Knowledge Base — PR&DW Portal{% endblock %}
+{% block content %}
+<div class="main-content wide">
+  <h1>📚 Knowledge Base</h1>
+  <p class="subtitle">Manage documentation, service memory, and government schemes</p>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('docs')">Documentation</button>
+    <button class="tab-btn" onclick="switchTab('memory')">Service Memory</button>
+    <button class="tab-btn" onclick="switchTab('schemes')">Schemes</button>
+  </div>
+
+  <!-- Documentation Tab -->
+  <div class="tab-content active" id="tab-docs">
+    <div class="glass-strong card" style="padding:1.5rem;">
+      <h3>Add Documentation</h3>
+      <div class="form-group"><label>Title</label><input type="text" class="form-control" id="docTitle"></div>
+      <div class="form-group"><label>Department</label><select class="form-control" id="docCat"></select></div>
+      <div class="form-group"><label>Content</label><textarea class="form-control" id="docContent" style="min-height:100px;"></textarea></div>
+      <button class="btn btn-primary btn-sm" onclick="addDoc()">Add Documentation</button>
+    </div>
+    <h3 class="mt-2">Existing Documentation</h3>
+    <div id="docList"></div>
+  </div>
+
+  <!-- Service Memory Tab -->
+  <div class="tab-content" id="tab-memory">
+    <div class="glass-strong card" style="padding:1.5rem;">
+      <h3>Add Service Memory</h3>
+      <div class="form-group"><label>Grievance Query</label><input type="text" class="form-control" id="memQuery"></div>
+      <div class="form-group"><label>Resolution</label><textarea class="form-control" id="memResolution" style="min-height:80px;"></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label>Department</label><select class="form-control" id="memCat"></select></div>
+        <div class="form-group"><label>Officer Name</label><input type="text" class="form-control" id="memAgent"></div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="addMem()">Add to Memory</button>
+    </div>
+    <h3 class="mt-2">Existing Entries</h3>
+    <div id="memList"></div>
+  </div>
+
+  <!-- Schemes Tab -->
+  <div class="tab-content" id="tab-schemes">
+    <div class="glass-strong card" style="padding:1.5rem;">
+      <h3>Add Government Scheme</h3>
+      <div class="form-group"><label>Scheme Name</label><input type="text" class="form-control" id="sName"></div>
+      <div class="form-group"><label>Description</label><textarea class="form-control" id="sDesc" style="min-height:80px;"></textarea></div>
+      <div class="form-group"><label>Eligibility Criteria</label><textarea class="form-control" id="sElig" style="min-height:60px;"></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label>Department</label><select class="form-control" id="sDept"></select></div>
+        <div class="form-group"><label>How to Apply</label><textarea class="form-control" id="sHow" style="min-height:60px;"></textarea></div>
+      </div>
+
+      <!-- Eligibility Questions Editor -->
+      <div style="border-top:1px solid rgba(255,255,255,0.2); margin-top:1rem; padding-top:1rem;">
+        <div class="flex-between mb-1">
+          <h3 style="margin-bottom:0;">Eligibility Questions</h3>
+          <button class="btn btn-secondary btn-sm" id="genQBtn" onclick="generateQuestions()">🤖 Generate from Eligibility</button>
+        </div>
+        <p class="text-sm text-muted mb-1">These yes/no questions help citizens check if they're eligible. You can edit, delete, or add them manually.</p>
+        <div id="sQuestions"></div>
+        <button class="btn btn-secondary btn-sm mt-1" onclick="addQuestionRow()">+ Add Question</button>
+      </div>
+
+      <button class="btn btn-primary btn-block mt-2" onclick="addScheme()">Add Scheme</button>
+    </div>
+
+    <div class="flex-between mt-3 mb-1">
+      <h3 style="margin-bottom:0;">Existing Schemes</h3>
+      <button class="btn btn-secondary btn-sm" onclick="backfillAll()">🤖 Backfill All Missing Questions</button>
+    </div>
+    <div id="schemeList"></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<style>
+  .kb-delete-btn {
+    color: #fff !important;
+    background: #C62828 !important;
+    border: none;
+    padding: 0.35rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
+  }
+  .kb-delete-btn:hover { background: #B71C1C !important; }
+  .mem-title:hover { color: #1565C0 !important; text-decoration: underline; }
+</style>
+<script>
+if (requireAuth()) {
+  ['docCat','memCat','sDept'].forEach(id => document.getElementById(id).innerHTML = deptOptions());
+  loadAllKB();
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+
+async function loadAllKB() { loadDocs(); loadMems(); loadSchemes(); }
+
+// --- Documentation ---
+async function loadDocs() {
+  showLoading('docList');
+  try {
+    const docs = await api('GET', '/knowledge/documentation');
+    document.getElementById('docList').innerHTML = docs.map(d => `
+      <div class="glass card card-animate">
+        <div class="flex-between"><h4 style="margin:0;">${escapeHtml(d.title)}</h4>
+          <button class="btn btn-sm kb-delete-btn" data-id="${escapeHtml(d.id)}" data-title="${escapeHtml(d.title)}">🗑️ Delete</button></div>
+        ${deptBadge(d.category)}<p class="mt-1 text-sm">${escapeHtml(d.content)}</p></div>`).join('') || '<p class="text-muted">No documentation yet.</p>';
+    document.querySelectorAll('#docList .kb-delete-btn').forEach(btn => {
+      btn.addEventListener('click', () => deleteDoc(btn.dataset.id, btn.dataset.title));
+    });
+  } catch (e) {}
+}
+async function addDoc() {
+  const t = document.getElementById('docTitle').value, c = document.getElementById('docContent').value;
+  if (!t || !c) return;
+  try {
+    await api('POST', '/knowledge/documentation', { title: t, content: c, category: document.getElementById('docCat').value });
+    showToast('Documentation added'); document.getElementById('docTitle').value = ''; document.getElementById('docContent').value = ''; loadDocs();
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+// --- Service Memory ---
+async function loadMems() {
+  showLoading('memList');
+  try {
+    const mems = await api('GET', '/knowledge/service-memory');
+    document.getElementById('memList').innerHTML = mems.map(m => {
+      const searchText = (m.query || '').split(' ').slice(0, 6).join(' ');
+      const titleHref = m.grievance_id
+        ? `/grievance-detail?id=${m.grievance_id}`
+        : `/queue?search=${encodeURIComponent(searchText)}`;
+      return `
+      <div class="glass card card-animate">
+        <div class="flex-between">
+          <a href="${titleHref}" style="text-decoration:none;color:inherit;flex:1;"><h4 style="margin:0;cursor:pointer;" class="mem-title">${escapeHtml(m.query)}</h4></a>
+          <button class="btn btn-sm kb-delete-btn mem-del-btn" data-id="${escapeHtml(m.id)}">🗑️ Delete</button></div>
+        <p class="text-sm mt-1"><strong>Resolution:</strong> ${escapeHtml(m.resolution)}</p>
+        <div class="badges">${deptBadge(m.category)}<span class="badge badge-dept">👤 ${escapeHtml(m.agent_name)}</span></div></div>`;
+    }).join('') || '<p class="text-muted">No entries yet.</p>';
+    document.querySelectorAll('#memList .mem-del-btn').forEach(btn => {
+      btn.addEventListener('click', () => deleteMem(btn.dataset.id));
+    });
+  } catch (e) {}
+}
+async function addMem() {
+  const q = document.getElementById('memQuery').value, r = document.getElementById('memResolution').value;
+  if (!q || !r) return;
+  try {
+    await api('POST', '/knowledge/service-memory', { query: q, resolution: r, category: document.getElementById('memCat').value, agent_name: document.getElementById('memAgent').value });
+    showToast('Memory added'); document.getElementById('memQuery').value = ''; document.getElementById('memResolution').value = ''; loadMems();
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+// --- Question Editor Helpers ---
+function renderQuestionRow(q = {question: '', eligible_answer: 'yes'}, container = 'sQuestions') {
+  const el = document.getElementById(container);
+  const row = document.createElement('div');
+  row.className = 'flex gap-1 mb-1';
+  row.style.alignItems = 'center';
+  row.innerHTML = `
+    <input type="text" class="form-control q-text" value="${escapeHtml(q.question)}" placeholder="Enter question..." style="flex:1;">
+    <button class="btn btn-sm q-toggle" onclick="toggleAnswer(this)" data-answer="${q.eligible_answer}" style="min-width:60px;${q.eligible_answer === 'yes' ? 'background:rgba(46,125,50,0.2);color:#2E7D32;' : 'background:rgba(198,40,40,0.2);color:#C62828;'}">${q.eligible_answer === 'yes' ? 'Yes' : 'No'}</button>
+    <button class="btn btn-sm btn-danger" onclick="this.parentElement.remove()" style="padding:0.4rem 0.6rem;">✕</button>`;
+  el.appendChild(row);
+}
+
+function toggleAnswer(btn) {
+  const current = btn.getAttribute('data-answer');
+  const next = current === 'yes' ? 'no' : 'yes';
+  btn.setAttribute('data-answer', next);
+  btn.textContent = next === 'yes' ? 'Yes' : 'No';
+  btn.style.background = next === 'yes' ? 'rgba(46,125,50,0.2)' : 'rgba(198,40,40,0.2)';
+  btn.style.color = next === 'yes' ? '#2E7D32' : '#C62828';
+}
+
+function addQuestionRow(container = 'sQuestions') {
+  renderQuestionRow({question: '', eligible_answer: 'yes'}, container);
+}
+
+function collectQuestions(container = 'sQuestions') {
+  const rows = document.getElementById(container).querySelectorAll('.flex');
+  const questions = [];
+  rows.forEach(row => {
+    const text = row.querySelector('.q-text')?.value?.trim();
+    const answer = row.querySelector('.q-toggle')?.getAttribute('data-answer') || 'yes';
+    if (text) questions.push({question: text, eligible_answer: answer});
+  });
+  return questions;
+}
+
+function populateQuestions(questions, container = 'sQuestions') {
+  document.getElementById(container).innerHTML = '';
+  questions.forEach(q => renderQuestionRow(q, container));
+}
+
+// --- Generate Questions via AI ---
+async function generateQuestions() {
+  const elig = document.getElementById('sElig').value.trim();
+  const name = document.getElementById('sName').value.trim();
+  if (!elig) { showToast('Enter eligibility criteria first', 'error'); return; }
+  const btn = document.getElementById('genQBtn');
+  btn.textContent = 'Generating...'; btn.disabled = true;
+  try {
+    const data = await api('POST', '/knowledge/schemes/generate-questions', { eligibility: elig, scheme_name: name });
+    populateQuestions(data.questions || []);
+    showToast(`Generated ${(data.questions || []).length} questions`);
+  } catch (e) { showToast(e.message, 'error'); }
+  btn.textContent = '🤖 Generate from Eligibility'; btn.disabled = false;
+}
+
+// --- Add Scheme ---
+async function addScheme() {
+  const n = document.getElementById('sName').value, d = document.getElementById('sDesc').value;
+  if (!n || !d) return;
+  try {
+    await api('POST', '/knowledge/schemes', {
+      name: n, description: d, eligibility: document.getElementById('sElig').value,
+      department: document.getElementById('sDept').value, how_to_apply: document.getElementById('sHow').value,
+      eligibility_questions: collectQuestions()
+    });
+    showToast('Scheme added');
+    document.getElementById('sName').value = ''; document.getElementById('sDesc').value = '';
+    document.getElementById('sElig').value = ''; document.getElementById('sHow').value = '';
+    document.getElementById('sQuestions').innerHTML = '';
+    loadSchemes();
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+// --- Load Schemes with Edit Questions ---
+async function loadSchemes() {
+  showLoading('schemeList');
+  try {
+    const schemes = await api('GET', '/knowledge/schemes');
+    document.getElementById('schemeList').innerHTML = schemes.map(s => {
+      const qCount = (s.eligibility_questions || []).length;
+      const eName = escapeHtml(s.name);
+      const eDesc = escapeHtml(s.description);
+      const eElig = escapeHtml(s.eligibility);
+      const eHow = escapeHtml(s.how_to_apply);
+      return `
+      <div class="scheme-card glass card card-animate" id="scheme-${s.id}">
+        <h4>${eName}</h4>
+        <p>${eDesc}</p>
+        <p><strong>Eligibility:</strong> ${eElig}</p>
+        <div class="badges mb-1">${deptBadge(s.department)}
+          <span class="badge ${qCount ? 'badge-resolved' : 'badge-pending'}">${qCount ? qCount + ' questions' : 'No questions'}</span>
+        </div>
+        <div class="flex gap-1">
+          <button class="btn btn-secondary btn-sm scheme-edit-details-btn" data-id="${escapeHtml(s.id)}">✏️ Edit Details</button>
+          <button class="btn btn-secondary btn-sm scheme-edit-q-btn" data-id="${escapeHtml(s.id)}">Edit Questions</button>
+          <button class="btn btn-sm scheme-del-btn" style="color:#C62828;background:rgba(198,40,40,0.1);" data-id="${escapeHtml(s.id)}" data-name="${escapeHtml(s.name)}">🗑️ Delete</button>
+        </div>
+        <div id="details-${s.id}" class="hidden mt-1" style="border-top:1px solid rgba(255,255,255,0.2);padding-top:0.75rem;">
+          <div class="form-group"><label>Scheme Name</label><input type="text" class="form-control" id="dn-${s.id}" value="${eName}"></div>
+          <div class="form-group"><label>Description</label><textarea class="form-control" id="dd-${s.id}" style="min-height:70px;">${eDesc}</textarea></div>
+          <div class="form-group"><label>Eligibility Criteria</label><textarea class="form-control" id="de-${s.id}" style="min-height:50px;">${eElig}</textarea></div>
+          <div class="form-row">
+            <div class="form-group"><label>Department</label><select class="form-control" id="dp-${s.id}">${deptOptionsSelected(s.department)}</select></div>
+            <div class="form-group"><label>How to Apply</label><textarea class="form-control" id="dh-${s.id}" style="min-height:50px;">${eHow}</textarea></div>
+          </div>
+          <button class="btn btn-primary btn-sm mt-1 scheme-save-details-btn" data-id="${escapeHtml(s.id)}">Save Details</button>
+        </div>
+        <div id="edit-${s.id}" class="hidden mt-1" style="border-top:1px solid rgba(255,255,255,0.2);padding-top:0.75rem;">
+          <div id="eq-${s.id}"></div>
+          <div class="flex gap-1 mt-1">
+            <button class="btn btn-secondary btn-sm scheme-add-q-btn" data-id="${escapeHtml(s.id)}">+ Add</button>
+            <button class="btn btn-secondary btn-sm scheme-gen-q-btn" data-id="${escapeHtml(s.id)}">🤖 Generate</button>
+            <button class="btn btn-primary btn-sm scheme-save-q-btn" data-id="${escapeHtml(s.id)}">Save Questions</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('') || '<p class="text-muted">No schemes yet.</p>';
+    // Bind event handlers safely (no inline onclick)
+    document.querySelectorAll('.scheme-edit-details-btn').forEach(btn => {
+      btn.addEventListener('click', () => toggleEditDetails(btn.dataset.id));
+    });
+    document.querySelectorAll('.scheme-edit-q-btn').forEach(btn => {
+      btn.addEventListener('click', () => toggleEditQuestions(btn.dataset.id));
+    });
+    document.querySelectorAll('.scheme-del-btn').forEach(btn => {
+      btn.addEventListener('click', () => deleteScheme(btn.dataset.id, btn.dataset.name));
+    });
+    document.querySelectorAll('.scheme-save-details-btn').forEach(btn => {
+      btn.addEventListener('click', () => saveSchemeDetails(btn.dataset.id));
+    });
+    document.querySelectorAll('.scheme-add-q-btn').forEach(btn => {
+      btn.addEventListener('click', () => addQuestionRow('eq-' + btn.dataset.id));
+    });
+    document.querySelectorAll('.scheme-gen-q-btn').forEach(btn => {
+      btn.addEventListener('click', () => genEditQuestions(btn.dataset.id));
+    });
+    document.querySelectorAll('.scheme-save-q-btn').forEach(btn => {
+      btn.addEventListener('click', () => saveEditQuestions(btn.dataset.id));
+    });
+  } catch (e) {}
+}
+
+async function toggleEditQuestions(id) {
+  const panel = document.getElementById('edit-' + id);
+  if (!panel.classList.contains('hidden')) { panel.classList.add('hidden'); return; }
+  panel.classList.remove('hidden');
+  const container = 'eq-' + id;
+  showLoading(container);
+  try {
+    const scheme = await api('GET', `/knowledge/schemes/${id}`);
+    populateQuestions(scheme.eligibility_questions || [], container);
+    // Store eligibility text for generation
+    panel.dataset.eligibility = scheme.eligibility || '';
+    panel.dataset.name = scheme.name || '';
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+async function genEditQuestions(id) {
+  const panel = document.getElementById('edit-' + id);
+  const elig = panel.dataset.eligibility;
+  const name = panel.dataset.name;
+  if (!elig) { showToast('No eligibility text available', 'error'); return; }
+  try {
+    const data = await api('POST', '/knowledge/schemes/generate-questions', { eligibility: elig, scheme_name: name });
+    populateQuestions(data.questions || [], 'eq-' + id);
+    showToast(`Generated ${(data.questions || []).length} questions`);
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+async function saveEditQuestions(id) {
+  const questions = collectQuestions('eq-' + id);
+  try {
+    await api('PUT', `/knowledge/schemes/${id}/questions`, { questions });
+    showToast('Questions saved');
+    loadSchemes();
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+async function backfillAll() {
+  if (!confirm('Generate AI questions for all schemes missing them?')) return;
+  try {
+    const data = await api('POST', '/knowledge/schemes/backfill-questions');
+    showToast(data.message);
+    loadSchemes();
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+// --- Edit Scheme Details ---
+function deptOptionsSelected(current) {
+  return DEPARTMENTS.map(d => `<option value="${d}"${d === current ? ' selected' : ''}>${deptLabel(d)}</option>`).join('');
+}
+
+function toggleEditDetails(id) {
+  const panel = document.getElementById('details-' + id);
+  panel.classList.toggle('hidden');
+}
+
+async function saveSchemeDetails(id) {
+  const name = document.getElementById('dn-' + id).value;
+  const desc = document.getElementById('dd-' + id).value;
+  const elig = document.getElementById('de-' + id).value;
+  const dept = document.getElementById('dp-' + id).value;
+  const how = document.getElementById('dh-' + id).value;
+  if (!name || !desc) { showToast('Name and description are required', 'error'); return; }
+  try {
+    await api('PUT', `/knowledge/schemes/${id}`, {
+      name, description: desc, eligibility: elig, department: dept, how_to_apply: how,
+      eligibility_questions: []
+    });
+    showToast('Scheme details updated');
+    loadSchemes();
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+// --- Delete functions ---
+async function deleteDoc(id, title) {
+  if (!confirm(`Delete documentation "${title}"?`)) return;
+  try { await api('DELETE', `/knowledge/documentation/${id}`); showToast('Deleted'); loadDocs(); }
+  catch (e) { showToast(e.message, 'error'); }
+}
+async function deleteMem(id) {
+  if (!confirm('Delete this service memory entry?')) return;
+  try { await api('DELETE', `/knowledge/service-memory/${id}`); showToast('Deleted'); loadMems(); }
+  catch (e) { showToast(e.message, 'error'); }
+}
+async function deleteScheme(id, name) {
+  if (!confirm(`Delete scheme "${name}"? This cannot be undone.`)) return;
+  try { await api('DELETE', `/knowledge/schemes/${id}`); showToast('Scheme deleted'); loadSchemes(); }
+  catch (e) { showToast(e.message, 'error'); }
+}
+</script>
+{% endblock %}

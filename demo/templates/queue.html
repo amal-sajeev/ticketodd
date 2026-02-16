@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Grievance Queue — PR&DW Portal{% endblock %}
+{% block content %}
+<div class="main-content wide">
+  <h1>📋 Grievance Queue</h1>
+  <p class="subtitle">Filter and manage citizen grievances</p>
+  <div class="glass filter-bar">
+    <div class="form-group"><label>Status</label>
+      <select class="form-control" id="fStatus"><option value="">All</option><option value="pending">Pending</option><option value="in_progress">In Progress</option><option value="resolved">Resolved</option><option value="escalated">Escalated</option></select></div>
+    <div class="form-group"><label>Department</label><select class="form-control" id="fDept"></select></div>
+    <div class="form-group"><label>Priority</label>
+      <select class="form-control" id="fPriority"><option value="">All</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select></div>
+    <div class="form-group"><label>District</label><select class="form-control" id="fDistrict"></select></div>
+    <div class="form-group"><label>Search</label><input type="text" class="form-control" id="fSearch" placeholder="Search..."></div>
+  </div>
+  <div id="queueCount" class="text-sm text-muted mb-1"></div>
+  <div id="queueList"></div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+if (requireAuth()) {
+  document.getElementById('fDept').innerHTML = deptOptions('', true);
+  // District dropdown: "All" + all 30 districts
+  document.getElementById('fDistrict').innerHTML = '<option value="">All Districts</option>' +
+    ODISHA_DISTRICTS.map(d => `<option value="${d}">${d}</option>`).join('');
+  // Pre-select from URL ?district=
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('district')) document.getElementById('fDistrict').value = urlParams.get('district');
+  if (urlParams.get('status')) document.getElementById('fStatus').value = urlParams.get('status');
+  if (urlParams.get('search')) document.getElementById('fSearch').value = urlParams.get('search');
+  loadQueue();
+  ['fStatus','fDept','fPriority','fDistrict'].forEach(id => document.getElementById(id).addEventListener('change', loadQueue));
+  document.getElementById('fSearch').addEventListener('input', debounce(loadQueue, 300));
+}
+
+function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+
+async function loadQueue() {
+  showLoading('queueList');
+  const params = new URLSearchParams();
+  const s = document.getElementById('fStatus').value; if (s) params.set('status', s);
+  const d = document.getElementById('fDept').value; if (d) params.set('department', d);
+  const p = document.getElementById('fPriority').value; if (p) params.set('priority', p);
+  const dist = document.getElementById('fDistrict').value; if (dist) params.set('district', dist);
+  params.set('limit', '50');
+  try {
+    let grievances = await api('GET', '/grievances?' + params.toString());
+    const search = document.getElementById('fSearch').value.toLowerCase();
+    if (search) grievances = grievances.filter(g =>
+      g.title.toLowerCase().includes(search) || g.description.toLowerCase().includes(search));
+    document.getElementById('queueCount').textContent = `${grievances.length} grievances found`;
+    const list = document.getElementById('queueList');
+    if (!grievances.length) { list.innerHTML = '<div class="glass card text-center" style="padding:2rem;">No matching grievances.</div>'; return; }
+    list.innerHTML = grievances.map(g => `
+      <div class="grievance-card glass card-animate status-${escapeHtml(g.status)} queue-card" data-id="${escapeHtml(g.id)}" style="cursor:pointer;">
+        <h4>#${escapeHtml(g.tracking_number)} — ${escapeHtml(g.title)}</h4>
+        <p>${escapeHtml(g.description).substring(0, 140)}...</p>
+        <div class="badges">
+          ${statusBadge(g.status)} ${deptBadge(g.department)} ${priorityBadge(g.priority)}
+          <span class="badge badge-dept">📍 ${escapeHtml(g.district || 'N/A')}</span>
+          <span class="badge badge-dept">${g.is_anonymous ? '🕵️ Anonymous' : '👤 ' + escapeHtml(g.citizen_name || 'N/A')}</span>
+          <span class="badge badge-dept">📅 ${formatDate(g.created_at)}</span>
+        </div>
+      </div>`).join('');
+    document.querySelectorAll('.queue-card').forEach(card => {
+      card.addEventListener('click', () => { window.location.href = '/grievance-detail?id=' + encodeURIComponent(card.dataset.id); });
+    });
+  } catch (e) { showToast(e.message, 'error'); }
+}
+</script>
+{% endblock %}

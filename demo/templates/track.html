@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Track Grievance — PR&DW Portal{% endblock %}
+{% block content %}
+<div class="main-content" style="max-width:700px;">
+  <h1>🔍 Track Your Grievance</h1>
+  <p class="subtitle">Enter your tracking number to check status</p>
+  <div class="glass-strong card" style="padding:2rem;">
+    <div style="display:flex;gap:0.75rem;">
+      <input type="text" class="form-control" id="trackingNum" placeholder="GRV-2026-000001" style="flex:1;">
+      <button class="btn btn-primary" onclick="trackGrievance()">Track</button>
+    </div>
+  </div>
+  <div id="trackResult" class="mt-2"></div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+// Auto-track if ?number= is in URL
+const urlNum = new URLSearchParams(window.location.search).get('number');
+if (urlNum) {
+  document.getElementById('trackingNum').value = urlNum;
+  window.addEventListener('DOMContentLoaded', () => trackGrievance());
+  trackGrievance();
+}
+
+async function trackGrievance() {
+  const num = document.getElementById('trackingNum').value.trim();
+  if (!num) return;
+  const container = document.getElementById('trackResult');
+  showLoading(container);
+  try {
+    const g = await api('GET', `/grievances/track/${encodeURIComponent(num)}`);
+    const loggedIn = isLoggedIn();
+    container.innerHTML = `
+      <div class="glass-strong card card-animate" style="padding:2rem;${loggedIn ? 'cursor:pointer;' : ''}" ${loggedIn ? `data-gid="${escapeHtml(g.id)}"` : ''}>
+        ${loggedIn ? '<p style="font-size:0.8rem;color:#666;margin-bottom:0.5rem;">Click to view full details →</p>' : ''}
+        <h2>${escapeHtml(g.tracking_number)}</h2>
+        <h3 style="color:#37474F;font-weight:400;">${escapeHtml(g.title)}</h3>
+        <div class="badges mb-2">${statusBadge(g.status)} ${deptBadge(g.department)} ${priorityBadge(g.priority)}</div>
+        <div class="detail-section">
+          <div class="detail-row"><span class="label">Filed</span><span class="value">${formatDate(g.created_at)}</span></div>
+          <div class="detail-row"><span class="label">Last Updated</span><span class="value">${formatDate(g.updated_at)}</span></div>
+          <div class="detail-row"><span class="label">SLA Deadline</span><span class="value">${formatDate(g.sla_deadline)}</span></div>
+        </div>
+        ${g.ai_resolution ? (() => {
+          const tier = g.resolution_tier || 'officer_action';
+          if (tier === 'self_resolvable' && g.status === 'pending') {
+            return '<div class="resolution-box ai"><div class="resolution-header">AI Guidance</div>'
+              + '<div class="resolution-content">' + renderMarkdown(g.ai_resolution) + '</div>'
+              + '<div style="margin-top:1rem;padding:1rem;background:rgba(255,255,255,0.4);border-radius:0.75rem;">'
+              + '<p style="font-weight:600;margin-bottom:0.5rem;">Did this information help resolve your issue?</p>'
+              + '<div style="display:flex;gap:0.75rem;">'
+              + '<button class="btn btn-success btn-sm confirm-yes" data-tracking="' + escapeHtml(g.tracking_number) + '">✓ Yes, this helped</button>'
+              + '<button class="btn btn-secondary btn-sm confirm-no" data-tracking="' + escapeHtml(g.tracking_number) + '">✗ No, I need more help</button>'
+              + '</div></div></div>';
+          } else if (tier === 'self_resolvable' && g.status === 'resolved') {
+            return '<div class="resolution-box ai"><div class="resolution-header">AI Guidance (Confirmed Helpful)</div>'
+              + '<div class="resolution-content">' + renderMarkdown(g.ai_resolution) + '</div></div>';
+          } else {
+            return '<div class="resolution-box ai"><div class="resolution-header">AI Response</div>'
+              + '<div class="resolution-content">' + renderMarkdown(g.ai_resolution) + '</div></div>';
+          }
+        })() : ''}
+        ${g.manual_resolution ? '<div class="resolution-box manual"><div class="resolution-header">Officer Resolution</div><div class="resolution-content">' + renderMarkdown(g.manual_resolution) + '</div></div>' : ''}
+      </div>`;
+    container.querySelectorAll('.confirm-yes').forEach(btn => {
+      btn.addEventListener('click', (e) => { e.stopPropagation(); confirmResolution(btn.dataset.tracking, true); });
+    });
+    container.querySelectorAll('.confirm-no').forEach(btn => {
+      btn.addEventListener('click', (e) => { e.stopPropagation(); confirmResolution(btn.dataset.tracking, false); });
+    });
+    const card = container.querySelector('[data-gid]');
+    if (card) {
+      card.addEventListener('click', () => {
+        window.location.href = `/grievance-detail?id=${encodeURIComponent(card.dataset.gid)}`;
+      });
+    }
+  } catch (e) {
+    container.innerHTML = '<div class="glass card text-center" style="padding:2rem;"><p style="color:#C62828;">Grievance not found. Please check the tracking number.</p></div>';
+  }
+}
+async function confirmResolution(trackingNumber, helpful) {
+  try {
+    await api('PUT', '/grievances/confirm-resolution', { tracking_number: trackingNumber, helpful });
+    showToast(helpful ? 'Thank you! Grievance marked as resolved.' : 'Your grievance has been forwarded to an officer for further assistance.');
+    trackGrievance();
+  } catch (e) { showToast(e.message, 'error'); }
+}
+// Allow Enter key
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('trackingNum')?.addEventListener('keydown', e => { if (e.key === 'Enter') trackGrievance(); });
+});
+</script>
+{% endblock %}

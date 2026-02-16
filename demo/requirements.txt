@@ -1,0 +1,11 @@
+fastapi[standard]
+pydantic[email]
+pymongo
+qdrant-client
+openai
+python-dotenv
+python-jose[cryptography]
+passlib[bcrypt]
+jinja2
+requests
+slowapi

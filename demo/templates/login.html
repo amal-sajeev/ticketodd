@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Login — PR&DW Grievance Portal{% endblock %}
+{% block content %}
+<div class="auth-container">
+  <div class="auth-card glass-strong">
+    <h1>🏛️ Welcome Back</h1>
+    <p class="auth-subtitle">Panchayati Raj & Drinking Water Department — Grievance Portal</p>
+    <form id="loginForm" onsubmit="return handleLogin(event)">
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" class="form-control" id="username" placeholder="Enter username" required>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" class="form-control" id="password" placeholder="Enter password" required>
+      </div>
+      <div id="loginError" class="text-sm" style="color:#C62828;margin-bottom:1rem;display:none;"></div>
+      <button type="submit" class="btn btn-primary btn-block" id="loginBtn">Sign In</button>
+    </form>
+    <p class="mt-2 text-sm">Don't have an account? <a href="/register" class="auth-link">Register here</a></p>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+async function handleLogin(e) {
+  e.preventDefault();
+  const btn = document.getElementById('loginBtn');
+  const errEl = document.getElementById('loginError');
+  errEl.style.display = 'none';
+  btn.textContent = 'Signing in...'; btn.disabled = true;
+  try {
+    const data = await api('POST', '/auth/login', {
+      username: document.getElementById('username').value,
+      password: document.getElementById('password').value,
+    });
+    setAuth(data.access_token, data.user);
+    window.location.href = data.user.role === 'citizen' ? '/dashboard' : '/officer-dashboard';
+  } catch (err) {
+    errEl.textContent = err.message || 'Invalid credentials';
+    errEl.style.display = 'block';
+    btn.textContent = 'Sign In'; btn.disabled = false;
+  }
+}
+// If already logged in, redirect
+if (isLoggedIn()) {
+  const u = getUser();
+  window.location.href = u?.role === 'citizen' ? '/dashboard' : '/officer-dashboard';
+}
+</script>
+{% endblock %}
