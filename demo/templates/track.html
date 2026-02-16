@@ -57,8 +57,7 @@ async function trackGrievance() {
             return '<div class="resolution-box ai"><div class="resolution-header">AI Guidance (Confirmed Helpful)</div>'
               + '<div class="resolution-content">' + renderMarkdown(g.ai_resolution) + '</div></div>';
           } else {
-            return '<div class="resolution-box ai"><div class="resolution-header">AI Response</div>'
-              + '<div class="resolution-content">' + renderMarkdown(g.ai_resolution) + '</div></div>';
+            return '';
           }
         })() : ''}
         ${g.manual_resolution ? '<div class="resolution-box manual"><div class="resolution-header">Officer Resolution</div><div class="resolution-content">' + renderMarkdown(g.manual_resolution) + '</div></div>' : ''}

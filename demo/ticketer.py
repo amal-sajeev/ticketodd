@@ -425,10 +425,16 @@ async def startup_db():
 
 async def startup_qdrant():
     global qdrant
-    if QDRANT_API_KEY:
-        qdrant = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY, timeout=30)
-    else:
-        qdrant = QdrantClient(url=QDRANT_URL)
+    try:
+        if QDRANT_API_KEY:
+            qdrant = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY, timeout=30)
+        else:
+            qdrant = QdrantClient(url=QDRANT_URL)
+        qdrant.get_collections()
+    except Exception as e:
+        logger.warning("Qdrant unavailable (%s) — knowledge base features disabled.", e)
+        qdrant = None
+        return
     for collection in ["documentation", "service_memory", "schemes"]:
         try:
             existing = qdrant.get_collections()
@@ -750,20 +756,26 @@ class ResolutionGenerator:
         context_text = ResolutionGenerator._build_context(context_sources)
         lang_name = LANGUAGE_NAMES.get(language, "English")
         prompt = (
-            f"You are Seva, a helpful government assistant for the Odisha Panchayati Raj & Drinking Water Department.\n"
+            f"You are Seva, the AI assistant built into the Odisha Panchayati Raj & Drinking Water Department Grievance Portal.\n"
             f"Respond in {lang_name}. Use Markdown formatting.\n\n"
-            "You are providing guidance DIRECTLY TO THE CITIZEN to help them resolve this issue themselves.\n\n"
+            "You are providing a ONE-TIME guidance message to a citizen who just submitted a grievance through this portal. "
+            "This is NOT a conversation — the citizen cannot reply to you. Your response must be complete and self-contained.\n\n"
             "CRITICAL RULES:\n"
-            "- Give clear, actionable steps the citizen can take RIGHT NOW.\n"
-            "- Be specific: mention which office to visit, which documents to bring, which website/portal to use.\n"
+            "- Prioritize DIGITAL SELF-SERVICE: government portals, websites, online tracking, toll-free helplines, and mobile apps.\n"
+            "- This portal IS the citizen's point of contact with the government. Do NOT tell them to 'visit the GP office' or "
+            "'contact the BDO' as a first step — they filed here precisely to avoid that.\n"
+            "- Only suggest visiting a physical office as a LAST RESORT if no digital option exists for the specific issue.\n"
+            "- Mention specific portal URLs (e.g. awaassoft.nic.in, egramswaraj.gov.in) and toll-free helplines (e.g. 1916, 1800-11-6446) where applicable.\n"
             "- NEVER claim any government action has been taken.\n"
-            "- NEVER invent reference numbers or case IDs.\n"
-            "- Use friendly but professional tone — you are helping them, not lecturing.\n\n"
+            "- NEVER invent reference numbers, case IDs, or tracking codes.\n"
+            "- NEVER write as if you can respond to follow-up questions (no 'tell me more', 'let me know', 'I can help you with...').\n"
+            "- Use direct, professional tone.\n\n"
             "FORMATTING RULES:\n"
             "- Keep the total response under 150 words.\n"
-            "- Structure: one line acknowledging the issue, then a '### What You Can Do' section with 2-4 "
-            "numbered steps, then one closing line offering further help if needed.\n"
-            "- Use **bold** for key terms, office names, and documents.\n"
+            "- Structure: one brief line acknowledging the issue, then a '### What You Can Do' section with 2-4 "
+            "numbered steps (online actions first, physical visits only if unavoidable), then one closing line "
+            "noting that their grievance has also been recorded in the system for follow-up.\n"
+            "- Use **bold** for key terms, portal names, and helpline numbers.\n"
             "- Do not repeat the grievance description back.\n\n"
             f"**Issue:** {truncate_text(title, 200)} — {truncate_text(description, 1500)}\n"
             f"{context_text}\n"
@@ -842,7 +854,7 @@ async def generate_eligibility_questions(eligibility_text: str, scheme_name: str
 # ---------------------------------------------------------------------------
 # Core Grievance Processing
 # ---------------------------------------------------------------------------
-SELF_RESOLVE_CONFIDENCE_THRESHOLD = 0.90
+SELF_RESOLVE_CONFIDENCE_THRESHOLD = 0.60
 
 async def process_grievance(data: GrievanceCreate, db, user: Optional[dict] = None) -> GrievanceResponse:
     text = f"{data.title} {data.description}"
@@ -1052,7 +1064,14 @@ async def admin_delete_user(user_id: str,
 async def create_grievance(data: GrievanceCreate, background_tasks: BackgroundTasks,
                            user=Depends(get_optional_user), db=Depends(get_db)):
     try:
-        return await process_grievance(data, db, user)
+        result = await process_grievance(data, db, user)
+        # Strip officer-only AI drafts from the response when the caller is a citizen
+        # (or unauthenticated). Only self_resolvable guidance should be shown to citizens.
+        is_citizen = user is None or user.get("role") == UserRole.CITIZEN.value
+        if is_citizen and result.resolution_tier != ResolutionTier.SELF_RESOLVABLE:
+            result.ai_resolution = None
+            result.confidence_score = None
+        return result
     except Exception as e:
         logger.error("Error creating grievance: %s", e)
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -1080,6 +1099,12 @@ async def get_grievances(
                     db.grievances.find(fq).sort("created_at", -1).skip(skip).limit(limit)]
         loop = asyncio.get_event_loop()
         grievances = await loop.run_in_executor(executor, fetch)
+        # Strip officer-only AI drafts when the requesting user is a citizen
+        if user["role"] == UserRole.CITIZEN.value:
+            for g in grievances:
+                if g.get("resolution_tier") != "self_resolvable":
+                    g["ai_resolution"] = None
+                    g["confidence_score"] = None
         return [GrievanceResponse(**g, id=g["_id"]) for g in grievances]
     except Exception as e:
         logger.error("Error getting grievances: %s", e)
@@ -1095,11 +1120,15 @@ async def track_grievance(request: Request, tracking_number: str, db=Depends(get
     g = await loop.run_in_executor(executor, db.grievances.find_one, {"tracking_number": tracking_number})
     if not g:
         raise HTTPException(status_code=404, detail="Grievance not found")
+    # Only expose AI resolution to the public tracking endpoint for self-resolvable grievances;
+    # officer-action / escalation AI drafts are internal and must not be leaked.
+    tier = g.get("resolution_tier", "officer_action")
+    ai_res = g.get("ai_resolution") if tier == "self_resolvable" else None
     return GrievanceTrackResponse(
         id=g["_id"], tracking_number=g["tracking_number"], title=g["title"], status=g["status"],
         department=g["department"], priority=g["priority"], created_at=g["created_at"],
         updated_at=g["updated_at"], sla_deadline=g.get("sla_deadline"),
-        ai_resolution=g.get("ai_resolution"), manual_resolution=g.get("manual_resolution"),
+        ai_resolution=ai_res, manual_resolution=g.get("manual_resolution"),
         resolution_type=g.get("resolution_type"),
         resolution_tier=g.get("resolution_tier"))
 
@@ -1112,7 +1141,12 @@ async def get_grievance(grievance_id: str, user=Depends(get_current_user), db=De
         raise HTTPException(status_code=404, detail="Grievance not found")
     if user["role"] == UserRole.CITIZEN.value and g.get("citizen_user_id") != str(user["_id"]):
         raise HTTPException(status_code=403, detail="Access denied")
-    return GrievanceResponse(**convert_db_grievance(g), id=g["_id"])
+    g = convert_db_grievance(g)
+    # Strip officer-only AI drafts for citizen users
+    if user["role"] == UserRole.CITIZEN.value and g.get("resolution_tier") != "self_resolvable":
+        g["ai_resolution"] = None
+        g["confidence_score"] = None
+    return GrievanceResponse(**g, id=g["_id"])
 
 @app.put("/grievances/{grievance_id}/resolve", response_model=GrievanceResponse)
 async def resolve_grievance(grievance_id: str, resolution: ManualResolution,
@@ -1402,6 +1436,8 @@ async def add_to_service_memory(grievance: dict, resolution: str, officer: str):
 @app.post("/knowledge/documentation")
 async def add_documentation(entry: KnowledgeEntry,
                             user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value))):
+    if not qdrant:
+        raise HTTPException(status_code=503, detail="Knowledge base (Qdrant) is not available")
     embedding = await get_openai_embedding(entry.content)
     point = PointStruct(id=str(uuid.uuid4()), vector=embedding,
         payload={"title": entry.title, "content": entry.content,
@@ -1412,6 +1448,8 @@ async def add_documentation(entry: KnowledgeEntry,
 @app.post("/knowledge/service-memory")
 async def add_service_memory_endpoint(entry: ServiceMemoryEntry,
                                        user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value))):
+    if not qdrant:
+        raise HTTPException(status_code=503, detail="Knowledge base (Qdrant) is not available")
     embedding = await get_openai_embedding(entry.query)
     point = PointStruct(id=str(uuid.uuid4()), vector=embedding,
         payload={"query": entry.query, "resolution": entry.resolution,
@@ -1423,6 +1461,8 @@ async def add_service_memory_endpoint(entry: ServiceMemoryEntry,
 @app.post("/knowledge/schemes")
 async def add_scheme(entry: SchemeEntry,
                      user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value))):
+    if not qdrant:
+        raise HTTPException(status_code=503, detail="Knowledge base (Qdrant) is not available")
     text = f"{entry.name} {entry.description} {entry.eligibility} {entry.how_to_apply}"
     embedding = await get_openai_embedding(text)
     point = PointStruct(id=str(uuid.uuid4()), vector=embedding,
@@ -1443,6 +1483,8 @@ async def generate_questions_preview(req: GenerateQuestionsRequest,
 @app.post("/knowledge/schemes/backfill-questions")
 async def backfill_scheme_questions(
     user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value))):
+    if not qdrant:
+        raise HTTPException(status_code=503, detail="Knowledge base (Qdrant) is not available")
     zero_vector = [0.0] * EMBEDDING_DIM
     results = qdrant.query_points(collection_name="schemes", query=zero_vector,
                                    limit=100, with_payload=True, with_vectors=False)
@@ -1463,6 +1505,8 @@ async def backfill_scheme_questions(
 
 @app.get("/knowledge/schemes/{scheme_id}", response_model=SchemeResponse)
 async def get_scheme_detail(scheme_id: str):
+    if not qdrant:
+        raise HTTPException(status_code=503, detail="Knowledge base (Qdrant) is not available")
     points = qdrant.retrieve(collection_name="schemes", ids=[scheme_id], with_payload=True)
     if not points:
         raise HTTPException(status_code=404, detail="Scheme not found")
@@ -1475,6 +1519,8 @@ async def get_scheme_detail(scheme_id: str):
 @app.put("/knowledge/schemes/{scheme_id}/questions")
 async def update_scheme_questions(scheme_id: str, req: UpdateQuestionsRequest,
                                    user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value))):
+    if not qdrant:
+        raise HTTPException(status_code=503, detail="Knowledge base (Qdrant) is not available")
     points = qdrant.retrieve(collection_name="schemes", ids=[scheme_id], with_payload=True)
     if not points:
         raise HTTPException(status_code=404, detail="Scheme not found")
@@ -1487,6 +1533,8 @@ async def update_scheme_questions(scheme_id: str, req: UpdateQuestionsRequest,
 async def get_documentation(category: Optional[Department] = None,
                             limit: int = Query(50, ge=1, le=100), offset: int = Query(0, ge=0, le=10000),
                             user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value))):
+    if not qdrant:
+        return []
     filt = Filter(must=[FieldCondition(key="category", match=MatchValue(value=category.value))]) if category else None
     zero_vector = [0.0] * EMBEDDING_DIM
     results = qdrant.query_points(collection_name="documentation", query=zero_vector,
@@ -1498,6 +1546,8 @@ async def get_documentation(category: Optional[Department] = None,
 async def get_service_memory(category: Optional[Department] = None,
                              limit: int = Query(50, ge=1, le=100), offset: int = Query(0, ge=0, le=10000),
                              user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value))):
+    if not qdrant:
+        return []
     filt = Filter(must=[FieldCondition(key="category", match=MatchValue(value=category.value))]) if category else None
     zero_vector = [0.0] * EMBEDDING_DIM
     results = qdrant.query_points(collection_name="service_memory", query=zero_vector,
@@ -1511,24 +1561,32 @@ async def get_service_memory(category: Optional[Department] = None,
 @app.delete("/knowledge/documentation/{doc_id}")
 async def delete_documentation(doc_id: str,
                                 user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value))):
+    if not qdrant:
+        raise HTTPException(status_code=503, detail="Knowledge base (Qdrant) is not available")
     qdrant.delete(collection_name="documentation", points_selector=PointIdsList(points=[doc_id]))
     return {"message": "Documentation deleted"}
 
 @app.delete("/knowledge/service-memory/{mem_id}")
 async def delete_service_memory(mem_id: str,
                                  user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value))):
+    if not qdrant:
+        raise HTTPException(status_code=503, detail="Knowledge base (Qdrant) is not available")
     qdrant.delete(collection_name="service_memory", points_selector=PointIdsList(points=[mem_id]))
     return {"message": "Service memory entry deleted"}
 
 @app.delete("/knowledge/schemes/{scheme_id}")
 async def delete_scheme(scheme_id: str,
                          user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value))):
+    if not qdrant:
+        raise HTTPException(status_code=503, detail="Knowledge base (Qdrant) is not available")
     qdrant.delete(collection_name="schemes", points_selector=PointIdsList(points=[scheme_id]))
     return {"message": "Scheme deleted"}
 
 @app.put("/knowledge/schemes/{scheme_id}")
 async def update_scheme(scheme_id: str, entry: SchemeEntry,
                          user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value))):
+    if not qdrant:
+        raise HTTPException(status_code=503, detail="Knowledge base (Qdrant) is not available")
     points = qdrant.retrieve(collection_name="schemes", ids=[scheme_id], with_payload=True)
     if not points:
         raise HTTPException(status_code=404, detail="Scheme not found")
@@ -1550,6 +1608,8 @@ async def update_scheme(scheme_id: str, entry: SchemeEntry,
 @app.get("/knowledge/schemes", response_model=List[SchemeResponse])
 async def get_schemes(department: Optional[Department] = None,
                       limit: int = Query(50, ge=1, le=100), offset: int = Query(0, ge=0, le=10000)):
+    if not qdrant:
+        return []
     filt = Filter(must=[FieldCondition(key="department", match=MatchValue(value=department.value))]) if department else None
     zero_vector = [0.0] * EMBEDDING_DIM
     results = qdrant.query_points(collection_name="schemes", query=zero_vector,
@@ -1687,7 +1747,10 @@ PAGES = [
 for _path, _template in PAGES:
     def _make_handler(tmpl: str):
         async def handler(request: Request):
-            return templates.TemplateResponse(tmpl, {"request": request})
+            response = templates.TemplateResponse(tmpl, {"request": request})
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            response.headers["Pragma"] = "no-cache"
+            return response
         return handler
     app.add_api_route(f"/{_path}" if _path else "/", _make_handler(_template),
                       methods=["GET"], response_class=HTMLResponse, include_in_schema=False)

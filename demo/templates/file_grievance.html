@@ -67,7 +67,7 @@ async function submitGrievance(e) {
         <h2>Grievance Submitted Successfully</h2>
         <div class="tracking-number">${escapeHtml(result.tracking_number)}</div>
         <div class="mb-2">${statusBadge(result.status)} ${deptBadge(result.department)} ${priorityBadge(result.priority)}</div>
-        ${result.ai_resolution ? `<div class="resolution-box ai mt-2" style="text-align:left;"><div class="resolution-header">🤖 AI Resolution</div><p>${escapeHtml(result.ai_resolution)}</p></div>` : ''}
+        ${result.ai_resolution && result.resolution_tier === 'self_resolvable' ? `<div class="resolution-box ai mt-2" style="text-align:left;"><div class="resolution-header">🤖 AI Guidance</div><div class="resolution-content">${renderMarkdown(result.ai_resolution)}</div></div>` : ''}
         <div class="mt-3"><a href="/dashboard" class="btn btn-primary">Back to Dashboard</a> <a href="/file-grievance" class="btn btn-secondary" onclick="location.reload()">File Another</a></div>
       </div>`;
   } catch (err) {

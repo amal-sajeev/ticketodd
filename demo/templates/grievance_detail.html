@@ -56,18 +56,27 @@ async function loadDetail() {
             ${g.ai_resolution ? (() => {
               const tier = g.resolution_tier || 'officer_action';
               let label, extra = '';
-              if (tier === 'self_resolvable') {
-                label = 'AI Guidance (awaiting citizen confirmation)';
-              } else {
-                label = 'AI Draft for Review';
-                if (g.status !== 'resolved') {
-                  extra = `<div style="display:flex;gap:.5rem;margin-top:.75rem;">
-                    <button class="btn btn-success btn-sm approve-draft-btn" data-id="${escapeHtml(g.id)}">✓ Approve &amp; Send</button>
-                    <button class="btn btn-primary btn-sm edit-draft-btn" data-id="${escapeHtml(g.id)}">✎ Edit &amp; Send</button>
-                  </div>`;
+              if (isCitizen) {
+                if (tier === 'self_resolvable') {
+                  label = '🤖 AI Guidance';
+                  return `<div class="resolution-box ai"><div class="resolution-header">${label}</div><div class="resolution-content">${renderMarkdown(g.ai_resolution)}</div></div>`;
+                } else {
+                  return '';
                 }
+              } else {
+                if (tier === 'self_resolvable') {
+                  label = 'AI Guidance (awaiting citizen confirmation)';
+                } else {
+                  label = 'AI Draft for Review';
+                  if (g.status !== 'resolved') {
+                    extra = `<div style="display:flex;gap:.5rem;margin-top:.75rem;">
+                      <button class="btn btn-success btn-sm approve-draft-btn" data-id="${escapeHtml(g.id)}">✓ Approve &amp; Send</button>
+                      <button class="btn btn-primary btn-sm edit-draft-btn" data-id="${escapeHtml(g.id)}">✎ Edit &amp; Send</button>
+                    </div>`;
+                  }
+                }
+                return `<div class="resolution-box ai"><div class="resolution-header">${label} (${Math.round((g.confidence_score||0)*100)}% confidence)</div><div class="resolution-content">${renderMarkdown(g.ai_resolution)}</div>${extra}</div>`;
               }
-              return `<div class="resolution-box ai"><div class="resolution-header">${label} (${Math.round((g.confidence_score||0)*100)}% confidence)</div><div class="resolution-content">${renderMarkdown(g.ai_resolution)}</div>${extra}</div>`;
             })() : ''}
             ${g.manual_resolution ? `<div class="resolution-box manual"><div class="resolution-header">Officer Resolution</div><div class="resolution-content">${renderMarkdown(g.manual_resolution)}</div></div>` : ''}
             ${g.notes?.length ? '<h3 class="mt-2">📝 Notes</h3>' + g.notes.map(n => `<div class="note-item"><div class="note-meta">${escapeHtml(n.officer)} · ${escapeHtml(n.note_type)} · ${formatDate(n.created_at)}</div><p>${escapeHtml(n.content)}</p></div>`).join('') : ''}
