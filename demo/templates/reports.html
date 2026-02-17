@@ -148,24 +148,35 @@
             <span class="icon filled" style="font-size:1.5rem; color:var(--primary);">auto_awesome</span>
             <span style="font-size:1rem; font-weight:600; color:var(--on-surface);">Click here to generate an AI Executive Summary</span>
         </div>
-        <div id="aiContent" style="display:none; margin-top:1rem;">
-            <!-- Summary -->
-            <div style="background:var(--surface-container-low); padding:1rem; border-radius:8px; margin-bottom:1rem;">
-                <ul id="aiSummaryList" style="padding-left:1.2rem; line-height:1.6; color:var(--on-surface);"></ul>
+        <div id="aiContent" style="display:none;">
+            <!-- Header row -->
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem;">
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <span class="icon filled" style="color:var(--primary);">auto_awesome</span>
+                    <span style="font-size:0.85rem; font-weight:600; color:var(--on-surface-variant);">AI Executive Summary</span>
+                    <span style="font-size:0.75rem; color:var(--on-surface-variant); opacity:0.7;" id="aiPeriod"></span>
+                </div>
+                <span onclick="generateAIReport()" style="font-size:0.8rem; color:var(--primary); cursor:pointer; text-decoration:underline;">Regenerate</span>
+            </div>
+            <!-- Headline -->
+            <p id="aiHeadline" style="font-size:1.15rem; font-weight:700; color:var(--on-surface); margin-bottom:1.25rem; line-height:1.5;"></p>
+            <!-- Key Findings -->
+            <div style="margin-bottom:1.25rem;">
+                <h4 style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--on-surface-variant); margin-bottom:0.6rem;">Key Findings</h4>
+                <ul id="aiInsights" style="list-style:none; padding:0; margin:0;"></ul>
+            </div>
+            <!-- Recommended Actions -->
+            <div style="margin-bottom:1.25rem;">
+                <h4 style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--on-surface-variant); margin-bottom:0.6rem;">Recommended Actions</h4>
+                <ul id="aiActions" style="list-style:none; padding:0; margin:0;"></ul>
             </div>
             <!-- Themes -->
-            <div>
-                <h4 style="font-size:0.9rem; margin-bottom:0.5rem; color:var(--on-surface-variant);">Detected Themes
-                </h4>
+            <div style="border-top:1px solid var(--outline-variant); padding-top:0.75rem;">
+                <h4 style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--on-surface-variant); margin-bottom:0.5rem;">Detected Themes</h4>
                 <div id="aiThemes" style="display:flex; gap:0.5rem; flex-wrap:wrap;"></div>
             </div>
-            <div style="text-align:right; margin-top:1rem;">
-                <button class="btn btn-sm btn-tonal" onclick="generateAIReport()">
-                    <span class="icon sm">refresh</span> Regenerate
-                </button>
-            </div>
         </div>
-        <div id="aiLoading" style="display:none; text-align:center; padding:2.5rem;">
+        <div id="aiLoading" style="display:none; text-align:center; padding:2rem;">
             <div class="spinner"><span></span><span></span><span></span></div>
             <p class="text-sm text-muted mt-1">Analyzing grievances...</p>
         </div>
@@ -321,13 +332,29 @@
         try {
             const data = await api('POST', '/admin/reports/analysis', { timeframe: currentReportTimeframe });
 
-            const list = document.getElementById('aiSummaryList');
-            list.innerHTML = data.summary.map(s => `<li>${typeof marked !== 'undefined' && marked.parseInline ? marked.parseInline(s) : escapeHtml(s)}</li>`).join('');
+            document.getElementById('aiPeriod').textContent = data.period || '';
+            document.getElementById('aiHeadline').textContent = data.headline || '';
+
+            const insightsEl = document.getElementById('aiInsights');
+            insightsEl.innerHTML = (data.insights || []).map(s =>
+                `<li style="display:flex; align-items:flex-start; gap:0.5rem; margin-bottom:0.65rem; line-height:1.55; font-size:0.92rem; color:var(--on-surface);">
+                    <span class="icon sm" style="color:var(--primary); flex-shrink:0; margin-top:2px;">arrow_right</span>
+                    <span>${escapeHtml(s)}</span>
+                </li>`
+            ).join('');
+
+            const actionsEl = document.getElementById('aiActions');
+            actionsEl.innerHTML = (data.actions || []).map(s =>
+                `<li style="display:flex; align-items:flex-start; gap:0.5rem; margin-bottom:0.65rem; line-height:1.55; font-size:0.92rem; color:var(--on-surface);">
+                    <span class="icon sm" style="color:#2E7D32; flex-shrink:0; margin-top:2px;">task_alt</span>
+                    <span>${escapeHtml(s)}</span>
+                </li>`
+            ).join('');
 
             const themes = document.getElementById('aiThemes');
-            themes.innerHTML = data.themes.map(t =>
-                `<span class="badge" style="background:var(--primary-container);color:var(--on-primary-container);padding:0.4rem 0.8rem;">
-                    ${escapeHtml(t.name)} <span style="opacity:0.7;margin-left:4px;">(${t.count})</span>
+            themes.innerHTML = (data.themes || []).map(t =>
+                `<span class="badge" style="background:var(--primary-container);color:var(--on-primary-container);padding:0.3rem 0.65rem; font-size:0.8rem;">
+                    ${escapeHtml(t.name)} <span style="opacity:0.6;">(${t.count})</span>
                  </span>`
             ).join('');
 

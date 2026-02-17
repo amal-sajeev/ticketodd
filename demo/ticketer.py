@@ -3923,64 +3923,104 @@ async def admin_reports_analysis(
     now = datetime.now(timezone.utc)
     if timeframe == "daily":
         start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        period_label = now.strftime("Daily — %b %d, %Y")
     else:
         start_date = now - timedelta(days=7)
+        period_label = f"Weekly — {start_date.strftime('%b %d')} to {now.strftime('%b %d, %Y')}"
 
-    def fetch_grievances():
-        return list(db.grievances.find(
-            {"created_at": {"$gte": start_date}},
-            {"title": 1, "description": 1, "department": 1, "sentiment": 1, "status": 1}
-        ).limit(100))
+    def build_context():
+        match_filter = {"created_at": {"$gte": start_date}}
+        grievances = list(db.grievances.find(match_filter).sort("created_at", -1))
+        if not grievances:
+            return None, period_label
+
+        new_count = len(grievances)
+        resolved_count = sum(1 for g in grievances if g.get("status") == "resolved")
+        active_total = db.grievances.count_documents({"status": {"$in": ["pending", "in_progress", "escalated"]}})
+
+        dept_counts = {}
+        district_counts = {}
+        sentiment_counts = {}
+        priority_counts = {}
+        for g in grievances:
+            dept = g.get("department") or "general"
+            dept_counts[dept] = dept_counts.get(dept, 0) + 1
+            dist = g.get("district") or "Unknown"
+            district_counts[dist] = district_counts.get(dist, 0) + 1
+            sent = g.get("sentiment") or "neutral"
+            sentiment_counts[sent] = sentiment_counts.get(sent, 0) + 1
+            pri = g.get("priority") or "medium"
+            priority_counts[pri] = priority_counts.get(pri, 0) + 1
+
+        top_depts = sorted(dept_counts.items(), key=lambda x: x[1], reverse=True)[:7]
+        top_districts = sorted(district_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+
+        sample_titles = [g.get("title", "Untitled") for g in grievances[:20]]
+
+        context = (
+            f"Period: {period_label}\n"
+            f"KPIs: {new_count} new, {resolved_count} resolved this period, {active_total} total active\n"
+            f"Departments: {', '.join(f'{d} ({c})' for d, c in top_depts)}\n"
+            f"Top Districts: {', '.join(f'{d} ({c})' for d, c in top_districts)}\n"
+            f"Sentiment: {', '.join(f'{s} ({c})' for s, c in sorted(sentiment_counts.items(), key=lambda x: x[1], reverse=True))}\n"
+            f"Priority: {', '.join(f'{p} ({c})' for p, c in sorted(priority_counts.items(), key=lambda x: x[1], reverse=True))}\n"
+            f"Sample titles:\n" + "\n".join(f"- {t}" for t in sample_titles)
+        )
+        return context, period_label
 
     loop = asyncio.get_event_loop()
-    grievances = await loop.run_in_executor(executor, fetch_grievances)
+    context, label = await loop.run_in_executor(executor, build_context)
 
-    if not grievances:
+    if context is None:
         return {
-            "summary": ["No grievances found for this period for analysis."],
-            "themes": []
+            "period": label,
+            "headline": "No grievances recorded in this period.",
+            "insights": [], "actions": [], "themes": []
         }
 
-    data_summary = [
-        f"- [{g.get('department')}][{g.get('sentiment')}] {g.get('title')}: {(g.get('description') or '')[:100]}..."
-        for g in grievances
-    ]
-    data_text = "\n".join(data_summary)
+    system_prompt = """You are a senior government operations analyst writing a daily briefing for a District Collector. Given aggregate grievance statistics, produce a structured JSON executive briefing.
 
-    system_prompt = """You are an expert government policy analyst. Analyze the provided grievance data.
-
-Output JSON format only:
+STRICT OUTPUT FORMAT (JSON only):
 {
-    "summary": [
-        "Insight 1 (e.g. Surge in water complaints in Ganjam)",
-        "Insight 2 (e.g. High dissatisfaction in MGNREGS payments)",
-        "Insight 3 (e.g. Recurring road maintenance issues)"
-    ],
-    "themes": [
-        {"name": "Theme Name", "count": 5},
-        {"name": "Theme Name", "count": 3}
-    ]
+  "headline": "One clear sentence summarizing the most important takeaway, max 20 words",
+  "insights": [
+    "A specific finding referencing numbers, districts, or departments. 1-2 sentences."
+  ],
+  "actions": [
+    "A concrete, actionable recommendation starting with a verb. 1-2 sentences."
+  ],
+  "themes": [
+    {"name": "Short theme (3-5 words)", "count": 5}
+  ]
 }
 
-- Summary should be professional, concise, and actionable. Max 3 bullets.
-- Themes should group similar issues (auto-clustering). Return max 5 themes."""
+RULES:
+- headline: 1 sentence, max 20 words, the single most important pattern or concern
+- insights: 3-4 items. Each MUST cite a specific number from the data. Explain WHY the number matters, not just what it is. 1-2 sentences each.
+- actions: 3-4 items. Each MUST start with a verb (Deploy, Audit, Escalate, Investigate, etc.). Be specific about what department/district/team should act. 1-2 sentences each.
+- themes: 3-5 items. Names should be short but descriptive (e.g. "MGNREGS Payment Delays", "Road Repair Backlog").
+- Be specific to the data. Reference actual departments, districts, sentiment patterns, and counts.
+- Focus on cross-cutting patterns, anomalies, and emerging risks — not just restating chart data.
+- Write for a busy administrator who needs to understand what happened and what to do about it."""
 
     try:
         response = await openai_client.chat.completions.create(
             model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"Analyze these grievances:\n{data_text}"}
+                {"role": "user", "content": context}
             ],
             response_format={"type": "json_object"}
         )
-        content = response.choices[0].message.content
-        return json.loads(content)
+        result = json.loads(response.choices[0].message.content)
+        result["period"] = label
+        return result
     except Exception as e:
         logger.error("AI Analysis Error: %s", e)
         return {
-            "summary": [f"AI Analysis unavailable: {str(e)}"],
-            "themes": []
+            "period": label,
+            "headline": f"AI Analysis unavailable: {str(e)}",
+            "insights": [], "actions": [], "themes": []
         }
 
 # ---------------------------------------------------------------------------
