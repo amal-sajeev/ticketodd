@@ -136,10 +136,12 @@
 
 <!-- Document Viewer Modal -->
 <div id="docViewerOverlay" class="doc-overlay hidden" onclick="closeDocViewer()">
-  <div class="glass-strong doc-modal" onclick="event.stopPropagation()">
-    <div class="flex-between mb-1">
+  <div class="glass-strong doc-modal" onclick="event.stopPropagation()"
+    style="display:flex;flex-direction:column;height:95vh;padding:0;">
+    <div class="flex-between mb-1" style="padding:0.5rem 1rem;flex-shrink:0;">
       <h3 id="docViewerTitle" style="margin:0;"></h3>
-      <button class="btn btn-sm" onclick="closeDocViewer()" style="padding:0.3rem 0.7rem;" aria-label="Close document viewer"><span class="icon sm">close</span></button>
+      <button class="btn btn-sm" onclick="closeDocViewer()" style="padding:0.3rem 0.7rem;"
+        aria-label="Close document viewer"><span class="icon sm">close</span></button>
     </div>
     <div id="loadingSpinner" class="hidden" style="text-align:center;padding:2rem;">
       <div class="spinner"><span></span><span></span><span></span></div>
@@ -147,14 +149,18 @@
     </div>
     <div id="docViewerContent"></div>
     <div id="pdfControls" class="hidden"
-      style="display:flex;gap:0.5rem;align-items:center;justify-content:center;margin-bottom:0.5rem;background:var(--surface-container);padding:0.5rem;border-radius:8px;">
-      <button class="btn btn-sm btn-secondary" onclick="changeZoom(-0.1)" aria-label="Zoom out"><span class="icon sm">remove</span></button>
+      style="display:flex;gap:0.5rem;align-items:center;justify-content:center;background:var(--surface-container);padding:0.5rem;border-radius:8px;flex-shrink:0;">
+      <button class="btn btn-sm btn-secondary" onclick="changeZoom(-0.1)" aria-label="Zoom out"><span
+          class="icon sm">remove</span></button>
       <span id="zoomLevel" style="font-size:0.9rem;font-weight:600;min-width:60px;text-align:center;">100%</span>
-      <button class="btn btn-sm btn-secondary" onclick="changeZoom(0.1)" aria-label="Zoom in"><span class="icon sm">add</span></button>
-      <button class="btn btn-sm btn-secondary" onclick="resetZoom()" style="margin-left:0.5rem;" aria-label="Reset zoom">Reset</button>
+      <button class="btn btn-sm btn-secondary" onclick="changeZoom(0.1)" aria-label="Zoom in"><span
+          class="icon sm">add</span></button>
+      <button class="btn btn-sm btn-secondary" onclick="resetZoom()" style="margin-left:0.5rem;"
+        aria-label="Reset zoom">Reset</button>
     </div>
-    <div id="pdfContainer" class="hidden" style="height:60vh;overflow:auto;background:#525659;border-radius:4px;"></div>
-    <div id="imageContainer" class="hidden" style="text-align:center;max-height:60vh;overflow:auto;">
+    <div id="pdfContainer" class="hidden"
+      style="flex:1;overflow:auto;background:#525659;border-radius:4px;min-height:0;"></div>
+    <div id="imageContainer" class="hidden" style="text-align:center;flex:1;overflow:auto;min-height:0;">
       <img id="viewerImage" src="" style="max-width:100%;height:auto;border-radius:4px;">
     </div>
   </div>

@@ -3166,30 +3166,44 @@ async def get_attachment(attachment_id: str,
                          db=Depends(get_db)):
     try:
         loop = asyncio.get_event_loop()
-        # Verify attachment belongs to a grievance the requester can access
         oid = ObjectId(attachment_id)
-        grievance = await loop.run_in_executor(executor, lambda: db.grievances.find_one(
-            {"attachments": attachment_id}, {"citizen_user_id": 1, "is_public": 1}))
-        # Also check if it's vouch evidence
-        vouch = None
-        if not grievance:
-            vouch = await loop.run_in_executor(executor, lambda: db.vouches.find_one(
-                {"evidence_file_ids": attachment_id}))
-        # Allow access if: user is officer/admin, or it's a public grievance,
-        # or the citizen owns the grievance, or it's vouch evidence
-        if grievance:
-            is_public = grievance.get("is_public", False)
-            is_owner = user and str(grievance.get("citizen_user_id", "")) == str(user.get("_id", ""))
-            is_staff = user and user.get("role") in ("officer", "admin")
-            if not (is_public or is_owner or is_staff):
-                raise HTTPException(status_code=403, detail="Access denied to this attachment")
-        elif vouch:
-            pass  # Vouch evidence is viewable by anyone who can see the grievance
-        elif user and user.get("role") in ("officer", "admin"):
-            pass  # Staff can access any attachment (e.g. photo IDs)
+        
+        # 1. Fetch file first to check metadata
+        try:
+            fobj = await loop.run_in_executor(executor, lambda: gfs.get(oid))
+        except Exception:
+            raise HTTPException(status_code=404, detail="Attachment not found")
+
+        # 2. Check if it is a public scheme document
+        if fobj.metadata and fobj.metadata.get("type") == "scheme_document":
+            # Public access allowed
+            pass
         else:
-            raise HTTPException(status_code=403, detail="Access denied to this attachment")
-        fobj = await loop.run_in_executor(executor, lambda: gfs.get(oid))
+            # 3. If not public, enforce strict grievance/vouch permissions
+            grievance = await loop.run_in_executor(executor, lambda: db.grievances.find_one(
+                {"attachments": attachment_id}, {"citizen_user_id": 1, "is_public": 1}))
+            
+            # Also check if it's vouch evidence
+            vouch = None
+            if not grievance:
+                vouch = await loop.run_in_executor(executor, lambda: db.vouches.find_one(
+                    {"evidence_file_ids": attachment_id}))
+
+            # Allow access if: user is officer/admin, or it's a public grievance,
+            # or the citizen owns the grievance, or it's vouch evidence
+            if grievance:
+                is_public = grievance.get("is_public", False)
+                is_owner = user and str(grievance.get("citizen_user_id", "")) == str(user.get("_id", ""))
+                is_staff = user and user.get("role") in ("officer", "admin")
+                if not (is_public or is_owner or is_staff):
+                    raise HTTPException(status_code=403, detail="Access denied to this attachment")
+            elif vouch:
+                pass  # Vouch evidence is viewable by anyone who can see the grievance
+            elif user and user.get("role") in ("officer", "admin"):
+                pass  # Staff can access any attachment (e.g. photo IDs)
+            else:
+                raise HTTPException(status_code=403, detail="Access denied to this attachment")
+
         def iterfile():
             while True:
                 chunk = fobj.read(8192)
@@ -3200,7 +3214,8 @@ async def get_attachment(attachment_id: str,
                                  headers={"Content-Disposition": f'inline; filename="{fobj.filename}"'})
     except HTTPException:
         raise
-    except Exception:
+    except Exception as e:
+        logger.error("Error fetching attachment: %s", e)
         raise HTTPException(status_code=404, detail="Attachment not found")
 
 # ---------------------------------------------------------------------------
