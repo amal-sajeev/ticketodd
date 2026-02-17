@@ -15,18 +15,18 @@
 /* date-group-header and impact-badge styles are now in the main stylesheet */
 </style>
 <script>
+const DASH_PAGE_SIZE = 30;
+let dashOffset = 0;
+let dashAllGrievances = [];
+
+function impactColor(s) { return s<=30?'#66BB6A':s<=60?'#FFB74D':s<=80?'#FF7043':'#EF5350'; }
+
 if (!requireAuth()) {}
 else {
   const user = getUser();
   document.getElementById('greeting').textContent = `Welcome, ${user.full_name}`;
   loadDashboard();
 }
-
-function impactColor(s) { return s<=30?'#66BB6A':s<=60?'#FFB74D':s<=80?'#FF7043':'#EF5350'; }
-
-const DASH_PAGE_SIZE = 30;
-let dashOffset = 0;
-let dashAllGrievances = [];
 
 async function loadDashboard(append = false) {
   if (!append) showLoading('metrics');
