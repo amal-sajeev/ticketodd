@@ -7,7 +7,10 @@
   <!-- SLA DEADLINE ALERTS                                                    -->
   <!-- ═══════════════════════════════════════════════════════════════════════ -->
   <div class="flex-between mb-2">
-    <div><h1>⚠️ SLA Deadline Alerts</h1><p class="subtitle">Unresolved grievances nearing or past their deadlines</p></div>
+    <div>
+      <h1>⚠️ SLA Deadline Alerts</h1>
+      <p class="subtitle">Unresolved grievances nearing or past their deadlines</p>
+    </div>
     <button class="btn btn-secondary" onclick="loadAlerts()" id="refreshAlertsBtn">🔄 Refresh</button>
   </div>
 
@@ -47,7 +50,10 @@
   <!-- USER MANAGEMENT (existing)                                             -->
   <!-- ═══════════════════════════════════════════════════════════════════════ -->
   <div class="flex-between mb-2" style="margin-top:1rem;">
-    <div><h1>🔒 User Management</h1><p class="subtitle">Create, edit, and manage system accounts</p></div>
+    <div>
+      <h1>🔒 User Management</h1>
+      <p class="subtitle">Create, edit, and manage system accounts</p>
+    </div>
     <button class="btn btn-primary" onclick="showCreateForm()">+ Create User</button>
   </div>
 
@@ -56,15 +62,19 @@
     <h3 id="formTitle">Create New User</h3>
     <input type="hidden" id="editUserId">
     <div class="form-row">
-      <div class="form-group"><label>Full Name</label><input type="text" class="form-control" id="fFullName" required></div>
+      <div class="form-group"><label>Full Name</label><input type="text" class="form-control" id="fFullName" required>
+      </div>
       <div class="form-group"><label>Email</label><input type="email" class="form-control" id="fEmail" required></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>Username</label><input type="text" class="form-control" id="fUsername" required minlength="3"></div>
-      <div class="form-group"><label>Password</label><input type="password" class="form-control" id="fPassword" minlength="6" placeholder="Min 6 characters"></div>
+      <div class="form-group"><label>Username</label><input type="text" class="form-control" id="fUsername" required
+          minlength="3"></div>
+      <div class="form-group"><label>Password</label><input type="password" class="form-control" id="fPassword"
+          minlength="6" placeholder="Min 6 characters"></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>Phone</label><input type="text" class="form-control" id="fPhone" placeholder="Optional"></div>
+      <div class="form-group"><label>Phone</label><input type="text" class="form-control" id="fPhone"
+          placeholder="Optional"></div>
       <div class="form-group">
         <label>Role</label>
         <select class="form-control" id="fRole" onchange="toggleFormDept()">
@@ -96,19 +106,24 @@
   <!-- Spam Flagged Users Section -->
   <div class="glass-strong card mb-3" style="padding:1.25rem;" id="spamSection">
     <h3 style="margin:0 0 0.75rem;">🚫 Spam Flagged Users</h3>
-    <div id="spamList"><div class="text-sm text-muted">Loading...</div></div>
+    <div id="spamList">
+      <div class="text-sm text-muted">Loading...</div>
+    </div>
   </div>
 
   <!-- Officer Anomalies Section -->
   <div class="glass-strong card mb-3" style="padding:1.25rem;" id="anomalySection">
     <h3 style="margin:0 0 0.75rem;">🔍 Officer Accountability Flags</h3>
-    <div id="anomalyList"><div class="text-sm text-muted">Loading...</div></div>
+    <div id="anomalyList">
+      <div class="text-sm text-muted">Loading...</div>
+    </div>
   </div>
 
   <!-- Forecast Generation -->
   <div class="glass-strong card mb-3" style="padding:1.25rem;">
     <h3 style="margin:0 0 0.75rem;">📊 Predictive Forecast</h3>
-    <p class="text-sm text-muted">Generate a 2-week grievance spike forecast based on historical data and weather patterns.</p>
+    <p class="text-sm text-muted">Generate a 2-week grievance spike forecast based on historical data and weather
+      patterns.</p>
     <button class="btn btn-primary btn-sm" id="genForecastBtn" onclick="generateForecast()">Generate Forecast</button>
     <span id="forecastStatus" class="text-sm" style="margin-left:0.5rem;"></span>
   </div>
@@ -129,7 +144,11 @@
         </tr>
       </thead>
       <tbody id="userTableBody">
-        <tr><td colspan="7" style="padding:2rem;text-align:center;"><div class="spinner"><span></span><span></span><span></span></div></td></tr>
+        <tr>
+          <td colspan="7" style="padding:2rem;text-align:center;">
+            <div class="spinner"><span></span><span></span><span></span></div>
+          </td>
+        </tr>
       </tbody>
     </table>
   </div>
@@ -139,121 +158,246 @@
 <style>
   /* ── Existing admin styles ── */
   .filter-tab {
-    background: rgba(255,255,255,0.3); border: 1px solid rgba(255,255,255,0.4);
-    cursor: pointer; padding: 0.35rem 1rem; border-radius: 20px; font-size: 0.85rem;
+    background: rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    padding: 0.35rem 1rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
     transition: all 0.2s ease;
   }
-  .filter-tab:hover { background: rgba(255,255,255,0.5); }
-  .filter-tab.active { background: rgba(21,101,192,0.8); color: #fff; border-color: rgba(21,101,192,0.9); }
+
+  .filter-tab:hover {
+    background: rgba(255, 255, 255, 0.5);
+  }
+
+  .filter-tab.active {
+    background: rgba(21, 101, 192, 0.8);
+    color: #fff;
+    border-color: rgba(21, 101, 192, 0.9);
+  }
+
   .role-badge {
-    display: inline-block; padding: 0.2rem 0.6rem; border-radius: 12px;
-    font-size: 0.8rem; font-weight: 600; text-transform: capitalize;
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: capitalize;
   }
-  .role-citizen { background: rgba(102,187,106,0.2); color: #2E7D32; }
-  .role-officer { background: rgba(21,101,192,0.2); color: #1565C0; }
-  .role-admin { background: rgba(198,40,40,0.2); color: #C62828; }
+
+  .role-citizen {
+    background: rgba(102, 187, 106, 0.2);
+    color: #2E7D32;
+  }
+
+  .role-officer {
+    background: rgba(21, 101, 192, 0.2);
+    color: #1565C0;
+  }
+
+  .role-admin {
+    background: rgba(198, 40, 40, 0.2);
+    color: #C62828;
+  }
+
   .action-btn {
-    background: none; border: none; cursor: pointer; padding: 0.3rem 0.5rem;
-    border-radius: 6px; font-size: 0.85rem; transition: background 0.2s;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.3rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    transition: background 0.2s;
   }
-  .action-btn:hover { background: rgba(0,0,0,0.08); }
-  .action-btn.delete:hover { background: rgba(198,40,40,0.15); }
-  #userTable tbody tr { border-bottom: 1px solid rgba(0,0,0,0.05); transition: background 0.15s; }
-  #userTable tbody tr:hover { background: rgba(255,255,255,0.3); }
+
+  .action-btn:hover {
+    background: rgba(0, 0, 0, 0.08);
+  }
+
+  .action-btn.delete:hover {
+    background: rgba(198, 40, 40, 0.15);
+  }
+
+  #userTable tbody tr {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    transition: background 0.15s;
+  }
+
+  #userTable tbody tr:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
 
   /* ── SLA Alert styles ── */
   .alert-card {
-    padding: 1rem 1.25rem; border-radius: 16px; cursor: pointer;
-    background: rgba(255,255,255,0.28); backdrop-filter: blur(18px);
-    border: 1px solid rgba(255,255,255,0.35);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 4px 16px rgba(0,0,0,0.06);
+    padding: 1rem 1.25rem;
+    border-radius: 16px;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.28);
+    backdrop-filter: blur(18px);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 4px 16px rgba(0, 0, 0, 0.06);
     transition: transform 0.2s, box-shadow 0.2s;
     margin-bottom: 0.65rem;
-    display: flex; align-items: center; gap: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
   }
-  .alert-card:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,0.12); }
 
-  .alert-card.alert-breached  { border-left: 5px solid #E53935; }
-  .alert-card.alert-critical  { border-left: 5px solid #FB8C00; }
-  .alert-card.alert-warning   { border-left: 5px solid #FDD835; }
+  .alert-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
+  }
 
-  .alert-severity-icon { font-size: 1.6rem; flex-shrink: 0; }
-  .alert-body { flex: 1; min-width: 0; }
-  .alert-title { font-weight: 600; font-size: 0.95rem; color: #1a1a2e; margin-bottom: 0.25rem;
-                 white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .alert-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; font-size: 0.82rem; color: #546E7A; }
-  .alert-countdown { font-weight: 700; font-size: 0.85rem; flex-shrink: 0; text-align: right; min-width: 120px; }
-  .alert-countdown.overdue  { color: #C62828; }
-  .alert-countdown.critical { color: #E65100; }
-  .alert-countdown.warning  { color: #F9A825; }
+  .alert-card.alert-breached {
+    border-left: 5px solid #E53935;
+  }
+
+  .alert-card.alert-critical {
+    border-left: 5px solid #FB8C00;
+  }
+
+  .alert-card.alert-warning {
+    border-left: 5px solid #FDD835;
+  }
+
+  .alert-severity-icon {
+    font-size: 1.6rem;
+    flex-shrink: 0;
+  }
+
+  .alert-body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .alert-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #1a1a2e;
+    margin-bottom: 0.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .alert-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    font-size: 0.82rem;
+    color: #546E7A;
+  }
+
+  .alert-countdown {
+    font-weight: 700;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+    text-align: right;
+    min-width: 120px;
+  }
+
+  .alert-countdown.overdue {
+    color: #C62828;
+  }
+
+  .alert-countdown.critical {
+    color: #E65100;
+  }
+
+  .alert-countdown.warning {
+    color: #F9A825;
+  }
 
   .alert-section-label {
-    font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
-    margin: 1rem 0 0.5rem; padding-left: 0.25rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 1rem 0 0.5rem;
+    padding-left: 0.25rem;
   }
-  .alert-section-label.breached { color: #C62828; }
-  .alert-section-label.critical { color: #E65100; }
-  .alert-section-label.warning  { color: #F9A825; }
+
+  .alert-section-label.breached {
+    color: #C62828;
+  }
+
+  .alert-section-label.critical {
+    color: #E65100;
+  }
+
+  .alert-section-label.warning {
+    color: #F9A825;
+  }
 
   .all-clear {
-    text-align: center; padding: 2rem; color: #2E7D32; font-size: 1.1rem; font-weight: 600;
+    text-align: center;
+    padding: 2rem;
+    color: #2E7D32;
+    font-size: 1.1rem;
+    font-weight: 600;
   }
-  .all-clear .all-clear-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+
+  .all-clear .all-clear-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+  }
 </style>
 <script>
-/* ═══════════════════════════════════════════════════════════════════════════
-   SLA DEADLINE ALERTS
-   ═══════════════════════════════════════════════════════════════════════════ */
-async function loadAlerts() {
-  const container = document.getElementById('alertCards');
-  const summary = document.getElementById('alertSummary');
-  container.innerHTML = '<div class="glass-strong card" style="padding:2rem;text-align:center;"><div class="spinner"><span></span><span></span><span></span></div><p class="text-muted" style="margin-top:0.5rem;">Loading deadline alerts…</p></div>';
-  summary.style.display = 'none';
+  /* ═══════════════════════════════════════════════════════════════════════════
+     SLA DEADLINE ALERTS
+     ═══════════════════════════════════════════════════════════════════════════ */
+  async function loadAlerts() {
+    const container = document.getElementById('alertCards');
+    const summary = document.getElementById('alertSummary');
+    container.innerHTML = '<div class="glass-strong card" style="padding:2rem;text-align:center;"><div class="spinner"><span></span><span></span><span></span></div><p class="text-muted" style="margin-top:0.5rem;">Loading deadline alerts…</p></div>';
+    summary.style.display = 'none';
 
-  try {
-    const data = await api('GET', '/admin/deadline-alerts');
-    // Update summary counters
-    document.getElementById('totalAlertCount').textContent = data.total_alerts;
-    document.getElementById('breachedCount').textContent = data.breached.length;
-    document.getElementById('criticalCount').textContent = data.critical.length;
-    document.getElementById('warningCount').textContent = data.warning.length;
-    summary.style.display = 'grid';
+    try {
+      const data = await api('GET', '/admin/deadline-alerts');
+      // Update summary counters
+      document.getElementById('totalAlertCount').textContent = data.total_alerts;
+      document.getElementById('breachedCount').textContent = data.breached.length;
+      document.getElementById('criticalCount').textContent = data.critical.length;
+      document.getElementById('warningCount').textContent = data.warning.length;
+      summary.style.display = 'grid';
 
-    if (data.total_alerts === 0) {
-      container.innerHTML = '<div class="glass-strong card all-clear"><div class="all-clear-icon">✅</div>All clear — no grievances nearing their SLA deadline.</div>';
-      return;
-    }
+      if (data.total_alerts === 0) {
+        container.innerHTML = '<div class="glass-strong card all-clear"><div class="all-clear-icon">✅</div>All clear — no grievances nearing their SLA deadline.</div>';
+        return;
+      }
 
-    let html = '';
-    if (data.breached.length) {
-      html += '<div class="alert-section-label breached">🔴 SLA Breached (' + data.breached.length + ')</div>';
-      html += data.breached.map(g => alertCard(g, 'breached')).join('');
-    }
-    if (data.critical.length) {
-      html += '<div class="alert-section-label critical">🟠 Critical — Less than 24 hours (' + data.critical.length + ')</div>';
-      html += data.critical.map(g => alertCard(g, 'critical')).join('');
-    }
-    if (data.warning.length) {
-      html += '<div class="alert-section-label warning">🟡 Warning — Less than 48 hours (' + data.warning.length + ')</div>';
-      html += data.warning.map(g => alertCard(g, 'warning')).join('');
-    }
-    container.innerHTML = html;
+      let html = '';
+      if (data.breached.length) {
+        html += '<div class="alert-section-label breached">🔴 SLA Breached (' + data.breached.length + ')</div>';
+        html += data.breached.map(g => alertCard(g, 'breached')).join('');
+      }
+      if (data.critical.length) {
+        html += '<div class="alert-section-label critical">🟠 Critical — Less than 24 hours (' + data.critical.length + ')</div>';
+        html += data.critical.map(g => alertCard(g, 'critical')).join('');
+      }
+      if (data.warning.length) {
+        html += '<div class="alert-section-label warning">🟡 Warning — Less than 48 hours (' + data.warning.length + ')</div>';
+        html += data.warning.map(g => alertCard(g, 'warning')).join('');
+      }
+      container.innerHTML = html;
 
-    // Bind click handlers
-    container.querySelectorAll('.alert-card').forEach(card => {
-      card.addEventListener('click', () => {
-        window.location.href = '/grievance-detail?id=' + card.dataset.id;
+      // Bind click handlers
+      container.querySelectorAll('.alert-card').forEach(card => {
+        card.addEventListener('click', () => {
+          window.location.href = '/grievance-detail?id=' + card.dataset.id;
+        });
       });
-    });
-  } catch (e) {
-    container.innerHTML = '<div class="glass-strong card" style="padding:1.5rem;text-align:center;color:#C62828;">❌ Failed to load alerts: ' + escapeHtml(e.message) + '</div>';
+    } catch (e) {
+      container.innerHTML = '<div class="glass-strong card" style="padding:1.5rem;text-align:center;color:#C62828;">❌ Failed to load alerts: ' + escapeHtml(e.message) + '</div>';
+    }
   }
-}
 
-function alertCard(g, severity) {
-  const icons = { breached: '🚨', critical: '⏰', warning: '⚡' };
-  const countdownText = getCountdownText(g.sla_deadline, severity);
-  return `
+  function alertCard(g, severity) {
+    const icons = { breached: '🚨', critical: '⏰', warning: '⚡' };
+    const countdownText = getCountdownText(g.sla_deadline, severity);
+    return `
     <div class="alert-card alert-${severity}" data-id="${escapeHtml(g.id)}">
       <div class="alert-severity-icon">${icons[severity]}</div>
       <div class="alert-body">
@@ -267,46 +411,51 @@ function alertCard(g, severity) {
       </div>
       <div class="alert-countdown ${severity}">${countdownText}</div>
     </div>`;
-}
-
-function getCountdownText(isoDeadline, severity) {
-  if (!isoDeadline) return '';
-  const now = new Date();
-  const deadline = new Date(isoDeadline);
-  const diffMs = deadline - now;
-
-  if (diffMs <= 0) {
-    // Overdue
-    const overMs = Math.abs(diffMs);
-    const overH = Math.floor(overMs / 3600000);
-    const overD = Math.floor(overH / 24);
-    if (overD > 0) return `⛔ ${overD}d ${overH % 24}h overdue`;
-    return `⛔ ${overH}h overdue`;
   }
-  const h = Math.floor(diffMs / 3600000);
-  const m = Math.floor((diffMs % 3600000) / 60000);
-  if (h > 0) return `⏳ ${h}h ${m}m left`;
-  return `⏳ ${m}m left`;
-}
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   USER MANAGEMENT (existing code preserved)
-   ═══════════════════════════════════════════════════════════════════════════ */
-let allUsers = [];
-let currentFilter = '';
+  function getCountdownText(isoDeadline, severity) {
+    if (!isoDeadline) return '';
+    const now = new Date();
+    const deadline = new Date(isoDeadline);
+    const diffMs = deadline - now;
 
-if (requireAuth()) {
-  const u = getUser();
-  if (u.role !== 'admin') { window.location.href = '/officer-dashboard'; }
-  else { loadUsers(); loadSpamFlagged(); loadOfficerAnomalies(); }
-}
+    if (diffMs <= 0) {
+      // Overdue
+      const overMs = Math.abs(diffMs);
+      const overH = Math.floor(overMs / 3600000);
+      const overD = Math.floor(overH / 24);
+      if (overD > 0) return `⛔ ${overD}d ${overH % 24}h overdue`;
+      return `⛔ ${overH}h overdue`;
+    }
+    const h = Math.floor(diffMs / 3600000);
+    const m = Math.floor((diffMs % 3600000) / 60000);
+    if (h > 0) return `⏳ ${h}h ${m}m left`;
+    return `⏳ ${m}m left`;
+  }
 
-async function loadSpamFlagged() {
-  try {
-    const records = await api('GET', '/admin/spam-flagged');
-    const el = document.getElementById('spamList');
-    if (!records.length) { el.innerHTML = '<div class="text-sm text-muted">No spam-flagged users.</div>'; return; }
-    el.innerHTML = records.map(r => `
+  /* ═══════════════════════════════════════════════════════════════════════════
+     USER MANAGEMENT (existing code preserved)
+     ═══════════════════════════════════════════════════════════════════════════ */
+  let allUsers = [];
+  let currentFilter = '';
+
+  if (requireAuth()) {
+    const u = getUser();
+    if (u.role !== 'admin') { window.location.href = '/officer-dashboard'; }
+    else {
+      loadAlerts();
+      loadUsers();
+      loadSpamFlagged();
+      loadOfficerAnomalies();
+    }
+  }
+
+  async function loadSpamFlagged() {
+    try {
+      const records = await api('GET', '/admin/spam-flagged');
+      const el = document.getElementById('spamList');
+      if (!records.length) { el.innerHTML = '<div class="text-sm text-muted">No spam-flagged users.</div>'; return; }
+      el.innerHTML = records.map(r => `
       <div class="glass" style="padding:0.75rem;margin-bottom:0.5rem;border-left:4px solid #EF5350;border-radius:8px;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <strong>${escapeHtml(r.full_name)} (@${escapeHtml(r.username)})</strong>
@@ -322,21 +471,21 @@ async function loadSpamFlagged() {
           <button class="btn btn-secondary btn-sm spam-reject-btn" data-uid="${escapeHtml(r.user_id)}">✗ Reject ID</button>
         </div>
       </div>`).join('');
-    document.querySelectorAll('.spam-approve-btn').forEach(b => b.addEventListener('click', () => reviewSpam(b.dataset.uid, true)));
-    document.querySelectorAll('.spam-reject-btn').forEach(b => b.addEventListener('click', () => reviewSpam(b.dataset.uid, false)));
-  } catch { document.getElementById('spamList').innerHTML = '<div class="text-sm text-muted">Failed to load.</div>'; }
-}
+      document.querySelectorAll('.spam-approve-btn').forEach(b => b.addEventListener('click', () => reviewSpam(b.dataset.uid, true)));
+      document.querySelectorAll('.spam-reject-btn').forEach(b => b.addEventListener('click', () => reviewSpam(b.dataset.uid, false)));
+    } catch { document.getElementById('spamList').innerHTML = '<div class="text-sm text-muted">Failed to load.</div>'; }
+  }
 
-async function reviewSpam(uid, approved) {
-  try { await api('PUT', `/admin/spam-flagged/${uid}/review?approved=${approved}`); showToast(approved ? 'User unblocked' : 'Photo ID rejected'); loadSpamFlagged(); } catch (e) { showToast(e.message, 'error'); }
-}
+  async function reviewSpam(uid, approved) {
+    try { await api('PUT', `/admin/spam-flagged/${uid}/review?approved=${approved}`); showToast(approved ? 'User unblocked' : 'Photo ID rejected'); loadSpamFlagged(); } catch (e) { showToast(e.message, 'error'); }
+  }
 
-async function loadOfficerAnomalies() {
-  try {
-    const records = await api('GET', '/admin/officer-anomalies');
-    const el = document.getElementById('anomalyList');
-    if (!records.length) { el.innerHTML = '<div class="text-sm text-muted">No anomalies detected.</div>'; return; }
-    el.innerHTML = records.map(r => `
+  async function loadOfficerAnomalies() {
+    try {
+      const records = await api('GET', '/admin/officer-anomalies');
+      const el = document.getElementById('anomalyList');
+      if (!records.length) { el.innerHTML = '<div class="text-sm text-muted">No anomalies detected.</div>'; return; }
+      el.innerHTML = records.map(r => `
       <div class="glass" style="padding:0.75rem;margin-bottom:0.5rem;border-left:4px solid #FF9800;border-radius:8px;">
         <strong>${escapeHtml(r.full_name)} (@${escapeHtml(r.username)})</strong>
         <div style="margin-top:0.3rem;">
@@ -347,38 +496,38 @@ async function loadOfficerAnomalies() {
             </div>`).join('')}
         </div>
       </div>`).join('');
-    document.querySelectorAll('.dismiss-flag-btn').forEach(b => b.addEventListener('click', () => dismissFlag(b.dataset.oid, b.dataset.fid)));
-  } catch { document.getElementById('anomalyList').innerHTML = '<div class="text-sm text-muted">Failed to load.</div>'; }
-}
-
-async function dismissFlag(oid, fid) {
-  try { await api('PUT', `/admin/officer-anomalies/${oid}/dismiss/${fid}`); showToast('Flag dismissed'); loadOfficerAnomalies(); } catch (e) { showToast(e.message, 'error'); }
-}
-
-async function generateForecast() {
-  const btn = document.getElementById('genForecastBtn');
-  const status = document.getElementById('forecastStatus');
-  btn.disabled = true; status.textContent = 'Generating...';
-  try { await api('POST', '/forecasts/generate'); status.textContent = '✅ Forecast generated!'; showToast('Forecast generated successfully'); } catch (e) { status.textContent = '❌ Failed'; showToast(e.message, 'error'); }
-  btn.disabled = false;
-}
-
-async function loadUsers() {
-  try {
-    const url = currentFilter ? `/admin/users?role=${currentFilter}` : '/admin/users';
-    allUsers = await api('GET', url);
-    renderTable();
-  } catch (e) { showToast(e.message, 'error'); }
-}
-
-function renderTable() {
-  const tbody = document.getElementById('userTableBody');
-  document.getElementById('userCount').textContent = `${allUsers.length} user${allUsers.length !== 1 ? 's' : ''}`;
-  if (!allUsers.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="padding:2rem;text-align:center;opacity:0.6;">No users found</td></tr>';
-    return;
+      document.querySelectorAll('.dismiss-flag-btn').forEach(b => b.addEventListener('click', () => dismissFlag(b.dataset.oid, b.dataset.fid)));
+    } catch { document.getElementById('anomalyList').innerHTML = '<div class="text-sm text-muted">Failed to load.</div>'; }
   }
-  tbody.innerHTML = allUsers.map(u => `
+
+  async function dismissFlag(oid, fid) {
+    try { await api('PUT', `/admin/officer-anomalies/${oid}/dismiss/${fid}`); showToast('Flag dismissed'); loadOfficerAnomalies(); } catch (e) { showToast(e.message, 'error'); }
+  }
+
+  async function generateForecast() {
+    const btn = document.getElementById('genForecastBtn');
+    const status = document.getElementById('forecastStatus');
+    btn.disabled = true; status.textContent = 'Generating...';
+    try { await api('POST', '/forecasts/generate'); status.textContent = '✅ Forecast generated!'; showToast('Forecast generated successfully'); } catch (e) { status.textContent = '❌ Failed'; showToast(e.message, 'error'); }
+    btn.disabled = false;
+  }
+
+  async function loadUsers() {
+    try {
+      const url = currentFilter ? `/admin/users?role=${currentFilter}` : '/admin/users';
+      allUsers = await api('GET', url);
+      renderTable();
+    } catch (e) { showToast(e.message, 'error'); }
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('userTableBody');
+    document.getElementById('userCount').textContent = `${allUsers.length} user${allUsers.length !== 1 ? 's' : ''}`;
+    if (!allUsers.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="padding:2rem;text-align:center;opacity:0.6;">No users found</td></tr>';
+      return;
+    }
+    tbody.innerHTML = allUsers.map(u => `
     <tr>
       <td style="padding:0.65rem;font-weight:500;">${escapeHtml(u.full_name)}</td>
       <td style="padding:0.65rem;font-family:monospace;font-size:0.9rem;">${escapeHtml(u.username)}</td>
@@ -391,122 +540,121 @@ function renderTable() {
         <button class="action-btn delete user-del-btn" data-id="${escapeHtml(u.id)}" data-username="${escapeHtml(u.username)}" title="Delete">🗑️ Delete</button>
       </td>
     </tr>`).join('');
-  // Bind event handlers safely (no inline onclick)
-  document.querySelectorAll('.user-edit-btn').forEach(btn => {
-    btn.addEventListener('click', () => editUser(btn.dataset.id));
-  });
-  document.querySelectorAll('.user-del-btn').forEach(btn => {
-    btn.addEventListener('click', () => deleteUser(btn.dataset.id, btn.dataset.username));
-  });
-}
-
-function filterRole(btn, role) {
-  document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  currentFilter = role;
-  loadUsers();
-}
-
-// --- Form ---
-document.getElementById('fDepartment').innerHTML = deptOptions();
-
-function toggleFormDept() {
-  const role = document.getElementById('fRole').value;
-  document.getElementById('fDeptGroup').style.display = (role === 'officer') ? 'block' : 'none';
-}
-
-function showCreateForm() {
-  document.getElementById('formTitle').textContent = 'Create New User';
-  document.getElementById('editUserId').value = '';
-  document.getElementById('fFullName').value = '';
-  document.getElementById('fEmail').value = '';
-  document.getElementById('fUsername').value = '';
-  document.getElementById('fUsername').disabled = false;
-  document.getElementById('fPassword').value = '';
-  document.getElementById('fPassword').placeholder = 'Min 6 characters';
-  document.getElementById('fPassword').required = true;
-  document.getElementById('fPhone').value = '';
-  document.getElementById('fRole').value = 'officer';
-  toggleFormDept();
-  document.getElementById('userForm').style.display = 'block';
-  document.getElementById('fFullName').focus();
-}
-
-function editUser(id) {
-  const u = allUsers.find(x => x.id === id);
-  if (!u) return;
-  document.getElementById('formTitle').textContent = `Edit: ${u.full_name}`;
-  document.getElementById('editUserId').value = u.id;
-  document.getElementById('fFullName').value = u.full_name;
-  document.getElementById('fEmail').value = u.email;
-  document.getElementById('fUsername').value = u.username;
-  document.getElementById('fUsername').disabled = true;
-  document.getElementById('fPassword').value = '';
-  document.getElementById('fPassword').placeholder = 'Leave blank to keep current';
-  document.getElementById('fPassword').required = false;
-  document.getElementById('fPhone').value = u.phone || '';
-  document.getElementById('fRole').value = u.role;
-  document.getElementById('fDepartment').innerHTML = deptOptions(u.department);
-  toggleFormDept();
-  document.getElementById('userForm').style.display = 'block';
-  document.getElementById('fFullName').focus();
-}
-
-function hideForm() {
-  document.getElementById('userForm').style.display = 'none';
-}
-
-async function submitUser() {
-  const editId = document.getElementById('editUserId').value;
-  const role = document.getElementById('fRole').value;
-  const password = document.getElementById('fPassword').value;
-
-  if (!editId && (!password || password.length < 6)) {
-    showToast('Password is required (min 6 characters)', 'error'); return;
+    // Bind event handlers safely (no inline onclick)
+    document.querySelectorAll('.user-edit-btn').forEach(btn => {
+      btn.addEventListener('click', () => editUser(btn.dataset.id));
+    });
+    document.querySelectorAll('.user-del-btn').forEach(btn => {
+      btn.addEventListener('click', () => deleteUser(btn.dataset.id, btn.dataset.username));
+    });
   }
 
-  try {
-    if (editId) {
-      // Update
-      const body = {
-        full_name: document.getElementById('fFullName').value,
-        email: document.getElementById('fEmail').value,
-        phone: document.getElementById('fPhone').value || null,
-        role: role,
-      };
-      if (role === 'officer') body.department = document.getElementById('fDepartment').value;
-      if (password) body.password = password;
-      await api('PUT', `/admin/users/${editId}`, body);
-      showToast('User updated');
-    } else {
-      // Create
-      const body = {
-        full_name: document.getElementById('fFullName').value,
-        email: document.getElementById('fEmail').value,
-        phone: document.getElementById('fPhone').value || null,
-        username: document.getElementById('fUsername').value,
-        password: password,
-        role: role,
-      };
-      if (role === 'officer') body.department = document.getElementById('fDepartment').value;
-      await api('POST', '/admin/users', body);
-      showToast('User created');
+  function filterRole(btn, role) {
+    document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = role;
+    loadUsers();
+  }
+
+  // --- Form ---
+  document.getElementById('fDepartment').innerHTML = deptOptions();
+
+  function toggleFormDept() {
+    const role = document.getElementById('fRole').value;
+    document.getElementById('fDeptGroup').style.display = (role === 'officer') ? 'block' : 'none';
+  }
+
+  function showCreateForm() {
+    document.getElementById('formTitle').textContent = 'Create New User';
+    document.getElementById('editUserId').value = '';
+    document.getElementById('fFullName').value = '';
+    document.getElementById('fEmail').value = '';
+    document.getElementById('fUsername').value = '';
+    document.getElementById('fUsername').disabled = false;
+    document.getElementById('fPassword').value = '';
+    document.getElementById('fPassword').placeholder = 'Min 6 characters';
+    document.getElementById('fPassword').required = true;
+    document.getElementById('fPhone').value = '';
+    document.getElementById('fRole').value = 'officer';
+    toggleFormDept();
+    document.getElementById('userForm').style.display = 'block';
+    document.getElementById('fFullName').focus();
+  }
+
+  function editUser(id) {
+    const u = allUsers.find(x => x.id === id);
+    if (!u) return;
+    document.getElementById('formTitle').textContent = `Edit: ${u.full_name}`;
+    document.getElementById('editUserId').value = u.id;
+    document.getElementById('fFullName').value = u.full_name;
+    document.getElementById('fEmail').value = u.email;
+    document.getElementById('fUsername').value = u.username;
+    document.getElementById('fUsername').disabled = true;
+    document.getElementById('fPassword').value = '';
+    document.getElementById('fPassword').placeholder = 'Leave blank to keep current';
+    document.getElementById('fPassword').required = false;
+    document.getElementById('fPhone').value = u.phone || '';
+    document.getElementById('fRole').value = u.role;
+    document.getElementById('fDepartment').innerHTML = deptOptions(u.department);
+    toggleFormDept();
+    document.getElementById('userForm').style.display = 'block';
+    document.getElementById('fFullName').focus();
+  }
+
+  function hideForm() {
+    document.getElementById('userForm').style.display = 'none';
+  }
+
+  async function submitUser() {
+    const editId = document.getElementById('editUserId').value;
+    const role = document.getElementById('fRole').value;
+    const password = document.getElementById('fPassword').value;
+
+    if (!editId && (!password || password.length < 6)) {
+      showToast('Password is required (min 6 characters)', 'error'); return;
     }
-    hideForm();
-    loadUsers();
-  } catch (e) {
-    showToast(e.message, 'error');
-  }
-}
 
-async function deleteUser(id, username) {
-  if (!confirm(`Delete user "${username}"? This cannot be undone.`)) return;
-  try {
-    await api('DELETE', `/admin/users/${id}`);
-    showToast('User deleted');
-    loadUsers();
-  } catch (e) { showToast(e.message, 'error'); }
-}
+    try {
+      if (editId) {
+        // Update
+        const body = {
+          full_name: document.getElementById('fFullName').value,
+          email: document.getElementById('fEmail').value,
+          phone: document.getElementById('fPhone').value || null,
+          role: role,
+        };
+        if (role === 'officer') body.department = document.getElementById('fDepartment').value;
+        if (password) body.password = password;
+        await api('PUT', `/admin/users/${editId}`, body);
+        showToast('User updated');
+      } else {
+        // Create
+        const body = {
+          full_name: document.getElementById('fFullName').value,
+          email: document.getElementById('fEmail').value,
+          phone: document.getElementById('fPhone').value || null,
+          username: document.getElementById('fUsername').value,
+          password: password,
+          role: role,
+        };
+        if (role === 'officer') body.department = document.getElementById('fDepartment').value;
+        await api('POST', '/admin/users', body);
+        showToast('User created');
+      }
+      hideForm();
+      loadUsers();
+    } catch (e) {
+      showToast(e.message, 'error');
+    }
+  }
+
+  async function deleteUser(id, username) {
+    if (!confirm(`Delete user "${username}"? This cannot be undone.`)) return;
+    try {
+      await api('DELETE', `/admin/users/${id}`);
+      showToast('User deleted');
+      loadUsers();
+    } catch (e) { showToast(e.message, 'error'); }
+  }
 </script>
 {% endblock %}
-
