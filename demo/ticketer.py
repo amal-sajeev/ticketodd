@@ -1763,6 +1763,30 @@ async def login(request: Request, form: UserLogin, db=Depends(get_db)):
 async def get_me(user=Depends(get_current_user)):
     return user_to_response(user)
 
+@app.put("/auth/me", response_model=UserResponse)
+async def update_me(update: UserUpdate, user=Depends(get_current_user), db=Depends(get_db)):
+    loop = asyncio.get_event_loop()
+    # If setting a new face, check uniqueness first
+    if update.face_descriptor:
+        existing_face_user = await find_user_by_face(update.face_descriptor, db)
+        if existing_face_user and str(existing_face_user["_id"]) != str(user["_id"]):
+             raise HTTPException(status_code=400, detail="This face is already registered with another account.")
+
+    update_fields = {}
+    if update.full_name is not None: update_fields["full_name"] = update.full_name
+    if update.email is not None: update_fields["email"] = update.email
+    if update.phone is not None: update_fields["phone"] = update.phone
+    if update.face_descriptor is not None: update_fields["face_descriptor"] = update.face_descriptor
+
+    if not update_fields:
+        return user_to_response(user)
+
+    await loop.run_in_executor(executor, lambda: db.users.update_one(
+        {"_id": str(user["_id"])}, {"$set": update_fields}
+    ))
+    updated_user = await loop.run_in_executor(executor, db.users.find_one, {"_id": str(user["_id"])})
+    return user_to_response(updated_user)
+
 @app.middleware("http")
 async def add_permissions_policy(request, call_next):
     response = await call_next(request)
@@ -3669,6 +3693,7 @@ PAGES = [
     ("community", "community.html"),
     ("systemic-issue-detail", "systemic_issue_detail.html"),
     ("spam-flag-detail", "spam_flag_detail.html"),
+    ("profile", "profile.html"),
 ]
 
 for _path, _template in PAGES:
