@@ -2,7 +2,51 @@
 {% block title %}Admin Panel — PR&DW Portal{% endblock %}
 {% block content %}
 <div class="main-content wide">
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- SLA DEADLINE ALERTS                                                    -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
   <div class="flex-between mb-2">
+    <div><h1>⚠️ SLA Deadline Alerts</h1><p class="subtitle">Unresolved grievances nearing or past their deadlines</p></div>
+    <button class="btn btn-secondary" onclick="loadAlerts()" id="refreshAlertsBtn">🔄 Refresh</button>
+  </div>
+
+  <!-- Alert summary counters -->
+  <div class="card-grid-4 mb-2" id="alertSummary" style="display:none;">
+    <div class="glass card metric-card card-animate" id="summaryTotal">
+      <div class="metric-icon">🔔</div>
+      <div class="metric-value" id="totalAlertCount">0</div>
+      <div class="metric-label">Total Alerts</div>
+    </div>
+    <div class="glass card metric-card card-animate" id="summaryBreached">
+      <div class="metric-icon">🔴</div>
+      <div class="metric-value" id="breachedCount">0</div>
+      <div class="metric-label">SLA Breached</div>
+    </div>
+    <div class="glass card metric-card card-animate" id="summaryCritical">
+      <div class="metric-icon">🟠</div>
+      <div class="metric-value" id="criticalCount">0</div>
+      <div class="metric-label">Critical (&lt;24h)</div>
+    </div>
+    <div class="glass card metric-card card-animate" id="summaryWarning">
+      <div class="metric-icon">🟡</div>
+      <div class="metric-value" id="warningCount">0</div>
+      <div class="metric-label">Warning (&lt;48h)</div>
+    </div>
+  </div>
+
+  <!-- Alert cards container -->
+  <div id="alertCards" class="mb-3">
+    <div class="glass-strong card" style="padding:2rem;text-align:center;">
+      <div class="spinner"><span></span><span></span><span></span></div>
+      <p class="text-muted" style="margin-top:0.5rem;">Loading deadline alerts…</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- USER MANAGEMENT (existing)                                             -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="flex-between mb-2" style="margin-top:1rem;">
     <div><h1>🔒 User Management</h1><p class="subtitle">Create, edit, and manage system accounts</p></div>
     <button class="btn btn-primary" onclick="showCreateForm()">+ Create User</button>
   </div>
@@ -93,6 +137,7 @@
 {% endblock %}
 {% block scripts %}
 <style>
+  /* ── Existing admin styles ── */
   .filter-tab {
     background: rgba(255,255,255,0.3); border: 1px solid rgba(255,255,255,0.4);
     cursor: pointer; padding: 0.35rem 1rem; border-radius: 20px; font-size: 0.85rem;
@@ -115,14 +160,145 @@
   .action-btn.delete:hover { background: rgba(198,40,40,0.15); }
   #userTable tbody tr { border-bottom: 1px solid rgba(0,0,0,0.05); transition: background 0.15s; }
   #userTable tbody tr:hover { background: rgba(255,255,255,0.3); }
+
+  /* ── SLA Alert styles ── */
+  .alert-card {
+    padding: 1rem 1.25rem; border-radius: 16px; cursor: pointer;
+    background: rgba(255,255,255,0.28); backdrop-filter: blur(18px);
+    border: 1px solid rgba(255,255,255,0.35);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 4px 16px rgba(0,0,0,0.06);
+    transition: transform 0.2s, box-shadow 0.2s;
+    margin-bottom: 0.65rem;
+    display: flex; align-items: center; gap: 1rem;
+  }
+  .alert-card:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,0.12); }
+
+  .alert-card.alert-breached  { border-left: 5px solid #E53935; }
+  .alert-card.alert-critical  { border-left: 5px solid #FB8C00; }
+  .alert-card.alert-warning   { border-left: 5px solid #FDD835; }
+
+  .alert-severity-icon { font-size: 1.6rem; flex-shrink: 0; }
+  .alert-body { flex: 1; min-width: 0; }
+  .alert-title { font-weight: 600; font-size: 0.95rem; color: #1a1a2e; margin-bottom: 0.25rem;
+                 white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .alert-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; font-size: 0.82rem; color: #546E7A; }
+  .alert-countdown { font-weight: 700; font-size: 0.85rem; flex-shrink: 0; text-align: right; min-width: 120px; }
+  .alert-countdown.overdue  { color: #C62828; }
+  .alert-countdown.critical { color: #E65100; }
+  .alert-countdown.warning  { color: #F9A825; }
+
+  .alert-section-label {
+    font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+    margin: 1rem 0 0.5rem; padding-left: 0.25rem;
+  }
+  .alert-section-label.breached { color: #C62828; }
+  .alert-section-label.critical { color: #E65100; }
+  .alert-section-label.warning  { color: #F9A825; }
+
+  .all-clear {
+    text-align: center; padding: 2rem; color: #2E7D32; font-size: 1.1rem; font-weight: 600;
+  }
+  .all-clear .all-clear-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
 </style>
 <script>
+/* ═══════════════════════════════════════════════════════════════════════════
+   SLA DEADLINE ALERTS
+   ═══════════════════════════════════════════════════════════════════════════ */
+async function loadAlerts() {
+  const container = document.getElementById('alertCards');
+  const summary = document.getElementById('alertSummary');
+  container.innerHTML = '<div class="glass-strong card" style="padding:2rem;text-align:center;"><div class="spinner"><span></span><span></span><span></span></div><p class="text-muted" style="margin-top:0.5rem;">Loading deadline alerts…</p></div>';
+  summary.style.display = 'none';
+
+  try {
+    const data = await api('GET', '/admin/deadline-alerts');
+    // Update summary counters
+    document.getElementById('totalAlertCount').textContent = data.total_alerts;
+    document.getElementById('breachedCount').textContent = data.breached.length;
+    document.getElementById('criticalCount').textContent = data.critical.length;
+    document.getElementById('warningCount').textContent = data.warning.length;
+    summary.style.display = 'grid';
+
+    if (data.total_alerts === 0) {
+      container.innerHTML = '<div class="glass-strong card all-clear"><div class="all-clear-icon">✅</div>All clear — no grievances nearing their SLA deadline.</div>';
+      return;
+    }
+
+    let html = '';
+    if (data.breached.length) {
+      html += '<div class="alert-section-label breached">🔴 SLA Breached (' + data.breached.length + ')</div>';
+      html += data.breached.map(g => alertCard(g, 'breached')).join('');
+    }
+    if (data.critical.length) {
+      html += '<div class="alert-section-label critical">🟠 Critical — Less than 24 hours (' + data.critical.length + ')</div>';
+      html += data.critical.map(g => alertCard(g, 'critical')).join('');
+    }
+    if (data.warning.length) {
+      html += '<div class="alert-section-label warning">🟡 Warning — Less than 48 hours (' + data.warning.length + ')</div>';
+      html += data.warning.map(g => alertCard(g, 'warning')).join('');
+    }
+    container.innerHTML = html;
+
+    // Bind click handlers
+    container.querySelectorAll('.alert-card').forEach(card => {
+      card.addEventListener('click', () => {
+        window.location.href = '/grievance-detail?id=' + card.dataset.id;
+      });
+    });
+  } catch (e) {
+    container.innerHTML = '<div class="glass-strong card" style="padding:1.5rem;text-align:center;color:#C62828;">❌ Failed to load alerts: ' + escapeHtml(e.message) + '</div>';
+  }
+}
+
+function alertCard(g, severity) {
+  const icons = { breached: '🚨', critical: '⏰', warning: '⚡' };
+  const countdownText = getCountdownText(g.sla_deadline, severity);
+  return `
+    <div class="alert-card alert-${severity}" data-id="${escapeHtml(g.id)}">
+      <div class="alert-severity-icon">${icons[severity]}</div>
+      <div class="alert-body">
+        <div class="alert-title">${escapeHtml(g.title)}</div>
+        <div class="alert-meta">
+          <span style="font-family:monospace;">${escapeHtml(g.tracking_number)}</span>
+          ${deptBadge(g.department)}
+          ${priorityBadge(g.priority)}
+          ${statusBadge(g.status)}
+        </div>
+      </div>
+      <div class="alert-countdown ${severity}">${countdownText}</div>
+    </div>`;
+}
+
+function getCountdownText(isoDeadline, severity) {
+  if (!isoDeadline) return '';
+  const now = new Date();
+  const deadline = new Date(isoDeadline);
+  const diffMs = deadline - now;
+
+  if (diffMs <= 0) {
+    // Overdue
+    const overMs = Math.abs(diffMs);
+    const overH = Math.floor(overMs / 3600000);
+    const overD = Math.floor(overH / 24);
+    if (overD > 0) return `⛔ ${overD}d ${overH % 24}h overdue`;
+    return `⛔ ${overH}h overdue`;
+  }
+  const h = Math.floor(diffMs / 3600000);
+  const m = Math.floor((diffMs % 3600000) / 60000);
+  if (h > 0) return `⏳ ${h}h ${m}m left`;
+  return `⏳ ${m}m left`;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   USER MANAGEMENT (existing code preserved)
+   ═══════════════════════════════════════════════════════════════════════════ */
 let allUsers = [];
 let currentFilter = '';
 
 if (requireAuth()) {
   const u = getUser();
   if (u.role !== 'admin') { window.location.href = '/officer-dashboard'; }
+<<<<<<< HEAD
   else { loadUsers(); loadSpamFlagged(); loadOfficerAnomalies(); }
 }
 
@@ -186,6 +362,9 @@ async function generateForecast() {
   btn.disabled = true; status.textContent = 'Generating...';
   try { await api('POST', '/forecasts/generate'); status.textContent = '✅ Forecast generated!'; showToast('Forecast generated successfully'); } catch (e) { status.textContent = '❌ Failed'; showToast(e.message, 'error'); }
   btn.disabled = false;
+=======
+  else { loadAlerts(); loadUsers(); }
+>>>>>>> ee28503 (sla deadline alerts - admin panel)
 }
 
 async function loadUsers() {
@@ -334,3 +513,4 @@ async function deleteUser(id, username) {
 }
 </script>
 {% endblock %}
+

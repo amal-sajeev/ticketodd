@@ -20,6 +20,8 @@ from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 
 FACE_MATCH_THRESHOLD = 0.5  # Strict threshold for high security
+import base64
+import io
 
 import httpx
 import openai as openai_mod
@@ -110,6 +112,16 @@ ALLOWED_MIME_TYPES = {
 }
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
 MAX_FILES_PER_GRIEVANCE = 5
+
+# Scheme document upload limits
+SCHEME_ALLOWED_MIMES = {
+    "application/pdf",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "image/jpeg", "image/png",
+}
+SCHEME_MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+SCHEME_MAX_FILES = 3
+OPENAI_VISION_MODEL = os.getenv("OPENAI_VISION_MODEL", "gpt-4o")
 
 # Department survival necessity scores for impact scoring
 DEPT_SURVIVAL_SCORES = {
@@ -350,6 +362,7 @@ class SchemeResponse(BaseModel):
     id: str; name: str; description: str; eligibility: str
     department: str; how_to_apply: str; created_at: str
     eligibility_questions: List[Dict[str, str]] = Field(default_factory=list)
+    documents: List[Dict[str, Any]] = Field(default_factory=list)
 
 class GenerateQuestionsRequest(BaseModel):
     eligibility: str
@@ -460,7 +473,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         response = await call_next(request)
         response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-Frame-Options"] = "SAMEORIGIN"
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "geolocation=(self), camera=(), microphone=()"
@@ -472,7 +485,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "media-src 'self' blob:; "
             "font-src 'self' https://fonts.gstatic.com; "
             "connect-src 'self' https://cdn.jsdelivr.net; "
-            "frame-ancestors 'none'"
+            "frame-src 'self'; "
+            "frame-ancestors 'self'"
         )
         return response
 
@@ -572,13 +586,22 @@ async def get_qdrant():
 # ---------------------------------------------------------------------------
 # Auth Helpers
 # ---------------------------------------------------------------------------
+import bcrypt
+
+# ... (rest of imports)
+
+# Remove pwd_context = CryptContext(...) line or just ignore it
+# We will replace the functions that use it
+
 def hash_password(password: str) -> str:
     if len(password.encode("utf-8")) > 72:
         raise ValueError("Password cannot exceed 72 bytes")
-    return pwd_context.hash(password)
+    # return pwd_context.hash(password)
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    # return pwd_context.verify(plain, hashed)
+    return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
 
 def create_access_token(data: dict) -> str:
     to_encode = data.copy()
@@ -1850,6 +1873,66 @@ async def admin_delete_user(user_id: str,
     return {"detail": f"User '{target['username']}' deleted"}
 
 # ---------------------------------------------------------------------------
+# ADMIN DEADLINE ALERTS ENDPOINT
+# ---------------------------------------------------------------------------
+@app.get("/admin/deadline-alerts")
+async def admin_deadline_alerts(
+    user=Depends(require_role(UserRole.ADMIN.value)),
+    db=Depends(get_db),
+):
+    """Return unresolved grievances nearing or past their SLA deadline."""
+    now = datetime.now(timezone.utc)
+    threshold_24h = now + timedelta(hours=24)
+    threshold_48h = now + timedelta(hours=48)
+
+    def fetch():
+        # All unresolved grievances that have an SLA deadline within 48h or already breached
+        cursor = db.grievances.find(
+            {
+                "status": {"$in": ["pending", "in_progress", "escalated"]},
+                "sla_deadline": {"$exists": True, "$ne": None, "$lte": threshold_48h},
+            },
+            {
+                "_id": 1, "tracking_number": 1, "title": 1, "department": 1,
+                "priority": 1, "status": 1, "sla_deadline": 1, "created_at": 1,
+            },
+        ).sort("sla_deadline", 1)
+        return list(cursor)
+
+    loop = asyncio.get_event_loop()
+    results = await loop.run_in_executor(executor, fetch)
+
+    breached, critical, warning = [], [], []
+    for g in results:
+        item = {
+            "id": g["_id"],
+            "tracking_number": g["tracking_number"],
+            "title": g["title"],
+            "department": g.get("department", "general"),
+            "priority": g.get("priority", "medium"),
+            "status": g["status"],
+            "sla_deadline": g["sla_deadline"].isoformat() if g.get("sla_deadline") else None,
+            "created_at": g["created_at"].isoformat() if g.get("created_at") else None,
+        }
+        deadline = g["sla_deadline"]
+        # Ensure both sides are tz-aware for comparison (MongoDB may store naive datetimes)
+        if deadline.tzinfo is None:
+            deadline = deadline.replace(tzinfo=timezone.utc)
+        if deadline <= now:
+            breached.append(item)
+        elif deadline <= threshold_24h:
+            critical.append(item)
+        else:
+            warning.append(item)
+
+    return {
+        "breached": breached,
+        "critical": critical,
+        "warning": warning,
+        "total_alerts": len(breached) + len(critical) + len(warning),
+    }
+
+# ---------------------------------------------------------------------------
 # GRIEVANCE ENDPOINTS
 # ---------------------------------------------------------------------------
 @app.post("/grievances", response_model=GrievanceResponse)
@@ -2388,6 +2471,7 @@ async def add_scheme(entry: SchemeEntry,
                  "eligibility": entry.eligibility, "department": entry.department.value,
                  "how_to_apply": entry.how_to_apply,
                  "eligibility_questions": entry.eligibility_questions,
+                 "documents": [],
                  "created_at": datetime.now(timezone.utc).isoformat()})
     qdrant.upsert(collection_name="schemes", points=[point], wait=True)
     return {"message": "Scheme added successfully"}
@@ -2432,7 +2516,8 @@ async def get_scheme_detail(scheme_id: str):
     return {"id": p.id, "name": p.payload.get("name", ""), "description": p.payload.get("description", ""),
             "eligibility": p.payload.get("eligibility", ""), "department": p.payload.get("department", ""),
             "how_to_apply": p.payload.get("how_to_apply", ""), "created_at": p.payload.get("created_at", ""),
-            "eligibility_questions": p.payload.get("eligibility_questions", [])}
+            "eligibility_questions": p.payload.get("eligibility_questions", []),
+            "documents": p.payload.get("documents", [])}
 
 @app.put("/knowledge/schemes/{scheme_id}/questions")
 async def update_scheme_questions(scheme_id: str, req: UpdateQuestionsRequest,
@@ -2514,11 +2599,14 @@ async def update_scheme(scheme_id: str, entry: SchemeEntry,
     # Preserve existing questions if not provided in the update
     existing_questions = points[0].payload.get("eligibility_questions", [])
     new_questions = entry.eligibility_questions if entry.eligibility_questions else existing_questions
+    # Preserve existing documents
+    existing_documents = points[0].payload.get("documents", [])
     point = PointStruct(id=scheme_id, vector=embedding,
         payload={"name": entry.name, "description": entry.description,
                  "eligibility": entry.eligibility, "department": entry.department.value,
                  "how_to_apply": entry.how_to_apply,
                  "eligibility_questions": new_questions,
+                 "documents": existing_documents,
                  "created_at": points[0].payload.get("created_at", datetime.now(timezone.utc).isoformat())})
     qdrant.upsert(collection_name="schemes", points=[point], wait=True)
     return {"message": "Scheme updated successfully"}
@@ -2532,15 +2620,309 @@ async def get_schemes(department: Optional[Department] = None,
     zero_vector = [0.0] * EMBEDDING_DIM
     results = qdrant.query_points(collection_name="schemes", query=zero_vector,
                             query_filter=filt, limit=limit, offset=offset, with_payload=True, with_vectors=False)
-    return [{"id": p.id, "name": p.payload.get("name", ""), "description": p.payload.get("description", ""),
+    schemes = [{"id": p.id, "name": p.payload.get("name", ""), "description": p.payload.get("description", ""),
              "eligibility": p.payload.get("eligibility", ""), "department": p.payload.get("department", ""),
              "how_to_apply": p.payload.get("how_to_apply", ""), "created_at": p.payload.get("created_at", ""),
-             "eligibility_questions": p.payload.get("eligibility_questions", [])} for p in results.points]
+             "eligibility_questions": p.payload.get("eligibility_questions", []),
+             "documents": p.payload.get("documents", [])} for p in results.points]
+    schemes.sort(key=lambda s: s.get("created_at", ""), reverse=True)
+    return schemes
 
 @app.post("/knowledge/schemes/search")
 @limiter.limit("20/minute")
 async def search_schemes_endpoint(request: Request, query: str = Query(...)):
     return await KnowledgeSearcher.search_schemes(query, limit=10)
+
+# ---------------------------------------------------------------------------
+# SCHEME DOCUMENT PROCESSING
+# ---------------------------------------------------------------------------
+
+def _extract_text_from_pdf(file_bytes: bytes) -> str:
+    """Extract text from a PDF using PyPDF2. Returns empty string for scanned/image PDFs."""
+    try:
+        from PyPDF2 import PdfReader
+        reader = PdfReader(io.BytesIO(file_bytes))
+        text_parts = []
+        for page in reader.pages:
+            page_text = page.extract_text() or ""
+            text_parts.append(page_text.strip())
+        return "\n\n".join(t for t in text_parts if t)
+    except Exception as e:
+        logger.error("PDF text extraction error: %s", e)
+        return ""
+
+
+def _extract_text_from_docx(file_bytes: bytes) -> str:
+    """Extract text from a DOCX file including paragraphs and tables."""
+    try:
+        from docx import Document
+        doc = Document(io.BytesIO(file_bytes))
+        parts = []
+        for para in doc.paragraphs:
+            if para.text.strip():
+                parts.append(para.text.strip())
+        for table in doc.tables:
+            for row in table.rows:
+                row_text = " | ".join(cell.text.strip() for cell in row.cells if cell.text.strip())
+                if row_text:
+                    parts.append(row_text)
+        return "\n".join(parts)
+    except Exception as e:
+        logger.error("DOCX text extraction error: %s", e)
+        return ""
+
+
+def _image_to_base64(file_bytes: bytes, content_type: str) -> str:
+    """Encode image bytes to base64 data URL for the OpenAI Vision API."""
+    b64 = base64.b64encode(file_bytes).decode("utf-8")
+    media = content_type or "image/png"
+    return f"data:{media};base64,{b64}"
+
+
+def _pdf_pages_to_images(file_bytes: bytes) -> list:
+    """Convert first few PDF pages to base64 images for Vision API (scanned PDFs)."""
+    images = []
+    try:
+        from PyPDF2 import PdfReader
+        reader = PdfReader(io.BytesIO(file_bytes))
+        # For scanned PDFs, send the raw bytes as a single image if possible
+        # PyPDF2 can't render pages to images, so we send the PDF bytes directly
+        # and let the Vision API handle it. For truly image-based PDFs, we
+        # extract embedded images from the first few pages.
+        for page_num, page in enumerate(reader.pages[:5]):
+            if "/XObject" in (page.get("/Resources") or {}):
+                x_objects = page["/Resources"]["/XObject"].get_object()
+                for obj_name in x_objects:
+                    obj = x_objects[obj_name].get_object()
+                    if obj.get("/Subtype") == "/Image":
+                        try:
+                            data = obj.get_data()
+                            if len(data) > 100:  # skip tiny images (icons, etc)
+                                b64 = base64.b64encode(data).decode("utf-8")
+                                # Detect format from filter
+                                filt = obj.get("/Filter", "")
+                                if isinstance(filt, list):
+                                    filt = filt[0] if filt else ""
+                                filt_str = str(filt)
+                                if "DCT" in filt_str:
+                                    media = "image/jpeg"
+                                elif "PNG" in filt_str or "Flat" in filt_str:
+                                    media = "image/png"
+                                else:
+                                    media = "image/jpeg"
+                                images.append(f"data:{media};base64,{b64}")
+                                if len(images) >= 3:
+                                    break
+                        except Exception:
+                            continue
+            if len(images) >= 3:
+                break
+    except Exception as e:
+        logger.error("PDF image extraction error: %s", e)
+    return images
+
+
+async def _extract_scheme_with_vision(image_data_urls: list) -> Optional[dict]:
+    """Use OpenAI Vision API to extract scheme info from images."""
+    content = [
+        {"type": "text", "text": (
+            "Analyze these images. Determine if they describe a government welfare scheme, "
+            "public benefit program, or official government policy. "
+            "Return JSON: {\"relevant\": true/false, \"relevance_reason\": \"why it is or isn't a scheme doc\", "
+            "\"name\": \"...\", \"description\": \"...\", "
+            "\"eligibility\": \"...\", \"department\": \"...\", \"how_to_apply\": \"...\"}. "
+            "If not relevant, set all fields to empty strings."
+        )}
+    ]
+    for url in image_data_urls[:3]:
+        content.append({"type": "image_url", "image_url": {"url": url, "detail": "high"}})
+    try:
+        resp = await openai_client.chat.completions.create(
+            model=OPENAI_VISION_MODEL,
+            messages=[{"role": "user", "content": content}],
+            response_format={"type": "json_object"},
+            max_tokens=2000
+        )
+        result = resp.choices[0].message.content.strip()
+        return json.loads(result)
+    except Exception as e:
+        logger.error("Vision API extraction error: %s", e)
+        return None
+
+
+async def _extract_scheme_from_text(text: str) -> Optional[dict]:
+    """Use OpenAI to extract structured scheme info from text."""
+    prompt = (
+        "Analyze the following text. First determine if this document describes a "
+        "government welfare scheme, public benefit program, subsidy, grant, or official "
+        "government policy/service meant for citizens or organizations.\n\n"
+        "Return JSON only:\n"
+        '{"relevant": true/false, '
+        '"relevance_reason": "one-line explanation of why it is or is not a scheme document", '
+        '"name": "scheme name", "description": "comprehensive description", '
+        '"eligibility": "detailed eligibility criteria", '
+        '"department": "responsible department", '
+        '"how_to_apply": "application process"}\n\n'
+        "If relevant is false, set name/description/eligibility/department/how_to_apply to empty strings.\n"
+        "If relevant is true but a field is not found, use an empty string for that field.\n"
+        "For department, try to match one of: panchayati_raj, rural_development, "
+        "rural_water_supply, sanitation, rural_housing, rural_roads, "
+        "social_welfare, tribal_welfare, agriculture, education, health, "
+        "womens_welfare, disability_welfare, revenue, general.\n\n"
+        f"Document text:\n{truncate_text(text, 6000)}"
+    )
+    try:
+        result = await openai_chat([{"role": "user", "content": prompt}], json_mode=True)
+        if not result:
+            return None
+        return json.loads(result)
+    except Exception as e:
+        logger.error("Text extraction error: %s", e)
+        return None
+
+
+@app.post("/knowledge/schemes/process-documents")
+@limiter.limit("10/minute")
+async def process_scheme_documents(
+    request: Request,
+    files: List[UploadFile] = File(...),
+    user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value))
+):
+    """Process uploaded scheme documents: extract text, send to OpenAI, store in GridFS."""
+    if len(files) > SCHEME_MAX_FILES:
+        raise HTTPException(400, f"Maximum {SCHEME_MAX_FILES} files allowed")
+
+    all_text = []
+    vision_images = []
+    stored_docs = []
+    loop = asyncio.get_event_loop()
+
+    for f in files:
+        content_type = f.content_type or ""
+        if content_type not in SCHEME_ALLOWED_MIMES:
+            raise HTTPException(400, f"Unsupported file type: {f.filename}. Use PDF, DOCX, PNG, or JPG.")
+        file_bytes = await f.read()
+        if len(file_bytes) > SCHEME_MAX_FILE_SIZE:
+            raise HTTPException(400, f"{f.filename} exceeds 10MB limit")
+
+        # Store in GridFS
+        try:
+            file_id = await loop.run_in_executor(
+                executor,
+                lambda fb=file_bytes, fn=f.filename, ct=content_type: gfs.put(
+                    fb, filename=fn, content_type=ct, metadata={"type": "scheme_document"}
+                )
+            )
+            stored_docs.append({
+                "id": str(file_id),
+                "filename": f.filename,
+                "content_type": content_type,
+                "size": len(file_bytes)
+            })
+        except Exception as e:
+            logger.error("GridFS storage error for %s: %s", f.filename, e)
+            raise HTTPException(500, f"Failed to store {f.filename}")
+
+        # Extract text based on file type
+        if content_type == "application/pdf":
+            text = await loop.run_in_executor(executor, _extract_text_from_pdf, file_bytes)
+            if text and len(text.strip()) > 50:
+                all_text.append(text)
+            else:
+                # Scanned PDF — try extracting embedded images for Vision API
+                images = await loop.run_in_executor(executor, _pdf_pages_to_images, file_bytes)
+                if images:
+                    vision_images.extend(images)
+                else:
+                    # Last resort: encode entire PDF first page as generic image
+                    logger.warning("Scanned PDF %s: no extractable text or images", f.filename)
+        elif content_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+            text = await loop.run_in_executor(executor, _extract_text_from_docx, file_bytes)
+            if text:
+                all_text.append(text)
+        elif content_type.startswith("image/"):
+            data_url = _image_to_base64(file_bytes, content_type)
+            vision_images.append(data_url)
+
+    # Extract scheme info
+    extracted = None
+    combined_text = "\n\n---\n\n".join(all_text)
+
+    if combined_text.strip():
+        extracted = await _extract_scheme_from_text(combined_text)
+
+    if not extracted and vision_images:
+        extracted = await _extract_scheme_with_vision(vision_images)
+
+    if not extracted:
+        # Return stored docs even if extraction failed
+        return {
+            "extracted": {"name": "", "description": "", "eligibility": "",
+                         "department": "", "how_to_apply": ""},
+            "documents": stored_docs,
+            "eligibility_questions": [],
+            "relevant": False,
+            "relevance_reason": "Could not extract any readable text or information from the uploaded files.",
+            "message": "Could not extract any details from these files."
+        }
+
+    # Check relevance flag from AI
+    is_relevant = extracted.get("relevant", True)  # default True for backward compat
+    relevance_reason = extracted.get("relevance_reason", "")
+
+    # Check if all key fields are empty (another signal of irrelevance)
+    key_fields = ["name", "description", "eligibility", "how_to_apply"]
+    all_empty = all(not extracted.get(f, "").strip() for f in key_fields)
+
+    if not is_relevant or all_empty:
+        reason = relevance_reason or "The uploaded files don't contain information about a government scheme."
+        return {
+            "extracted": {"name": "", "description": "", "eligibility": "",
+                         "department": "", "how_to_apply": ""},
+            "documents": stored_docs,
+            "eligibility_questions": [],
+            "relevant": False,
+            "relevance_reason": reason,
+            "message": reason
+        }
+
+    # Clean out the relevance metadata before sending extracted data to frontend
+    extracted.pop("relevant", None)
+    extracted.pop("relevance_reason", None)
+
+    # Generate eligibility questions from extracted eligibility text
+    eligibility_questions = []
+    elig_text = extracted.get("eligibility", "")
+    scheme_name = extracted.get("name", "")
+    if elig_text:
+        eligibility_questions = await generate_eligibility_questions(elig_text, scheme_name)
+
+    return {
+        "extracted": extracted,
+        "documents": stored_docs,
+        "eligibility_questions": eligibility_questions,
+        "relevant": True,
+        "message": "Extracted — review and edit below"
+    }
+
+
+@app.put("/knowledge/schemes/{scheme_id}/documents")
+async def update_scheme_documents(scheme_id: str,
+                                   request: Request,
+                                   user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value))):
+    """Update the documents list for an existing scheme."""
+    if not qdrant:
+        raise HTTPException(status_code=503, detail="Knowledge base (Qdrant) is not available")
+    body = await request.json()
+    documents = body.get("documents", [])
+    points = qdrant.retrieve(collection_name="schemes", ids=[scheme_id], with_payload=True)
+    if not points:
+        raise HTTPException(status_code=404, detail="Scheme not found")
+    qdrant.set_payload(collection_name="schemes",
+                       payload={"documents": documents},
+                       points=[scheme_id])
+    return {"message": "Documents updated"}
+
 
 # ---------------------------------------------------------------------------
 # ANALYTICS ENDPOINTS (real computation)
