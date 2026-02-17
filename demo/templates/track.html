@@ -2,9 +2,9 @@
 {% block title %}Track Grievance — PR&DW Portal{% endblock %}
 {% block content %}
 <div class="main-content" style="max-width:700px;">
-  <h1>🔍 Track Your Grievance</h1>
+  <h1><span class="icon filled">search</span> Track Your Grievance</h1>
   <p class="subtitle">Enter your tracking number to check status</p>
-  <div class="glass-strong card" style="padding:2rem;">
+  <div class="card" style="padding:2rem;">
     <div style="display:flex;gap:0.75rem;">
       <input type="text" class="form-control" id="trackingNum" placeholder="GRV-2026-000001" style="flex:1;">
       <button class="btn btn-primary" onclick="trackGrievance()">Track</button>
@@ -32,7 +32,7 @@ async function trackGrievance() {
     const g = await api('GET', `/grievances/track/${encodeURIComponent(num)}`);
     const loggedIn = isLoggedIn();
     container.innerHTML = `
-      <div class="glass-strong card card-animate" style="padding:2rem;${loggedIn ? 'cursor:pointer;' : ''}" ${loggedIn ? `data-gid="${escapeHtml(g.id)}"` : ''}>
+      <div class="card card-animate" style="padding:2rem;${loggedIn ? 'cursor:pointer;' : ''}" ${loggedIn ? `data-gid="${escapeHtml(g.id)}"` : ''}>
         ${loggedIn ? '<p style="font-size:0.8rem;color:#666;margin-bottom:0.5rem;">Click to view full details →</p>' : ''}
         <h2>${escapeHtml(g.tracking_number)}</h2>
         <h3 style="color:#37474F;font-weight:400;">${escapeHtml(g.title)}</h3>
@@ -47,11 +47,11 @@ async function trackGrievance() {
           if (tier === 'self_resolvable' && g.status === 'pending') {
             return '<div class="resolution-box ai"><div class="resolution-header">AI Guidance</div>'
               + '<div class="resolution-content">' + renderMarkdown(g.ai_resolution) + '</div>'
-              + '<div style="margin-top:1rem;padding:1rem;background:rgba(255,255,255,0.4);border-radius:0.75rem;">'
+              + '<div style="margin-top:1rem;padding:1rem;background:var(--primary-container-low);border-radius:0.75rem;">'
               + '<p style="font-weight:600;margin-bottom:0.5rem;">Did this information help resolve your issue?</p>'
               + '<div style="display:flex;gap:0.75rem;">'
-              + '<button class="btn btn-success btn-sm confirm-yes" data-tracking="' + escapeHtml(g.tracking_number) + '">✓ Yes, this helped</button>'
-              + '<button class="btn btn-secondary btn-sm confirm-no" data-tracking="' + escapeHtml(g.tracking_number) + '">✗ No, I need more help</button>'
+              + '<button class="btn btn-success btn-sm confirm-yes" data-tracking="' + escapeHtml(g.tracking_number) + '"><span class="icon sm">check_circle</span> Yes, this helped</button>'
+              + '<button class="btn btn-secondary btn-sm confirm-no" data-tracking="' + escapeHtml(g.tracking_number) + '"><span class="icon sm">close</span> No, I need more help</button>'
               + '</div></div></div>';
           } else if (tier === 'self_resolvable' && g.status === 'resolved') {
             return '<div class="resolution-box ai"><div class="resolution-header">AI Guidance (Confirmed Helpful)</div>'
@@ -75,7 +75,7 @@ async function trackGrievance() {
       });
     }
   } catch (e) {
-    container.innerHTML = '<div class="glass card text-center" style="padding:2rem;"><p style="color:#C62828;">Grievance not found. Please check the tracking number.</p></div>';
+    container.innerHTML = '<div class="card text-center" style="padding:2rem;"><p style="color:var(--error);">Grievance not found. Please check the tracking number.</p></div>';
   }
 }
 async function confirmResolution(trackingNumber, helpful) {

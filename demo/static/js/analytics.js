@@ -11,11 +11,11 @@ async function loadAnalytics() {
     const data = await api('GET', `/analytics?days=${days}`);
     // KPI cards
     document.getElementById('statsCards').innerHTML = `
-      <div class="metric-card glass card-animate"><div class="metric-icon">🎫</div><div class="metric-value">${data.total_grievances}</div><div class="metric-label">Total</div></div>
-      <div class="metric-card glass card-animate"><div class="metric-icon">✅</div><div class="metric-value">${data.self_resolved}</div><div class="metric-label">Self-Resolved</div></div>
-      <div class="metric-card glass card-animate"><div class="metric-icon">📝</div><div class="metric-value">${data.ai_drafted}</div><div class="metric-label">AI Drafted</div></div>
-      <div class="metric-card glass card-animate"><div class="metric-icon">⚠️</div><div class="metric-value">${data.escalated_to_human}</div><div class="metric-label">Escalated</div></div>
-      <div class="metric-card glass card-animate"><div class="metric-icon">⏱️</div><div class="metric-value">${data.avg_resolution_time}h</div><div class="metric-label">Avg Resolution</div></div>`;
+      <div class="metric-card card-animate"><div class="metric-icon blue"><span class="icon">assignment</span></div><div class="metric-value">${data.total_grievances}</div><div class="metric-label">Total</div></div>
+      <div class="metric-card card-animate"><div class="metric-icon green"><span class="icon">check_circle</span></div><div class="metric-value">${data.self_resolved}</div><div class="metric-label">Self-Resolved</div></div>
+      <div class="metric-card card-animate"><div class="metric-icon purple"><span class="icon">auto_awesome</span></div><div class="metric-value">${data.ai_drafted}</div><div class="metric-label">AI Drafted</div></div>
+      <div class="metric-card card-animate"><div class="metric-icon red"><span class="icon">warning</span></div><div class="metric-value">${data.escalated_to_human}</div><div class="metric-label">Escalated</div></div>
+      <div class="metric-card card-animate"><div class="metric-icon amber"><span class="icon">schedule</span></div><div class="metric-value">${data.avg_resolution_time}h</div><div class="metric-label">Avg Resolution</div></div>`;
 
     // Department chart
     const deptLabels = Object.keys(data.department_distribution).map(d => deptLabel(d));
@@ -26,8 +26,8 @@ async function loadAnalytics() {
       data: {
         labels: deptLabels,
         datasets: [{ label: 'Grievances', data: deptValues,
-          backgroundColor: 'rgba(21,101,192,0.5)',
-          borderColor: 'rgba(21,101,192,0.8)', borderWidth: 1, borderRadius: 8 }]
+          backgroundColor: 'rgba(26,115,232,0.6)',
+          borderColor: 'rgba(26,115,232,0.9)', borderWidth: 1, borderRadius: 8 }]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
@@ -40,7 +40,7 @@ async function loadAnalytics() {
     // Sentiment chart
     const sentLabels = Object.keys(data.sentiment_distribution).map(s => s.charAt(0).toUpperCase() + s.slice(1));
     const sentValues = Object.values(data.sentiment_distribution);
-    const sentColors = { Positive: '#66BB6A', Neutral: '#90A4AE', Negative: '#FFB74D', Frustrated: '#EF5350' };
+    const sentColors = { Positive: '#1E8E3E', Neutral: '#5F6368', Negative: '#E37400', Frustrated: '#D93025' };
     if (sentChartInstance) sentChartInstance.destroy();
     sentChartInstance = new Chart(document.getElementById('sentChart'), {
       type: 'doughnut',
@@ -48,7 +48,7 @@ async function loadAnalytics() {
         labels: sentLabels,
         datasets: [{ data: sentValues,
           backgroundColor: sentLabels.map(l => sentColors[l] || '#90A4AE'),
-          borderWidth: 2, borderColor: 'rgba(255,255,255,0.5)' }]
+          borderWidth: 2, borderColor: '#fff' }]
       },
       options: {
         responsive: true, maintainAspectRatio: false,

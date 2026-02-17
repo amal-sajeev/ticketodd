@@ -8,8 +8,8 @@
 
 {% block content %}
 <div class="auth-container">
-  <div class="auth-card glass-strong" style="max-width:480px;">
-    <h1>🏛️ Create Account</h1>
+  <div class="auth-card card" style="max-width:480px;">
+    <h1><span class="icon filled">account_balance</span> Create Account</h1>
     <p class="auth-subtitle">Register as a citizen to file and track grievances</p>
     <div id="step1" class="step-container active">
       <form onsubmit="event.preventDefault(); nextStep();">
@@ -27,13 +27,13 @@
           <div class="form-group"><label>Password</label><input type="password" class="form-control" id="password"
               required minlength="6"></div>
         </div>
-        <div id="regError" class="text-sm" style="color:#C62828;margin-bottom:1rem;display:none;"></div>
+        <div id="regError" class="text-sm" style="color:var(--error);margin-bottom:1rem;display:none;"></div>
         <button type="submit" class="btn btn-primary btn-block">Next: Face Setup</button>
       </form>
     </div>
 
     <div id="step2" class="step-container">
-      <h3 class="text-center mb-3">👤 Face Enrollment</h3>
+      <h3 class="text-center mb-3"><span class="icon filled">person</span> Face Enrollment</h3>
       <div class="video-contain">
         <video id="video" autoplay muted playsinline></video>
         <canvas id="canvas"></canvas>

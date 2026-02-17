@@ -17,26 +17,31 @@
     border-bottom: none;
     margin-bottom: 1rem;
     display: flex;
-    gap: 10px;
+    gap: 0.5rem;
   }
 
   .nav-tab {
     flex: 1;
     text-align: center;
-    padding: 10px;
+    padding: 0.6rem;
     cursor: pointer;
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.5);
+    border-radius: var(--radius-sm);
+    background: var(--surface-container-low);
     font-weight: 600;
+    font-size: 0.88rem;
     transition: all 0.2s;
     border: 1px solid transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
   }
 
   .nav-tab.active {
-    background: white;
-    color: var(--primary);
-    border-color: var(--primary-light);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    background: var(--primary-container);
+    color: var(--on-primary-container);
+    border-color: transparent;
+    box-shadow: var(--elevation-1);
   }
 
   .video-container {
@@ -86,14 +91,15 @@
 </style>
 
 <div class="auth-container">
-  <div class="auth-card glass-strong">
-    <h1>🏛️ Welcome Back</h1>
+  <div class="auth-card">
+    <div class="auth-logo-icon"><span class="icon">account_balance</span></div>
+    <h1>Welcome Back</h1>
     <p class="auth-subtitle">Panchayati Raj & Drinking Water Department</p>
 
     <!-- Tabs -->
     <div class="nav-tabs">
-      <div class="nav-tab active" onclick="switchTab('password')">🔑 Password</div>
-      <div class="nav-tab" onclick="switchTab('face')">👤 Face Login</div>
+      <div class="nav-tab active" onclick="switchTab('password')"><span class="icon sm">key</span> Password</div>
+      <div class="nav-tab" onclick="switchTab('face')"><span class="icon sm">face</span> Face Login</div>
     </div>
 
     <!-- Face Login Section -->

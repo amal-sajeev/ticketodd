@@ -8,31 +8,31 @@
   <!-- ═══════════════════════════════════════════════════════════════════════ -->
   <div class="flex-between mb-2">
     <div>
-      <h1>⚠️ SLA Deadline Alerts</h1>
+      <h1><span class="icon" style="font-size:28px;color:var(--warning);">warning</span> SLA Deadline Alerts</h1>
       <p class="subtitle">Unresolved grievances nearing or past their deadlines</p>
     </div>
-    <button class="btn btn-secondary" onclick="loadAlerts()" id="refreshAlertsBtn">🔄 Refresh</button>
+    <button class="btn btn-secondary" onclick="loadAlerts()" id="refreshAlertsBtn"><span class="icon sm">refresh</span> Refresh</button>
   </div>
 
   <!-- Alert summary counters -->
   <div class="card-grid-4 mb-2" id="alertSummary" style="display:none;">
-    <div class="glass card metric-card card-animate" id="summaryTotal">
-      <div class="metric-icon">🔔</div>
+    <div class="metric-card card-animate" id="summaryTotal">
+      <div class="metric-icon amber"><span class="icon">notifications</span></div>
       <div class="metric-value" id="totalAlertCount">0</div>
       <div class="metric-label">Total Alerts</div>
     </div>
-    <div class="glass card metric-card card-animate" id="summaryBreached">
-      <div class="metric-icon">🔴</div>
+    <div class="metric-card card-animate" id="summaryBreached">
+      <div class="metric-icon red"><span class="icon">error</span></div>
       <div class="metric-value" id="breachedCount">0</div>
       <div class="metric-label">SLA Breached</div>
     </div>
-    <div class="glass card metric-card card-animate" id="summaryCritical">
-      <div class="metric-icon">🟠</div>
+    <div class="metric-card card-animate" id="summaryCritical">
+      <div class="metric-icon amber"><span class="icon">schedule</span></div>
       <div class="metric-value" id="criticalCount">0</div>
       <div class="metric-label">Critical (&lt;24h)</div>
     </div>
-    <div class="glass card metric-card card-animate" id="summaryWarning">
-      <div class="metric-icon">🟡</div>
+    <div class="metric-card card-animate" id="summaryWarning">
+      <div class="metric-icon blue"><span class="icon">bolt</span></div>
       <div class="metric-value" id="warningCount">0</div>
       <div class="metric-label">Warning (&lt;48h)</div>
     </div>
@@ -40,7 +40,7 @@
 
   <!-- Alert cards container -->
   <div id="alertCards" class="mb-3">
-    <div class="glass-strong card" style="padding:2rem;text-align:center;">
+    <div class="card" style="padding:2rem;text-align:center;">
       <div class="spinner"><span></span><span></span><span></span></div>
       <p class="text-muted" style="margin-top:0.5rem;">Loading deadline alerts…</p>
     </div>
@@ -51,14 +51,14 @@
   <!-- ═══════════════════════════════════════════════════════════════════════ -->
   <div class="flex-between mb-2" style="margin-top:1rem;">
     <div>
-      <h1>🔒 User Management</h1>
+      <h1><span class="icon" style="font-size:28px;">admin_panel_settings</span> User Management</h1>
       <p class="subtitle">Create, edit, and manage system accounts</p>
     </div>
     <button class="btn btn-primary" onclick="showCreateForm()">+ Create User</button>
   </div>
 
   <!-- Create / Edit Form (hidden by default) -->
-  <div id="userForm" class="glass-strong card mb-2" style="padding:1.5rem;display:none;">
+  <div id="userForm" class="card mb-2" style="padding:1.5rem;display:none;">
     <h3 id="formTitle">Create New User</h3>
     <input type="hidden" id="editUserId">
     <div class="form-row">
@@ -95,7 +95,7 @@
   </div>
 
   <!-- Role filter tabs -->
-  <div class="glass card mb-2" style="padding:0.75rem 1rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+  <div class="card mb-2" style="padding:0.75rem 1rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
     <button class="btn btn-sm filter-tab active" data-role="" onclick="filterRole(this, '')">All</button>
     <button class="btn btn-sm filter-tab" data-role="citizen" onclick="filterRole(this, 'citizen')">Citizens</button>
     <button class="btn btn-sm filter-tab" data-role="officer" onclick="filterRole(this, 'officer')">Officers</button>
@@ -104,24 +104,24 @@
   </div>
 
   <!-- Spam Flagged Users Section -->
-  <div class="glass-strong card mb-3" style="padding:1.25rem;" id="spamSection">
-    <h3 style="margin:0 0 0.75rem;">🚫 Spam Flagged Users</h3>
+  <div class="card mb-3" style="padding:1.25rem;" id="spamSection">
+    <h3 style="margin:0 0 0.75rem;"><span class="icon" style="font-size:18px;color:var(--error);">block</span> Spam Flagged Users</h3>
     <div id="spamList">
       <div class="text-sm text-muted">Loading...</div>
     </div>
   </div>
 
   <!-- Officer Anomalies Section -->
-  <div class="glass-strong card mb-3" style="padding:1.25rem;" id="anomalySection">
-    <h3 style="margin:0 0 0.75rem;">🔍 Officer Accountability Flags</h3>
+  <div class="card mb-3" style="padding:1.25rem;" id="anomalySection">
+    <h3 style="margin:0 0 0.75rem;"><span class="icon" style="font-size:18px;">policy</span> Officer Accountability Flags</h3>
     <div id="anomalyList">
       <div class="text-sm text-muted">Loading...</div>
     </div>
   </div>
 
   <!-- Forecast Generation -->
-  <div class="glass-strong card mb-3" style="padding:1.25rem;">
-    <h3 style="margin:0 0 0.75rem;">📊 Predictive Forecast</h3>
+  <div class="card mb-3" style="padding:1.25rem;">
+    <h3 style="margin:0 0 0.75rem;"><span class="icon" style="font-size:18px;">analytics</span> Predictive Forecast</h3>
     <p class="text-sm text-muted">Generate a 2-week grievance spike forecast based on historical data and weather
       patterns.</p>
     <button class="btn btn-primary btn-sm" id="genForecastBtn" onclick="generateForecast()">Generate Forecast</button>
@@ -130,10 +130,10 @@
 
 
   <!-- User table -->
-  <div class="glass-strong card" style="padding:1rem;overflow-x:auto;">
+  <div class="card" style="padding:1rem;overflow-x:auto;">
     <table style="width:100%;border-collapse:collapse;" id="userTable">
       <thead>
-        <tr style="text-align:left;border-bottom:2px solid rgba(0,0,0,0.1);">
+        <tr style="text-align:left;border-bottom:2px solid var(--outline-variant);">
           <th style="padding:0.65rem;">Name</th>
           <th style="padding:0.65rem;">Username</th>
           <th style="padding:0.65rem;">Email</th>
@@ -156,193 +156,21 @@
 {% endblock %}
 {% block scripts %}
 <style>
-  /* ── Existing admin styles ── */
-  .filter-tab {
-    background: rgba(255, 255, 255, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    cursor: pointer;
-    padding: 0.35rem 1rem;
-    border-radius: 20px;
-    font-size: 0.85rem;
-    transition: all 0.2s ease;
-  }
-
-  .filter-tab:hover {
-    background: rgba(255, 255, 255, 0.5);
-  }
-
-  .filter-tab.active {
-    background: rgba(21, 101, 192, 0.8);
-    color: #fff;
-    border-color: rgba(21, 101, 192, 0.9);
-  }
-
-  .role-badge {
-    display: inline-block;
-    padding: 0.2rem 0.6rem;
-    border-radius: 12px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    text-transform: capitalize;
-  }
-
-  .role-citizen {
-    background: rgba(102, 187, 106, 0.2);
-    color: #2E7D32;
-  }
-
-  .role-officer {
-    background: rgba(21, 101, 192, 0.2);
-    color: #1565C0;
-  }
-
-  .role-admin {
-    background: rgba(198, 40, 40, 0.2);
-    color: #C62828;
-  }
-
-  .action-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 0.3rem 0.5rem;
-    border-radius: 6px;
-    font-size: 0.85rem;
-    transition: background 0.2s;
-  }
-
-  .action-btn:hover {
-    background: rgba(0, 0, 0, 0.08);
-  }
-
-  .action-btn.delete:hover {
-    background: rgba(198, 40, 40, 0.15);
-  }
-
+  /* Admin-specific styles are now in the main stylesheet.
+     Only page-specific overrides here. */
   #userTable tbody tr {
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    border-bottom: 1px solid var(--surface-container);
     transition: background 0.15s;
   }
-
   #userTable tbody tr:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: var(--surface-container-low);
   }
-
-  /* ── SLA Alert styles ── */
-  .alert-card {
-    padding: 1rem 1.25rem;
-    border-radius: 16px;
-    cursor: pointer;
-    background: rgba(255, 255, 255, 0.28);
-    backdrop-filter: blur(18px);
-    border: 1px solid rgba(255, 255, 255, 0.35);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 4px 16px rgba(0, 0, 0, 0.06);
-    transition: transform 0.2s, box-shadow 0.2s;
-    margin-bottom: 0.65rem;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-  }
-
-  .alert-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
-  }
-
-  .alert-card.alert-breached {
-    border-left: 5px solid #E53935;
-  }
-
-  .alert-card.alert-critical {
-    border-left: 5px solid #FB8C00;
-  }
-
-  .alert-card.alert-warning {
-    border-left: 5px solid #FDD835;
-  }
-
-  .alert-severity-icon {
-    font-size: 1.6rem;
-    flex-shrink: 0;
-  }
-
-  .alert-body {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .alert-title {
-    font-weight: 600;
-    font-size: 0.95rem;
-    color: #1a1a2e;
-    margin-bottom: 0.25rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .alert-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    align-items: center;
-    font-size: 0.82rem;
-    color: #546E7A;
-  }
-
-  .alert-countdown {
-    font-weight: 700;
-    font-size: 0.85rem;
-    flex-shrink: 0;
-    text-align: right;
-    min-width: 120px;
-  }
-
-  .alert-countdown.overdue {
-    color: #C62828;
-  }
-
-  .alert-countdown.critical {
-    color: #E65100;
-  }
-
-  .alert-countdown.warning {
-    color: #F9A825;
-  }
-
-  .alert-section-label {
-    font-size: 0.85rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin: 1rem 0 0.5rem;
-    padding-left: 0.25rem;
-  }
-
-  .alert-section-label.breached {
-    color: #C62828;
-  }
-
-  .alert-section-label.critical {
-    color: #E65100;
-  }
-
-  .alert-section-label.warning {
-    color: #F9A825;
-  }
-
-  .all-clear {
-    text-align: center;
-    padding: 2rem;
-    color: #2E7D32;
-    font-size: 1.1rem;
-    font-weight: 600;
-  }
-
-  .all-clear .all-clear-icon {
-    font-size: 2.5rem;
-    margin-bottom: 0.5rem;
-  }
+  .alert-countdown.overdue { color: var(--error); }
+  .alert-countdown.critical { color: var(--warning); }
+  .alert-countdown.warning { color: #F9A825; }
+  .alert-section-label.breached { color: var(--error); }
+  .alert-section-label.critical { color: var(--warning); }
+  .alert-section-label.warning { color: #F9A825; }
 </style>
 <script>
   /* ═══════════════════════════════════════════════════════════════════════════
@@ -351,7 +179,7 @@
   async function loadAlerts() {
     const container = document.getElementById('alertCards');
     const summary = document.getElementById('alertSummary');
-    container.innerHTML = '<div class="glass-strong card" style="padding:2rem;text-align:center;"><div class="spinner"><span></span><span></span><span></span></div><p class="text-muted" style="margin-top:0.5rem;">Loading deadline alerts…</p></div>';
+    container.innerHTML = '<div class="card" style="padding:2rem;text-align:center;"><div class="spinner"><span></span><span></span><span></span></div><p class="text-muted" style="margin-top:0.5rem;">Loading deadline alerts…</p></div>';
     summary.style.display = 'none';
 
     try {
@@ -364,21 +192,21 @@
       summary.style.display = 'grid';
 
       if (data.total_alerts === 0) {
-        container.innerHTML = '<div class="glass-strong card all-clear"><div class="all-clear-icon">✅</div>All clear — no grievances nearing their SLA deadline.</div>';
+        container.innerHTML = '<div class="card all-clear"><span class="icon filled" style="font-size:2.5rem;color:var(--success);">check_circle</span><br>All clear — no grievances nearing their SLA deadline.</div>';
         return;
       }
 
       let html = '';
       if (data.breached.length) {
-        html += '<div class="alert-section-label breached">🔴 SLA Breached (' + data.breached.length + ')</div>';
+        html += '<div class="alert-section-label breached"><span class="icon sm" style="color:var(--error);">error</span> SLA Breached (' + data.breached.length + ')</div>';
         html += data.breached.map(g => alertCard(g, 'breached')).join('');
       }
       if (data.critical.length) {
-        html += '<div class="alert-section-label critical">🟠 Critical — Less than 24 hours (' + data.critical.length + ')</div>';
+        html += '<div class="alert-section-label critical"><span class="icon sm" style="color:var(--warning);">schedule</span> Critical — Less than 24 hours (' + data.critical.length + ')</div>';
         html += data.critical.map(g => alertCard(g, 'critical')).join('');
       }
       if (data.warning.length) {
-        html += '<div class="alert-section-label warning">🟡 Warning — Less than 48 hours (' + data.warning.length + ')</div>';
+        html += '<div class="alert-section-label warning"><span class="icon sm" style="color:#F9A825;">bolt</span> Warning — Less than 48 hours (' + data.warning.length + ')</div>';
         html += data.warning.map(g => alertCard(g, 'warning')).join('');
       }
       container.innerHTML = html;
@@ -390,12 +218,12 @@
         });
       });
     } catch (e) {
-      container.innerHTML = '<div class="glass-strong card" style="padding:1.5rem;text-align:center;color:#C62828;">❌ Failed to load alerts: ' + escapeHtml(e.message) + '</div>';
+      container.innerHTML = '<div class="card" style="padding:1.5rem;text-align:center;color:var(--error);"><span class="icon">error</span> Failed to load alerts: ' + escapeHtml(e.message) + '</div>';
     }
   }
 
   function alertCard(g, severity) {
-    const icons = { breached: '🚨', critical: '⏰', warning: '⚡' };
+    const icons = { breached: '<span class="icon filled" style="color:var(--error);">error</span>', critical: '<span class="icon" style="color:var(--warning);">schedule</span>', warning: '<span class="icon" style="color:#F9A825;">bolt</span>' };
     const countdownText = getCountdownText(g.sla_deadline, severity);
     return `
     <div class="alert-card alert-${severity}" data-id="${escapeHtml(g.id)}">
@@ -424,13 +252,13 @@
       const overMs = Math.abs(diffMs);
       const overH = Math.floor(overMs / 3600000);
       const overD = Math.floor(overH / 24);
-      if (overD > 0) return `⛔ ${overD}d ${overH % 24}h overdue`;
-      return `⛔ ${overH}h overdue`;
+      if (overD > 0) return `${overD}d ${overH % 24}h overdue`;
+      return `${overH}h overdue`;
     }
     const h = Math.floor(diffMs / 3600000);
     const m = Math.floor((diffMs % 3600000) / 60000);
-    if (h > 0) return `⏳ ${h}h ${m}m left`;
-    return `⏳ ${m}m left`;
+    if (h > 0) return `${h}h ${m}m left`;
+    return `${m}m left`;
   }
 
   /* ═══════════════════════════════════════════════════════════════════════════
@@ -456,7 +284,7 @@
       const el = document.getElementById('spamList');
       if (!records.length) { el.innerHTML = '<div class="text-sm text-muted">No spam-flagged users.</div>'; return; }
       el.innerHTML = records.map(r => `
-      <div class="glass" style="padding:0.75rem;margin-bottom:0.5rem;border-left:4px solid #EF5350;border-radius:8px;">
+      <div class="card" style="padding:0.75rem;margin-bottom:0.5rem;border-left:4px solid var(--error);">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <strong>${escapeHtml(r.full_name)} (@${escapeHtml(r.username)})</strong>
           <span class="text-sm">Spam score: ${(r.spam_score * 100).toFixed(0)}%</span>
@@ -467,8 +295,8 @@
         </div>
         ${r.pattern_flags.length ? '<div class="text-sm text-muted">Flags: ' + r.pattern_flags.map(f => escapeHtml(f.type + ': ' + f.detail)).join(', ') + '</div>' : ''}
         <div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
-          <button class="btn btn-success btn-sm spam-approve-btn" data-uid="${escapeHtml(r.user_id)}">✓ Approve & Unblock</button>
-          <button class="btn btn-secondary btn-sm spam-reject-btn" data-uid="${escapeHtml(r.user_id)}">✗ Reject ID</button>
+          <button class="btn btn-success btn-sm spam-approve-btn" data-uid="${escapeHtml(r.user_id)}"><span class="icon sm">check</span> Approve & Unblock</button>
+          <button class="btn btn-secondary btn-sm spam-reject-btn" data-uid="${escapeHtml(r.user_id)}"><span class="icon sm">close</span> Reject ID</button>
         </div>
       </div>`).join('');
       document.querySelectorAll('.spam-approve-btn').forEach(b => b.addEventListener('click', () => reviewSpam(b.dataset.uid, true)));
@@ -486,11 +314,11 @@
       const el = document.getElementById('anomalyList');
       if (!records.length) { el.innerHTML = '<div class="text-sm text-muted">No anomalies detected.</div>'; return; }
       el.innerHTML = records.map(r => `
-      <div class="glass" style="padding:0.75rem;margin-bottom:0.5rem;border-left:4px solid #FF9800;border-radius:8px;">
+      <div class="card" style="padding:0.75rem;margin-bottom:0.5rem;border-left:4px solid var(--warning);">
         <strong>${escapeHtml(r.full_name)} (@${escapeHtml(r.username)})</strong>
         <div style="margin-top:0.3rem;">
           ${r.anomaly_flags.map(f => `
-            <div class="text-sm" style="margin:0.2rem 0;padding:0.3rem 0.5rem;background:rgba(255,152,0,0.08);border-radius:6px;display:flex;justify-content:space-between;align-items:center;">
+            <div class="text-sm" style="margin:0.2rem 0;padding:0.3rem 0.5rem;background:var(--warning-container);border-radius:var(--radius-xs);display:flex;justify-content:space-between;align-items:center;">
               <span><strong>${escapeHtml(f.type)}:</strong> ${escapeHtml(f.detail)} <span class="badge badge-priority-${escapeHtml(f.severity || 'medium')}">${escapeHtml(f.severity || 'medium')}</span></span>
               <button class="btn btn-secondary btn-sm dismiss-flag-btn" data-oid="${escapeHtml(r.officer_id)}" data-fid="${escapeHtml(f.id)}" style="font-size:0.7rem;">Dismiss</button>
             </div>`).join('')}
@@ -508,7 +336,7 @@
     const btn = document.getElementById('genForecastBtn');
     const status = document.getElementById('forecastStatus');
     btn.disabled = true; status.textContent = 'Generating...';
-    try { await api('POST', '/forecasts/generate'); status.textContent = '✅ Forecast generated!'; showToast('Forecast generated successfully'); } catch (e) { status.textContent = '❌ Failed'; showToast(e.message, 'error'); }
+    try { await api('POST', '/forecasts/generate'); status.textContent = 'Forecast generated!'; showToast('Forecast generated successfully'); } catch (e) { status.textContent = 'Failed'; showToast(e.message, 'error'); }
     btn.disabled = false;
   }
 
@@ -536,8 +364,8 @@
       <td style="padding:0.65rem;">${u.department ? deptLabel(u.department) : '<span style="opacity:0.4;">—</span>'}</td>
       <td style="padding:0.65rem;font-size:0.9rem;">${formatDate(u.created_at)}</td>
       <td style="padding:0.65rem;text-align:right;white-space:nowrap;">
-        <button class="action-btn user-edit-btn" data-id="${escapeHtml(u.id)}" title="Edit">✏️ Edit</button>
-        <button class="action-btn delete user-del-btn" data-id="${escapeHtml(u.id)}" data-username="${escapeHtml(u.username)}" title="Delete">🗑️ Delete</button>
+        <button class="action-btn user-edit-btn" data-id="${escapeHtml(u.id)}" title="Edit"><span class="icon sm">edit</span> Edit</button>
+        <button class="action-btn danger user-del-btn" data-id="${escapeHtml(u.id)}" data-username="${escapeHtml(u.username)}" title="Delete"><span class="icon sm">delete</span> Delete</button>
       </td>
     </tr>`).join('');
     // Bind event handlers safely (no inline onclick)

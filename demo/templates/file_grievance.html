@@ -2,15 +2,19 @@
 {% block title %}File Grievance — PR&DW Portal{% endblock %}
 {% block content %}
 <div class="main-content" style="max-width:800px;">
-  <h1>📝 File a Grievance</h1>
+  <h1><span class="icon filled">description</span> File a Grievance</h1>
   <p class="subtitle">Describe your issue and we'll process it with AI assistance</p>
 
   <!-- Spam Block Banner -->
-  <div id="spamBanner" class="hidden" style="background:rgba(198,40,40,0.12);border:1px solid rgba(198,40,40,0.4);border-radius:12px;padding:1.25rem;margin-bottom:1.5rem;">
-    <h3 style="color:#C62828;margin:0 0 0.5rem;">⚠️ Account Restricted</h3>
+  <div id="spamBanner" class="hidden" style="background:var(--error-container);border:1px solid rgba(198,40,40,0.4);border-radius:12px;padding:1.25rem;margin-bottom:1.5rem;">
+    <h3 style="color:var(--error);margin:0 0 0.5rem;"><span class="icon filled">warning</span> Account Restricted</h3>
     <p id="spamReason" style="margin:0 0 1rem;">Your account has been flagged. Please upload a government-issued photo ID to verify your identity.</p>
     <div id="photoIdUploadArea">
-      <input type="file" id="photoIdFile" accept="image/jpeg,image/png,image/webp" style="margin-bottom:0.5rem;">
+      <div class="file-input-wrap" style="margin-bottom:0.5rem;">
+        <span class="file-input-btn"><span class="icon">upload_file</span> Choose File</span>
+        <span class="file-input-label" id="photoIdLabel">No file chosen</span>
+        <input type="file" id="photoIdFile" accept="image/jpeg,image/png,image/webp">
+      </div>
       <button class="btn btn-primary btn-sm" onclick="uploadPhotoId()">Upload Photo ID</button>
       <p id="photoIdStatus" class="text-sm text-muted mt-1"></p>
     </div>
@@ -18,7 +22,7 @@
 
 
   <div id="formArea">
-    <form class="glass-strong card" id="grievanceForm" onsubmit="return submitGrievance(event)" style="padding:2rem;">
+    <form class="card" id="grievanceForm" onsubmit="return submitGrievance(event)" style="padding:2rem;">
       <div class="form-group"><label>Grievance Title *</label><input type="text" class="form-control" id="title" placeholder="Brief summary of your issue" required maxlength="200"></div>
       <div class="form-group"><label>Detailed Description *</label><textarea class="form-control" id="description" placeholder="Describe your grievance in detail..." required maxlength="5000" style="min-height:140px;"></textarea></div>
       <div class="form-row">
@@ -31,8 +35,12 @@
 
       <!-- Attachments -->
       <div class="form-group">
-        <label>📎 Attachments (photos, audio, video — max 5 files, 50MB each)</label>
-        <input type="file" class="form-control" id="fileInput" multiple accept="image/*,audio/*,video/*" style="padding:0.5rem;">
+        <label><span class="icon sm">attach_file</span> Attachments (photos, audio, video — max 5 files, 50MB each)</label>
+        <div class="file-input-wrap">
+          <span class="file-input-btn"><span class="icon">upload_file</span> Choose Files</span>
+          <span class="file-input-label" id="fileInputLabel">No file chosen</span>
+          <input type="file" id="fileInput" multiple accept="image/*,audio/*,video/*">
+        </div>
         <div id="filePreview" style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.5rem;"></div>
       </div>
 
@@ -48,9 +56,9 @@
       </div>
 
       <!-- Location with auto-detection -->
-      <div class="glass" style="padding:1rem;border-radius:12px;margin-bottom:1rem;">
+      <div class="card" style="padding:1rem;border-radius:12px;margin-bottom:1rem;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;">
-          <label style="margin:0;font-weight:600;">📍 Location</label>
+          <label style="margin:0;font-weight:600;"><span class="icon sm">location_on</span> Location</label>
           <span id="locationStatus" class="text-sm" style="color:#888;">Detecting...</span>
         </div>
         <div class="form-row">
@@ -60,7 +68,7 @@
       </div>
 
 
-      <button type="submit" class="btn btn-primary btn-block" id="submitBtn">🚀 Submit Grievance</button>
+      <button type="submit" class="btn btn-primary btn-block" id="submitBtn"><span class="icon sm">send</span> Submit Grievance</button>
     </form>
   </div>
   <div id="resultArea" class="hidden"></div>
@@ -95,13 +103,24 @@ function setupFilePreview() {
   document.getElementById('fileInput').addEventListener('change', function() {
     const preview = document.getElementById('filePreview');
     preview.innerHTML = '';
+    const label = document.getElementById('fileInputLabel');
+    if (this.files.length) {
+      label.textContent = this.files.length === 1 ? this.files[0].name : `${this.files.length} files selected`;
+    } else {
+      label.textContent = 'No file chosen';
+    }
     Array.from(this.files).forEach(f => {
       const tag = document.createElement('div');
-      tag.style.cssText = 'background:rgba(255,255,255,0.3);padding:0.3rem 0.6rem;border-radius:8px;font-size:0.82rem;display:flex;align-items:center;gap:0.3rem;';
-      const icon = f.type.startsWith('image/') ? '🖼️' : f.type.startsWith('audio/') ? '🎵' : '🎬';
-      tag.textContent = `${icon} ${f.name} (${(f.size/1024/1024).toFixed(1)}MB)`;
+      tag.style.cssText = 'background:var(--primary-container-low);padding:0.3rem 0.6rem;border-radius:8px;font-size:0.82rem;display:flex;align-items:center;gap:0.3rem;';
+      const iconName = f.type.startsWith('image/') ? 'image' : f.type.startsWith('audio/') ? 'audiotrack' : 'videocam';
+      tag.innerHTML = `<span class="icon sm">${iconName}</span> ${f.name} (${(f.size/1024/1024).toFixed(1)}MB)`;
       preview.appendChild(tag);
     });
+  });
+
+  document.getElementById('photoIdFile').addEventListener('change', function() {
+    const label = document.getElementById('photoIdLabel');
+    label.textContent = this.files.length ? this.files[0].name : 'No file chosen';
   });
 }
 
@@ -114,8 +133,8 @@ async function detectLocation() {
       pos => {
         document.getElementById('lat').value = pos.coords.latitude.toFixed(6);
         document.getElementById('lon').value = pos.coords.longitude.toFixed(6);
-        statusEl.textContent = '✅ GPS location detected';
-        statusEl.style.color = '#2E7D32';
+        statusEl.innerHTML = '<span class="icon sm filled">check_circle</span> GPS location detected';
+        statusEl.style.color = 'var(--success)';
       },
       async () => { await fallbackIPLocation(statusEl); },
       { timeout: 5000 }
@@ -131,12 +150,12 @@ async function fallbackIPLocation(statusEl) {
     if (data.latitude && data.longitude) {
       document.getElementById('lat').value = data.latitude.toFixed(6);
       document.getElementById('lon').value = data.longitude.toFixed(6);
-      statusEl.textContent = `📡 Approximate: ${data.city || ''}, ${data.region || ''}`;
-      statusEl.style.color = '#F57F17';
+      statusEl.innerHTML = `<span class="icon sm">sensors</span> Approximate: ${data.city || ''}, ${data.region || ''}`;
+      statusEl.style.color = 'var(--warning, #F57F17)';
     }
   } catch {
-    statusEl.textContent = '❌ Location not available';
-    statusEl.style.color = '#888';
+    statusEl.innerHTML = '<span class="icon sm">error</span> Location not available';
+    statusEl.style.color = 'var(--on-surface-variant, #888)';
   }
 }
 
@@ -150,10 +169,10 @@ async function checkSpamStatus() {
       document.getElementById('formArea').style.opacity = '0.4';
       document.getElementById('formArea').style.pointerEvents = 'none';
       if (status.photo_id_status === 'pending_review') {
-        document.getElementById('photoIdStatus').textContent = '⏳ Your photo ID is pending admin review.';
+        document.getElementById('photoIdStatus').innerHTML = '<span class="icon sm">schedule</span> Your photo ID is pending admin review.';
         document.getElementById('photoIdUploadArea').querySelector('button').disabled = true;
       } else if (status.photo_id_status === 'rejected') {
-        document.getElementById('photoIdStatus').textContent = '❌ Photo ID rejected. Please upload a clearer image.';
+        document.getElementById('photoIdStatus').innerHTML = '<span class="icon sm">error</span> Photo ID rejected. Please upload a clearer image.';
       }
     }
   } catch {}
@@ -171,7 +190,7 @@ async function uploadPhotoId() {
     });
     if (!res.ok) throw new Error((await res.json()).detail || 'Upload failed');
     showToast('Photo ID uploaded for review');
-    document.getElementById('photoIdStatus').textContent = '⏳ Pending admin review.';
+    document.getElementById('photoIdStatus').innerHTML = '<span class="icon sm">schedule</span> Pending admin review.';
   } catch (e) { showToast(e.message, 'error'); }
 }
 
@@ -214,26 +233,26 @@ async function submitGrievance(e) {
     document.getElementById('resultArea').classList.remove('hidden');
     let schemeHtml = '';
     if (result.scheme_match) {
-      schemeHtml = `<div class="glass" style="padding:1rem;border-radius:12px;margin-top:1rem;border:1px solid rgba(76,175,80,0.3);">
-        <strong>🎯 Matching Scheme:</strong> ${escapeHtml(result.scheme_match.scheme_name)}<br>
+      schemeHtml = `<div class="card" style="padding:1rem;border-radius:12px;margin-top:1rem;background:var(--success-container);border:1px solid rgba(76,175,80,0.3);">
+        <strong><span class="icon sm">auto_awesome</span> Matching Scheme:</strong> ${escapeHtml(result.scheme_match.scheme_name)}<br>
         <span class="text-sm">${escapeHtml(result.scheme_match.eligibility_reasoning || '')}</span>
         <br><a href="/scheme-detail?id=${encodeURIComponent(result.scheme_match.scheme_id)}" class="text-sm">Learn more →</a>
       </div>`;
     }
     let impactHtml = result.impact_score != null ? `<span class="badge" style="background:${impactColor(result.impact_score)};color:#fff;font-size:0.85rem;">Impact: ${result.impact_score}/100</span>` : '';
     document.getElementById('resultArea').innerHTML = `
-      <div class="result-card glass-strong">
-        <div style="font-size:3rem;margin-bottom:0.5rem;">✅</div>
+      <div class="result-card card">
+        <div style="font-size:3rem;margin-bottom:0.5rem;"><span class="icon filled" style="font-size:3rem;">check_circle</span></div>
         <h2>Grievance Submitted Successfully</h2>
         <div class="tracking-number">${escapeHtml(result.tracking_number)}</div>
         <div class="mb-2">${statusBadge(result.status)} ${deptBadge(result.department)} ${priorityBadge(result.priority)} ${impactHtml}</div>
-        ${result.ai_resolution && result.resolution_tier === 'self_resolvable' ? `<div class="resolution-box ai mt-2" style="text-align:left;"><div class="resolution-header">🤖 AI Guidance</div><div class="resolution-content">${renderMarkdown(result.ai_resolution)}</div></div>` : ''}
+        ${result.ai_resolution && result.resolution_tier === 'self_resolvable' ? `<div class="resolution-box ai mt-2" style="text-align:left;"><div class="resolution-header"><span class="icon sm">smart_toy</span> AI Guidance</div><div class="resolution-content">${renderMarkdown(result.ai_resolution)}</div></div>` : ''}
         ${schemeHtml}
         <div class="mt-3"><a href="/dashboard" class="btn btn-primary">Back to Dashboard</a> <a href="/file-grievance" class="btn btn-secondary" onclick="location.reload()">File Another</a></div>
       </div>`;
   } catch (err) {
     showToast(err.message || 'Failed to submit', 'error');
-    btn.textContent = '🚀 Submit Grievance'; btn.disabled = false;
+    btn.innerHTML = '<span class="icon sm">send</span> Submit Grievance'; btn.disabled = false;
   }
 }
 

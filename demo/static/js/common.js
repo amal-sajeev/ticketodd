@@ -143,7 +143,8 @@ function renderMarkdown(text) {
 function showToast(message, type = 'success') {
   const el = document.createElement('div');
   el.className = `toast toast-${type}`;
-  el.textContent = message;
+  const iconName = type === 'success' ? 'check_circle' : 'error';
+  el.innerHTML = `<span class="icon filled" style="font-size:18px;">${iconName}</span> ${escapeHtml(message)}`;
   document.body.appendChild(el);
   setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 3000);
 }
@@ -184,20 +185,20 @@ function renderNav() {
   const bellHtml = (user.role === 'admin') ? `
     <div class="notif-bell-wrap" id="notifBellWrap">
       <button class="notif-bell" id="notifBell" onclick="toggleNotifDropdown()" title="SLA Alerts">
-        🔔<span class="notif-badge" id="notifBadge" style="display:none;">0</span>
+        <span class="icon">notifications</span><span class="notif-badge" id="notifBadge" style="display:none;">0</span>
       </button>
       <div class="notif-dropdown" id="notifDropdown">
-        <div class="notif-dropdown-header">⚠️ SLA Deadline Alerts</div>
+        <div class="notif-dropdown-header"><span class="icon" style="font-size:18px;color:var(--warning);">warning</span> SLA Deadline Alerts</div>
         <div class="notif-dropdown-body" id="notifDropdownBody">
           <div style="padding:1rem;text-align:center;opacity:0.6;">Loading…</div>
         </div>
-        <a href="/admin" class="notif-dropdown-footer">View All in Admin Panel →</a>
+        <a href="/admin" class="notif-dropdown-footer">View All in Admin Panel</a>
       </div>
     </div>` : '';
 
   nav.innerHTML = `
     <a class="logo" href="${user.role === 'citizen' ? '/dashboard' : '/officer-dashboard'}">
-      <span>🏛️</span> PR&DW Portal
+      <span class="icon filled">account_balance</span> PR&DW Portal
     </a>
     <div class="nav-links">${links}</div>
     <div class="nav-user">
@@ -275,15 +276,15 @@ async function fetchNotifAlerts() {
     const body = document.getElementById('notifDropdownBody');
     if (!body) return;
     if (data.total_alerts === 0) {
-      body.innerHTML = '<div style="padding:1.25rem;text-align:center;color:#2E7D32;font-weight:600;">✅ All clear — no alerts</div>';
+      body.innerHTML = '<div style="padding:1.25rem;text-align:center;color:var(--success);font-weight:600;"><span class="icon filled" style="font-size:20px;vertical-align:middle;">check_circle</span> All clear — no alerts</div>';
       return;
     }
     let html = '';
     const items = [
-      ...data.breached.map(g => ({ ...g, sev: 'breached', icon: '🚨' })),
-      ...data.critical.map(g => ({ ...g, sev: 'critical', icon: '⏰' })),
-      ...data.warning.map(g => ({ ...g, sev: 'warning', icon: '⚡' })),
-    ].slice(0, 8); // Show max 8 in dropdown
+      ...data.breached.map(g => ({ ...g, sev: 'breached', icon: '<span class="icon filled" style="color:var(--error);font-size:18px;">error</span>' })),
+      ...data.critical.map(g => ({ ...g, sev: 'critical', icon: '<span class="icon" style="color:var(--warning);font-size:18px;">schedule</span>' })),
+      ...data.warning.map(g => ({ ...g, sev: 'warning', icon: '<span class="icon" style="color:#FDD835;font-size:18px;">bolt</span>' })),
+    ].slice(0, 8);
     items.forEach(g => {
       const timeText = _notifCountdown(g.sla_deadline, g.sev);
       html += `<a href="/grievance-detail?id=${encodeURIComponent(g.id)}" class="notif-item notif-${g.sev}">

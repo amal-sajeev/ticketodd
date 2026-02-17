@@ -12,10 +12,7 @@
 {% endblock %}
 {% block scripts %}
 <style>
-.date-group-header { display:flex;align-items:center;gap:0.75rem;padding:0.6rem 0;margin-top:1rem;border-bottom:2px solid rgba(0,0,0,0.08); }
-.date-group-header h3 { margin:0;font-size:1rem;font-weight:700; }
-.date-group-header .count { background:rgba(0,0,0,0.06);padding:0.15rem 0.5rem;border-radius:10px;font-size:0.8rem; }
-.impact-badge { display:inline-block;padding:0.15rem 0.5rem;border-radius:10px;font-size:0.75rem;font-weight:700;color:#fff;margin-left:0.3rem; }
+/* date-group-header and impact-badge styles are now in the main stylesheet */
 </style>
 <script>
 if (!requireAuth()) {}
@@ -37,14 +34,14 @@ async function loadDashboard() {
     const inProgress = grievances.filter(g => g.status === 'in_progress').length;
 
     document.getElementById('metrics').innerHTML = `
-      <div class="metric-card glass card-animate"><div class="metric-icon">📋</div><div class="metric-value">${total}</div><div class="metric-label">Total Filed</div></div>
-      <div class="metric-card glass card-animate"><div class="metric-icon">✅</div><div class="metric-value">${resolved}</div><div class="metric-label">Resolved</div></div>
-      <div class="metric-card glass card-animate"><div class="metric-icon">⏳</div><div class="metric-value">${pending}</div><div class="metric-label">Pending</div></div>
-      <div class="metric-card glass card-animate"><div class="metric-icon">🔄</div><div class="metric-value">${inProgress}</div><div class="metric-label">In Progress</div></div>`;
+      <div class="metric-card card-animate"><div class="metric-icon blue"><span class="icon">assignment</span></div><div class="metric-value">${total}</div><div class="metric-label">Total Filed</div></div>
+      <div class="metric-card card-animate"><div class="metric-icon green"><span class="icon">check_circle</span></div><div class="metric-value">${resolved}</div><div class="metric-label">Resolved</div></div>
+      <div class="metric-card card-animate"><div class="metric-icon amber"><span class="icon">schedule</span></div><div class="metric-value">${pending}</div><div class="metric-label">Pending</div></div>
+      <div class="metric-card card-animate"><div class="metric-icon blue"><span class="icon">sync</span></div><div class="metric-value">${inProgress}</div><div class="metric-label">In Progress</div></div>`;
 
     const list = document.getElementById('grievanceList');
     if (!grievances.length) {
-      list.innerHTML = '<div class="glass card" style="text-align:center;padding:2rem;"><p>No grievances filed yet.</p><a href="/file-grievance" class="btn btn-primary mt-2">File Your First Grievance</a></div>';
+      list.innerHTML = '<div class="card" style="text-align:center;padding:2rem;"><p>No grievances filed yet.</p><a href="/file-grievance" class="btn btn-primary mt-2">File Your First Grievance</a></div>';
       return;
     }
 
@@ -58,13 +55,13 @@ async function loadDashboard() {
 
     let html = '';
     for (const [date, items] of Object.entries(groups)) {
-      html += `<div class="date-group-header"><h3>📅 ${date}</h3><span class="count">${items.length} grievance${items.length !== 1 ? 's' : ''}</span></div>`;
+      html += `<div class="date-group-header"><span class="icon sm">calendar_today</span><h3>${date}</h3><span class="count">${items.length} grievance${items.length !== 1 ? 's' : ''}</span></div>`;
       html += items.map(g => {
         let selfResolvePrompt = '';
         if (g.resolution_tier === 'self_resolvable' && g.status === 'pending' && g.ai_resolution) {
           selfResolvePrompt = `
-            <div style="margin-top:0.75rem;padding:0.75rem 1rem;background:rgba(76,175,80,0.08);border-radius:0.75rem;border:1px solid rgba(76,175,80,0.25);">
-              <p style="font-size:0.85rem;font-weight:600;margin-bottom:0.4rem;">AI guidance available — did it help?</p>
+            <div style="margin-top:0.75rem;padding:0.75rem 1rem;background:var(--success-container);border-radius:var(--radius-sm);border:1px solid rgba(30,142,62,0.2);">
+              <p style="font-size:0.85rem;font-weight:600;margin-bottom:0.4rem;"><span class="icon sm" style="color:var(--success);">auto_awesome</span> AI guidance available — did it help?</p>
               <div style="display:flex;gap:0.5rem;">
                 <button class="btn btn-success btn-sm confirm-yes-btn" style="font-size:.78rem;" data-tracking="${escapeHtml(g.tracking_number)}">Yes, resolved</button>
                 <button class="btn btn-secondary btn-sm confirm-no-btn" style="font-size:.78rem;" data-tracking="${escapeHtml(g.tracking_number)}">No, need help</button>
@@ -74,7 +71,7 @@ async function loadDashboard() {
         }
         const impactBadge = g.impact_score != null ? `<span class="impact-badge" style="background:${impactColor(g.impact_score)}">${g.impact_score}</span>` : '';
         return `
-          <div class="grievance-card glass card-animate status-${g.status}" data-gid="${escapeHtml(g.id)}" style="cursor:pointer;">
+          <div class="grievance-card card-animate status-${g.status}" data-gid="${escapeHtml(g.id)}" style="cursor:pointer;">
             <h4>#${escapeHtml(g.tracking_number)} — ${escapeHtml(g.title)}</h4>
             <div class="badges">
               ${statusBadge(g.status)} ${deptBadge(g.department)} ${priorityBadge(g.priority)} ${impactBadge}

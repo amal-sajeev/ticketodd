@@ -10,9 +10,9 @@
 <style>
 .issue-header { padding:1.5rem;border-left:6px solid #9C27B0; }
 .linked-grievance { padding:0.6rem 0.8rem;margin-bottom:0.4rem;cursor:pointer;transition:background 0.2s; }
-.linked-grievance:hover { background:rgba(255,255,255,0.3); }
+.linked-grievance:hover { background:var(--primary-container-low); }
 .severity-badge { display:inline-block;padding:0.2rem 0.6rem;border-radius:8px;font-size:0.82rem;font-weight:600; }
-.status-select { padding:0.3rem 0.6rem;border-radius:8px;border:1px solid rgba(0,0,0,0.15);font-size:0.85rem; }
+.status-select { padding:0.3rem 0.6rem;border-radius:8px;border:1px solid var(--outline-variant, rgba(0,0,0,0.15));font-size:0.85rem; }
 </style>
 <script>
 if (requireAuth()) loadIssue();
@@ -31,13 +31,13 @@ async function loadIssue() {
     const statusColors = { detected: '#EF5350', acknowledged: '#FFB74D', in_progress: '#42A5F5', resolved: '#66BB6A' };
 
     document.getElementById('issueContent').innerHTML = `
-      <div class="glass-strong card issue-header mb-3">
+      <div class="card issue-header mb-3">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;">
           <div>
-            <h1 style="margin:0 0 0.5rem;">🔴 ${escapeHtml(issue.title)}</h1>
+            <h1 style="margin:0 0 0.5rem;"><span class="icon sm filled">error</span> ${escapeHtml(issue.title)}</h1>
             <div class="badges mb-1">
               <span class="badge badge-dept">${escapeHtml(deptLabel(issue.department))}</span>
-              <span class="badge badge-dept">📍 ${escapeHtml(issue.district || 'N/A')}</span>
+              <span class="badge badge-dept"><span class="icon sm">location_on</span> ${escapeHtml(issue.district || 'N/A')}</span>
               <span class="badge badge-priority-${escapeHtml(issue.priority)}">${escapeHtml(issue.priority)}</span>
               <span class="severity-badge" style="background:${statusColors[issue.status] || '#888'};color:#fff;">${escapeHtml(issue.status)}</span>
             </div>
@@ -51,19 +51,19 @@ async function loadIssue() {
 
       <div class="two-col">
         <div>
-          <div class="glass-strong card" style="padding:1.5rem;">
+          <div class="card" style="padding:1.5rem;">
             <h3>Root Cause Analysis</h3>
             <p style="line-height:1.7;">${escapeHtml(issue.root_cause_analysis)}</p>
           </div>
 
-          <div class="glass-strong card mt-2" style="padding:1.5rem;">
-            <h3>🔗 Linked Grievances (${issue.grievance_ids?.length || 0})</h3>
+          <div class="card mt-2" style="padding:1.5rem;">
+            <h3><span class="icon sm">link</span> Linked Grievances (${issue.grievance_ids?.length || 0})</h3>
             <div id="linkedGrievances"><div class="spinner"><span></span><span></span><span></span></div></div>
           </div>
         </div>
 
         <div>
-          <div class="glass-strong card" style="padding:1.5rem;">
+          <div class="card" style="padding:1.5rem;">
             <h3>Actions</h3>
             <div class="form-group"><label>Update Status</label>
               <select class="form-control status-select" id="issueStatus">
@@ -74,7 +74,7 @@ async function loadIssue() {
               </select></div>
             <button class="btn btn-primary btn-block btn-sm mb-2" id="updateStatusBtn">Update Status</button>
 
-            <hr style="border-color:rgba(255,255,255,0.2);margin:1rem 0;">
+            <hr style="border-color:var(--outline-variant, rgba(255,255,255,0.2));margin:1rem 0;">
             <div class="form-group"><label>Assign Officer</label>
               <select class="form-control" id="issueOfficer"><option value="">-- Select --</option>${officerOptions}</select></div>
             <button class="btn btn-secondary btn-block btn-sm" id="assignOfficerBtn">Assign</button>
@@ -95,7 +95,7 @@ async function loadIssue() {
 
     // Load linked grievances
     loadLinkedGrievances(issue.grievance_ids || []);
-  } catch (e) { document.getElementById('issueContent').innerHTML = `<p style="color:#C62828;">Error: ${escapeHtml(e.message)}</p>`; }
+  } catch (e) { document.getElementById('issueContent').innerHTML = `<p style="color:var(--error);">Error: ${escapeHtml(e.message)}</p>`; }
 }
 
 async function loadLinkedGrievances(ids) {
@@ -107,9 +107,9 @@ async function loadLinkedGrievances(ids) {
     const linked = all.filter(g => ids.includes(g.id));
     if (!linked.length) { el.innerHTML = '<p class="text-sm text-muted">Linked grievances not accessible.</p>'; return; }
     el.innerHTML = linked.map(g => `
-      <div class="linked-grievance glass" style="border-radius:8px;" onclick="window.location.href='/grievance-detail?id=${encodeURIComponent(g.id)}'">
+      <div class="linked-grievance card" style="border-radius:8px;" onclick="window.location.href='/grievance-detail?id=${encodeURIComponent(g.id)}'">
         <strong>#${escapeHtml(g.tracking_number)}</strong> — ${escapeHtml(g.title)}
-        <div class="badges" style="margin-top:0.3rem;">${statusBadge(g.status)} ${priorityBadge(g.priority)} <span class="badge badge-dept">📍 ${escapeHtml(g.district || 'N/A')}</span></div>
+        <div class="badges" style="margin-top:0.3rem;">${statusBadge(g.status)} ${priorityBadge(g.priority)} <span class="badge badge-dept"><span class="icon sm">location_on</span> ${escapeHtml(g.district || 'N/A')}</span></div>
       </div>`).join('');
   } catch { el.innerHTML = '<p class="text-sm text-muted">Could not load linked grievances.</p>'; }
 }

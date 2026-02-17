@@ -25,7 +25,7 @@ function addBubble(role, html) {
     if (!group || !group.classList.contains('bot-group')) {
       group = document.createElement('div');
       group.className = 'bot-group';
-      group.innerHTML = `<div class="bot-header"><div class="bot-avatar">🏛️</div><span class="bot-name">${BOT_NAME}</span></div>`;
+      group.innerHTML = `<div class="bot-header"><div class="bot-avatar"><span class="icon filled" style="color:#fff;font-size:16px;">smart_toy</span></div><span class="bot-name">${BOT_NAME}</span></div>`;
       messagesEl.appendChild(group);
     }
     const div = document.createElement('div');
@@ -82,13 +82,13 @@ function addFiledGrievance(fg) {
   if (!group || !group.classList.contains('bot-group')) {
     group = document.createElement('div');
     group.className = 'bot-group';
-    group.innerHTML = `<div class="bot-header"><div class="bot-avatar">🏛️</div><span class="bot-name">${BOT_NAME}</span></div>`;
+    group.innerHTML = `<div class="bot-header"><div class="bot-avatar"><span class="icon filled" style="color:#fff;font-size:16px;">smart_toy</span></div><span class="bot-name">${BOT_NAME}</span></div>`;
     messagesEl.appendChild(group);
   }
   const div = document.createElement('div');
   div.className = 'chat-filed-grievance';
   div.innerHTML = `
-    <h4>✅ Grievance Filed Successfully</h4>
+    <h4><span class="icon filled" style="font-size:16px;color:var(--success);">check_circle</span> Grievance Filed Successfully</h4>
     <p><strong>Tracking:</strong> <a href="/track">${escapeHtml(fg.tracking_number)}</a></p>
     <p>${statusBadge(fg.status)} ${deptBadge(fg.department)} ${priorityBadge(fg.priority)}</p>`;
   group.appendChild(div);
@@ -101,7 +101,7 @@ function showTyping() {
   if (!group || !group.classList.contains('bot-group')) {
     group = document.createElement('div');
     group.className = 'bot-group';
-    group.innerHTML = `<div class="bot-header"><div class="bot-avatar">🏛️</div><span class="bot-name">${BOT_NAME}</span></div>`;
+    group.innerHTML = `<div class="bot-header"><div class="bot-avatar"><span class="icon filled" style="color:#fff;font-size:16px;">smart_toy</span></div><span class="bot-name">${BOT_NAME}</span></div>`;
     messagesEl.appendChild(group);
   }
   const div = document.createElement('div');

@@ -2,9 +2,9 @@
 {% block title %}Grievance Queue — PR&DW Portal{% endblock %}
 {% block content %}
 <div class="main-content wide">
-  <h1>📋 Grievance Queue</h1>
+  <h1><span class="icon" style="font-size:28px;">list_alt</span> Grievance Queue</h1>
   <p class="subtitle">Filter and manage citizen grievances</p>
-  <div class="glass filter-bar">
+  <div class="filter-bar">
     <div class="form-group"><label>Status</label>
       <select class="form-control" id="fStatus"><option value="">All</option><option value="pending">Pending</option><option value="in_progress">In Progress</option><option value="resolved">Resolved</option><option value="escalated">Escalated</option></select></div>
     <div class="form-group"><label>Department</label><select class="form-control" id="fDept"></select></div>
@@ -21,14 +21,7 @@
 {% endblock %}
 {% block scripts %}
 <style>
-.date-group-header { display:flex;align-items:center;gap:0.75rem;padding:0.6rem 0;margin-top:1rem;border-bottom:2px solid rgba(0,0,0,0.08); }
-.date-group-header h3 { margin:0;font-size:1rem;font-weight:700; }
-.date-group-header .count { background:rgba(0,0,0,0.06);padding:0.15rem 0.5rem;border-radius:10px;font-size:0.8rem; }
-.impact-circle-sm { display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;font-weight:700;font-size:0.8rem;color:#fff; }
-.breach-indicator { display:inline-block;padding:0.1rem 0.4rem;border-radius:6px;font-size:0.7rem;font-weight:700;background:rgba(239,83,80,0.2);color:#C62828;animation:pulse 1.5s infinite; }
-@keyframes pulse { 0%,100%{opacity:1;}50%{opacity:0.5;} }
-.multi-dept-badge { display:inline-block;padding:0.1rem 0.4rem;border-radius:6px;font-size:0.7rem;font-weight:600;background:rgba(21,101,192,0.15);color:#1565C0; }
-.systemic-badge { display:inline-block;padding:0.1rem 0.4rem;border-radius:6px;font-size:0.7rem;font-weight:600;background:rgba(156,39,176,0.15);color:#7B1FA2; }
+/* Queue-specific styles are now in the main stylesheet */
 </style>
 <script>
 if (requireAuth()) {
@@ -64,7 +57,7 @@ async function loadQueue() {
     if (search) grievances = grievances.filter(g => g.title.toLowerCase().includes(search) || g.description.toLowerCase().includes(search));
     document.getElementById('queueCount').textContent = `${grievances.length} grievances found`;
     const list = document.getElementById('queueList');
-    if (!grievances.length) { list.innerHTML = '<div class="glass card text-center" style="padding:2rem;">No matching grievances.</div>'; return; }
+    if (!grievances.length) { list.innerHTML = '<div class="card text-center" style="padding:2rem;">No matching grievances.</div>'; return; }
 
     const now = new Date();
     if (sortBy === 'date') {
@@ -77,7 +70,7 @@ async function loadQueue() {
       });
       let html = '';
       for (const [date, items] of Object.entries(groups)) {
-        html += `<div class="date-group-header"><h3>📅 ${date}</h3><span class="count">${items.length}</span></div>`;
+        html += `<div class="date-group-header"><span class="icon sm">calendar_today</span><h3>${date}</h3><span class="count">${items.length}</span></div>`;
         html += items.map(g => renderQueueCard(g, now)).join('');
       }
       list.innerHTML = html;
@@ -93,12 +86,12 @@ async function loadQueue() {
 function renderQueueCard(g, now) {
   const breached = (g.sla_deadline && new Date(g.sla_deadline) < now && g.status !== 'resolved') ||
                    (g.estimated_resolution_deadline && new Date(g.estimated_resolution_deadline) < now && g.status !== 'resolved');
-  const breachBadge = breached ? '<span class="breach-indicator">⏰ DEADLINE BREACHED</span>' : '';
+  const breachBadge = breached ? '<span class="breach-indicator"><span class="icon sm">schedule</span> DEADLINE BREACHED</span>' : '';
   const impactBadge = g.impact_score != null ? `<span class="impact-circle-sm" style="background:${impactColor(g.impact_score)}">${g.impact_score}</span>` : '';
-  const multiDept = g.sub_tasks?.length > 0 ? '<span class="multi-dept-badge">🔗 Multi-Dept</span>' : '';
-  const systemic = g.systemic_issue_id ? '<span class="systemic-badge">🔴 Systemic</span>' : '';
+  const multiDept = g.sub_tasks?.length > 0 ? '<span class="multi-dept-badge"><span class="icon sm">link</span> Multi-Dept</span>' : '';
+  const systemic = g.systemic_issue_id ? '<span class="systemic-badge"><span class="icon sm">error</span> Systemic</span>' : '';
   return `
-    <div class="grievance-card glass card-animate status-${escapeHtml(g.status)} queue-card" data-id="${escapeHtml(g.id)}" style="cursor:pointer;">
+    <div class="grievance-card card-animate status-${escapeHtml(g.status)} queue-card" data-id="${escapeHtml(g.id)}" style="cursor:pointer;">
       <div style="display:flex;align-items:center;gap:0.5rem;">
         ${impactBadge}
         <h4 style="margin:0;flex:1;">#${escapeHtml(g.tracking_number)} — ${escapeHtml(g.title)}</h4>
@@ -106,8 +99,8 @@ function renderQueueCard(g, now) {
       <p style="margin:0.3rem 0;">${escapeHtml(g.description).substring(0, 140)}...</p>
       <div class="badges">
         ${statusBadge(g.status)} ${deptBadge(g.department)} ${priorityBadge(g.priority)}
-        <span class="badge badge-dept">📍 ${escapeHtml(g.district || 'N/A')}</span>
-        <span class="badge badge-dept">${g.is_anonymous ? '🕵️ Anonymous' : '👤 ' + escapeHtml(g.citizen_name || 'N/A')}</span>
+        <span class="badge badge-dept"><span class="icon sm">location_on</span> ${escapeHtml(g.district || 'N/A')}</span>
+        <span class="badge badge-dept">${g.is_anonymous ? '<span class="icon sm">visibility_off</span> Anonymous' : '<span class="icon sm">person</span> ' + escapeHtml(g.citizen_name || 'N/A')}</span>
         ${breachBadge} ${multiDept} ${systemic}
       </div>
     </div>`;

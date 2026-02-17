@@ -9,18 +9,18 @@
 {% block scripts %}
 <style>
 .deadline-badge { display:inline-block;padding:0.2rem 0.6rem;border-radius:8px;font-size:0.82rem;font-weight:600; }
-.deadline-green { background:rgba(76,175,80,0.15);color:#2E7D32; }
-.deadline-yellow { background:rgba(255,183,77,0.2);color:#E65100; }
-.deadline-red { background:rgba(239,83,80,0.15);color:#C62828; }
-.deadline-breached { background:rgba(239,83,80,0.25);color:#C62828;animation:pulse 1.5s infinite; }
+.deadline-green { background:var(--success-container);color:var(--success); }
+.deadline-yellow { background:var(--primary-container-low);color:#E65100; }
+.deadline-red { background:var(--error-container);color:var(--error); }
+.deadline-breached { background:var(--error-container);color:var(--error);animation:pulse 1.5s infinite; }
 @keyframes pulse { 0%,100%{opacity:1;}50%{opacity:0.5;} }
 .impact-circle { display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:50%;font-weight:700;font-size:1.1rem;color:#fff; }
 .attachment-grid { display:flex;flex-wrap:wrap;gap:0.75rem;margin-top:0.5rem; }
-.attachment-item { background:rgba(255,255,255,0.3);border-radius:10px;padding:0.5rem;text-align:center;max-width:160px; }
+.attachment-item { background:var(--primary-container-low);border-radius:10px;padding:0.5rem;text-align:center;max-width:160px; }
 .attachment-item img { max-width:140px;max-height:100px;border-radius:6px; }
-.sub-task-card { background:rgba(255,255,255,0.2);border-radius:10px;padding:0.75rem;margin-bottom:0.5rem;border-left:4px solid #42A5F5; }
+.sub-task-card { background:var(--primary-container-low);border-radius:10px;padding:0.75rem;margin-bottom:0.5rem;border-left:4px solid var(--primary); }
 .sub-task-card.resolved { border-left-color:#66BB6A;opacity:0.7; }
-.scheme-match-card { background:rgba(76,175,80,0.08);border:1px solid rgba(76,175,80,0.25);border-radius:12px;padding:1rem;margin-top:1rem; }
+.scheme-match-card { background:var(--success-container);border:1px solid rgba(76,175,80,0.25);border-radius:12px;padding:1rem;margin-top:1rem; }
 </style>
 <script>
 let officersList = [];
@@ -81,10 +81,10 @@ async function loadDetail() {
     let schemeHtml = '';
     if (g.scheme_match) {
       schemeHtml = `<div class="scheme-match-card">
-        <strong>🎯 Matching Government Scheme</strong><br>
+        <strong><span class="icon sm">auto_awesome</span> Matching Government Scheme</strong><br>
         <span style="font-size:1.05rem;font-weight:600;">${escapeHtml(g.scheme_match.scheme_name)}</span>
         <span class="badge badge-dept" style="margin-left:0.5rem;">${Math.round(g.scheme_match.relevance_score * 100)}% match</span><br>
-        <span class="text-sm">${g.scheme_match.eligibility_likely ? '✅ Likely eligible' : '❓ Eligibility uncertain'}: ${escapeHtml(g.scheme_match.eligibility_reasoning || '')}</span>
+        <span class="text-sm">${g.scheme_match.eligibility_likely ? '<span class="icon sm filled">check_circle</span> Likely eligible' : '<span class="icon sm">help</span> Eligibility uncertain'}: ${escapeHtml(g.scheme_match.eligibility_reasoning || '')}</span>
         <br><a href="/scheme-detail?id=${encodeURIComponent(g.scheme_match.scheme_id)}" class="text-sm">View scheme details →</a>
       </div>`;
     }
@@ -92,7 +92,7 @@ async function loadDetail() {
     // Sub-tasks (cross-department dependencies)
     let subTasksHtml = '';
     if (g.sub_tasks && g.sub_tasks.length > 0) {
-      subTasksHtml = `<h3 class="mt-2">🔗 Cross-Department Tasks</h3>` +
+      subTasksHtml = `<h3 class="mt-2"><span class="icon sm">link</span> Cross-Department Tasks</h3>` +
         g.sub_tasks.map(st => `
           <div class="sub-task-card ${st.status === 'resolved' ? 'resolved' : ''}">
             <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -103,7 +103,7 @@ async function loadDetail() {
             <span class="text-sm text-muted">Assigned: ${escapeHtml(st.assigned_officer || 'Unassigned')}</span>
             ${!isCitizen && st.status !== 'resolved' ? `
               <div style="margin-top:0.5rem;display:flex;gap:0.3rem;">
-                <button class="btn btn-success btn-sm subtask-resolve-btn" data-gid="${escapeHtml(g.id)}" data-stid="${escapeHtml(st.id)}">✓ Resolve</button>
+                <button class="btn btn-success btn-sm subtask-resolve-btn" data-gid="${escapeHtml(g.id)}" data-stid="${escapeHtml(st.id)}"><span class="icon sm">check_circle</span> Resolve</button>
                 <button class="btn btn-secondary btn-sm subtask-assign-btn" data-gid="${escapeHtml(g.id)}" data-stid="${escapeHtml(st.id)}">Assign</button>
               </div>` : ''}
           </div>`).join('');
@@ -114,7 +114,7 @@ async function loadDetail() {
       <h1>#${escapeHtml(g.tracking_number)}</h1>
       <div class="two-col">
         <div>
-          <div class="glass-strong card" style="padding:1.5rem;">
+          <div class="card" style="padding:1.5rem;">
             <h3>${escapeHtml(g.title)}</h3>
             <p style="line-height:1.7;margin-bottom:1rem;">${escapeHtml(g.description)}</p>
             <div class="detail-section">
@@ -143,7 +143,7 @@ async function loadDetail() {
               let label, extra = '';
               if (isCitizen) {
                 if (tier === 'self_resolvable') {
-                  label = '🤖 AI Guidance';
+                  label = '<span class="icon sm">smart_toy</span> AI Guidance';
                   return `<div class="resolution-box ai"><div class="resolution-header">${label}</div><div class="resolution-content">${renderMarkdown(g.ai_resolution)}</div></div>`;
                 } else { return ''; }
               } else {
@@ -152,7 +152,7 @@ async function loadDetail() {
                 } else {
                   label = 'AI Draft for Review';
                   if (g.status !== 'resolved') {
-                    extra = '<div style="display:flex;gap:.5rem;margin-top:.75rem;"><button class="btn btn-success btn-sm approve-draft-btn" data-id="' + escapeHtml(g.id) + '">✓ Approve &amp; Send</button><button class="btn btn-primary btn-sm edit-draft-btn" data-id="' + escapeHtml(g.id) + '">✎ Edit &amp; Send</button></div>';
+                    extra = '<div style="display:flex;gap:.5rem;margin-top:.75rem;"><button class="btn btn-success btn-sm approve-draft-btn" data-id="' + escapeHtml(g.id) + '"><span class="icon sm">check_circle</span> Approve &amp; Send</button><button class="btn btn-primary btn-sm edit-draft-btn" data-id="' + escapeHtml(g.id) + '"><span class="icon sm">edit</span> Edit &amp; Send</button></div>';
                   }
                 }
                 return '<div class="resolution-box ai"><div class="resolution-header">' + label + ' (' + Math.round((g.confidence_score||0)*100) + '% confidence)</div><div class="resolution-content">' + renderMarkdown(g.ai_resolution) + '</div>' + extra + '</div>';
@@ -160,25 +160,25 @@ async function loadDetail() {
             })() : ''}
             ${g.manual_resolution ? `<div class="resolution-box manual"><div class="resolution-header">Officer Resolution</div><div class="resolution-content">${renderMarkdown(g.manual_resolution)}</div></div>` : ''}
             ${subTasksHtml}
-            ${g.notes?.length ? '<h3 class="mt-2">📝 Notes</h3>' + g.notes.map(n => `<div class="note-item"><div class="note-meta">${escapeHtml(n.officer)} · ${escapeHtml(n.note_type)} · ${formatDate(n.created_at)}</div><p>${escapeHtml(n.content)}</p></div>`).join('') : ''}
+            ${g.notes?.length ? '<h3 class="mt-2"><span class="icon sm">description</span> Notes</h3>' + g.notes.map(n => `<div class="note-item"><div class="note-meta">${escapeHtml(n.officer)} · ${escapeHtml(n.note_type)} · ${formatDate(n.created_at)}</div><p>${escapeHtml(n.content)}</p></div>`).join('') : ''}
           </div>
         </div>
         ${isCitizen ? `
         <div>
-          <div class="glass-strong card" style="padding:1.5rem;">
+          <div class="card" style="padding:1.5rem;">
             <h3>Feedback</h3>
-            ${g.status === 'resolved' ? '<p style="color:#2E7D32;font-weight:600;">✅ This grievance has been resolved.</p>' : '<p>Your grievance is being processed.</p>'}
+            ${g.status === 'resolved' ? '<p style="color:var(--success);font-weight:600;"><span class="icon sm filled">check_circle</span> This grievance has been resolved.</p>' : '<p>Your grievance is being processed.</p>'}
             ${g.ai_resolution && g.resolution_tier === 'self_resolvable' && g.status === 'pending' ? `
-              <hr style="border-color:rgba(255,255,255,0.2);margin:1rem 0;">
+              <hr style="border-color:var(--outline-variant, rgba(255,255,255,0.2));margin:1rem 0;">
               <p style="font-weight:600;">Did the AI guidance help?</p>
               <div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
-                <button class="btn btn-success btn-sm citizen-confirm-yes" data-tracking="${escapeHtml(g.tracking_number)}">✓ Yes, resolved</button>
-                <button class="btn btn-secondary btn-sm citizen-confirm-no" data-tracking="${escapeHtml(g.tracking_number)}">✗ No, need help</button>
+                <button class="btn btn-success btn-sm citizen-confirm-yes" data-tracking="${escapeHtml(g.tracking_number)}"><span class="icon sm">check_circle</span> Yes, resolved</button>
+                <button class="btn btn-secondary btn-sm citizen-confirm-no" data-tracking="${escapeHtml(g.tracking_number)}"><span class="icon sm">close</span> No, need help</button>
               </div>` : ''}
           </div>
         </div>` : `
         <div>
-          <div class="glass-strong card" style="padding:1.5rem;">
+          <div class="card" style="padding:1.5rem;">
             <h3>Actions</h3>
             <div class="form-group"><label>Update Status</label>
               <select class="form-control" id="newStatus">
@@ -188,16 +188,16 @@ async function loadDetail() {
                 <option value="escalated"${g.status==='escalated'?' selected':''}>Escalated</option>
               </select></div>
             <button class="btn btn-primary btn-block btn-sm mb-2 update-status-btn" data-id="${escapeHtml(g.id)}">Update Status</button>
-            <hr style="border-color:rgba(255,255,255,0.2);margin:1rem 0;">
+            <hr style="border-color:var(--outline-variant, rgba(255,255,255,0.2));margin:1rem 0;">
             <div class="form-group"><label>Assign Officer</label>
               <select class="form-control" id="assignName"><option value="">-- Select --</option>${officerOptions}</select></div>
             <button class="btn btn-secondary btn-block btn-sm mb-2 assign-officer-btn" data-id="${escapeHtml(g.id)}">Assign</button>
-            <hr style="border-color:rgba(255,255,255,0.2);margin:1rem 0;">
+            <hr style="border-color:var(--outline-variant, rgba(255,255,255,0.2));margin:1rem 0;">
             <h3>Resolve Manually</h3>
             <div class="form-group"><textarea class="form-control" id="resolutionText" placeholder="Enter resolution..." style="min-height:160px;"></textarea></div>
             <div class="form-check mb-1"><input type="checkbox" id="addMemory" checked><label for="addMemory">Add to service memory</label></div>
             <button class="btn btn-success btn-block btn-sm mb-2 resolve-manual-btn" data-id="${escapeHtml(g.id)}">Submit Resolution</button>
-            <hr style="border-color:rgba(255,255,255,0.2);margin:1rem 0;">
+            <hr style="border-color:var(--outline-variant, rgba(255,255,255,0.2));margin:1rem 0;">
             <h3>Add Note</h3>
             <div class="form-group"><textarea class="form-control" id="noteText" placeholder="Note content..." style="min-height:60px;"></textarea></div>
             <div class="form-group"><select class="form-control" id="noteType"><option value="internal">Internal</option><option value="citizen_facing">Citizen Facing</option></select></div>
@@ -232,7 +232,7 @@ async function loadDetail() {
         });
       });
     }
-  } catch (e) { document.getElementById('detailContent').innerHTML = `<p style="color:#C62828;">Error: ${escapeHtml(e.message)}</p>`; }
+  } catch (e) { document.getElementById('detailContent').innerHTML = `<p style="color:var(--error);">Error: ${escapeHtml(e.message)}</p>`; }
 }
 
 async function loadAttachments(gid) {
@@ -240,16 +240,16 @@ async function loadAttachments(gid) {
     const atts = await api('GET', `/grievances/${gid}/attachments`);
     if (!atts || !atts.length) return;
     const section = document.getElementById('attachmentsSection');
-    section.innerHTML = '<h3 class="mt-2">📎 Attachments</h3><div class="attachment-grid">' +
+    section.innerHTML = '<h3 class="mt-2"><span class="icon sm">attach_file</span> Attachments</h3><div class="attachment-grid">' +
       atts.map(a => {
         if (a.content_type?.startsWith('image/')) {
           return `<div class="attachment-item"><img src="/attachments/${a.id}" alt="${escapeHtml(a.filename)}"><div class="text-sm">${escapeHtml(a.filename)}</div></div>`;
         } else if (a.content_type?.startsWith('audio/')) {
-          return `<div class="attachment-item">🎵<audio controls src="/attachments/${a.id}" style="width:140px;"></audio><div class="text-sm">${escapeHtml(a.filename)}</div></div>`;
+          return `<div class="attachment-item"><span class="icon sm">audiotrack</span><audio controls src="/attachments/${a.id}" style="width:140px;"></audio><div class="text-sm">${escapeHtml(a.filename)}</div></div>`;
         } else if (a.content_type?.startsWith('video/')) {
           return `<div class="attachment-item"><video controls src="/attachments/${a.id}" style="max-width:140px;max-height:100px;"></video><div class="text-sm">${escapeHtml(a.filename)}</div></div>`;
         }
-        return `<div class="attachment-item"><a href="/attachments/${a.id}" target="_blank">📄 ${escapeHtml(a.filename)}</a></div>`;
+        return `<div class="attachment-item"><a href="/attachments/${a.id}" target="_blank"><span class="icon sm">description</span> ${escapeHtml(a.filename)}</a></div>`;
       }).join('') + '</div>';
   } catch {}
 }
