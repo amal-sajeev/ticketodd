@@ -8,130 +8,91 @@
 {% endblock %}
 
 {% block content %}
-<style>
-  .auth-card {
-    max-width: 450px;
-  }
+<link rel="stylesheet" href="/static/css/auth-v2.css">
 
-  .nav-tabs {
-    border-bottom: none;
-    margin-bottom: 1rem;
-    display: flex;
-    gap: 0.5rem;
-  }
+<div class="auth-page-container">
+  <div class="auth-split-layout">
+    <!-- Left Panel: Branding -->
+    <div class="auth-left-panel">
+      <div class="auth-brand">
+        <div class="auth-logo">
+          <img src="/static/image.jpg" alt="Government of Odisha" class="auth-logo-img">
+        </div>
+        <h2>Government of Odisha</h2>
+        <p>Panchayati Raj & Drinking Water Department</p>
+      </div>
 
-  .nav-tab {
-    flex: 1;
-    text-align: center;
-    padding: 0.6rem;
-    cursor: pointer;
-    border-radius: var(--radius-sm);
-    background: var(--surface-container-low);
-    font-weight: 600;
-    font-size: 0.88rem;
-    transition: all 0.2s;
-    border: 1px solid transparent;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.35rem;
-  }
-
-  .nav-tab.active {
-    background: var(--primary-container);
-    color: var(--on-primary-container);
-    border-color: transparent;
-    box-shadow: var(--elevation-1);
-  }
-
-  .video-container {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 4/3;
-    background: #000;
-    border-radius: 12px;
-    overflow: hidden;
-    margin-bottom: 1rem;
-    display: none;
-    /* hidden by default */
-  }
-
-  .video-container.active {
-    display: block;
-  }
-
-  video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transform: scaleX(-1);
-  }
-
-  canvas {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    transform: scaleX(-1);
-  }
-
-  .status-badge {
-    position: absolute;
-    bottom: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.7);
-    color: white;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 12px;
-    backdrop-filter: blur(4px);
-  }
-</style>
-
-<div class="auth-container">
-  <div class="auth-card">
-    <div class="auth-logo-icon"><span class="icon">account_balance</span></div>
-    <h1>Welcome Back</h1>
-    <p class="auth-subtitle">Panchayati Raj & Drinking Water Department</p>
-
-    <!-- Tabs -->
-    <div class="nav-tabs">
-      <div class="nav-tab active" onclick="switchTab('password')"><span class="icon sm">key</span> Password</div>
-      <div class="nav-tab" onclick="switchTab('face')"><span class="icon sm">face</span> Face Login</div>
+      <div class="auth-features">
+        <ul class="auth-feature-list">
+          <li class="auth-feature-item">
+            <span class="icon">security</span>
+            <span>Secure Government Portal</span>
+          </li>
+          <li class="auth-feature-item">
+            <span class="icon">verified_user</span>
+            <span>24/7 Grievance Redressal</span>
+          </li>
+          <li class="auth-feature-item">
+            <span class="icon">face</span>
+            <span>Biometric Face Authentication</span>
+          </li>
+        </ul>
+        <div class="auth-footer-link">
+          © 2026 Government of Odisha
+        </div>
+      </div>
     </div>
 
-    <!-- Face Login Section -->
-    <div id="faceSection" style="display:none;">
-      <div class="video-container active" id="cameraContainer">
-        <video id="video" autoplay muted playsinline></video>
-        <canvas id="canvas"></canvas>
-        <div id="faceStatus" class="status-badge">Loading models...</div>
+    <!-- Right Panel: Login Form -->
+    <div class="auth-right-panel">
+      <div class="auth-header">
+        <h3>Welcome Back</h3>
+        <p>Sign in to access your portal</p>
       </div>
-      <p class="text-xs text-center text-muted mb-3" id="faceHint">
-        Position your face in the frame
-      </p>
+
+      <!-- Tabs -->
+      <div class="nav-tabs">
+        <div class="nav-tab active" onclick="switchTab('password')">
+          <span class="icon sm">key</span> Password
+        </div>
+        <div class="nav-tab" onclick="switchTab('face')">
+          <span class="icon sm">face</span> Face Login
+        </div>
+      </div>
+
+      <!-- Face Login Section -->
+      <div id="faceSection" style="display:none;">
+        <div class="video-container active" id="cameraContainer">
+          <video id="video" autoplay muted playsinline></video>
+          <canvas id="canvas"></canvas>
+          <div id="faceStatus" class="status-badge">Loading models...</div>
+        </div>
+        <p class="text-xs text-center text-muted mb-3" id="faceHint">
+          Position your face in the frame
+        </p>
+      </div>
+
+      <!-- Password Form -->
+      <form id="loginForm" onsubmit="return handlePasswordLogin(event)">
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" class="form-control" id="username" placeholder="Enter username / ID">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" class="form-control" id="password" placeholder="Enter your password">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block" id="loginBtn">Sign In to Portal</button>
+      </form>
+
+      <div id="loginError" class="text-sm text-center"
+        style="color:#D32F2F;margin-top:1rem;display:none;background:#ffebee;padding:0.5rem;border-radius:4px;"></div>
+
+      <div style="margin-top:1.5rem;text-align:center;font-size:0.9rem;">
+        <span style="color:#74777f;">New User?</span> <a href="/register"
+          style="color:#0f4c81;font-weight:600;text-decoration:none;">Register Here</a>
+      </div>
     </div>
-
-    <!-- Password Form -->
-    <form id="loginForm" onsubmit="return handlePasswordLogin(event)">
-      <div class="form-group">
-        <label>Username</label>
-        <input type="text" class="form-control" id="username" placeholder="Enter username">
-      </div>
-      <div class="form-group">
-        <label>Password</label>
-        <input type="password" class="form-control" id="password" placeholder="Enter password">
-      </div>
-      <button type="submit" class="btn btn-primary btn-block" id="loginBtn">Sign In</button>
-    </form>
-
-    <div id="loginError" class="text-sm text-center" style="color:#C62828;margin-top:1rem;display:none;"></div>
-
-    <p class="mt-3 text-sm text-center">
-      Don't have an account? <a href="/register" class="auth-link">Register here</a>
-    </p>
   </div>
 </div>
 {% endblock %}
