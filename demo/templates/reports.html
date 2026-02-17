@@ -141,6 +141,36 @@
         <p style="margin-top:1rem;color:var(--on-surface-variant);">Generating report...</p>
     </div>
 
+    <!-- AI Insights Section -->
+    <div class="card ai-accent mb-3" id="aiSection">
+        <!-- Full-card clickable CTA -->
+        <div id="aiPlaceholder" onclick="generateAIReport()" style="display:flex; align-items:center; gap:0.75rem; cursor:pointer; padding:1rem 0.25rem; border-radius:8px; transition:opacity 0.15s;" onmouseenter="this.style.opacity='0.75'" onmouseleave="this.style.opacity='1'">
+            <span class="icon filled" style="font-size:1.5rem; color:var(--primary);">auto_awesome</span>
+            <span style="font-size:1rem; font-weight:600; color:var(--on-surface);">Click here to generate an AI Executive Summary</span>
+        </div>
+        <div id="aiContent" style="display:none; margin-top:1rem;">
+            <!-- Summary -->
+            <div style="background:var(--surface-container-low); padding:1rem; border-radius:8px; margin-bottom:1rem;">
+                <ul id="aiSummaryList" style="padding-left:1.2rem; line-height:1.6; color:var(--on-surface);"></ul>
+            </div>
+            <!-- Themes -->
+            <div>
+                <h4 style="font-size:0.9rem; margin-bottom:0.5rem; color:var(--on-surface-variant);">Detected Themes
+                </h4>
+                <div id="aiThemes" style="display:flex; gap:0.5rem; flex-wrap:wrap;"></div>
+            </div>
+            <div style="text-align:right; margin-top:1rem;">
+                <button class="btn btn-sm btn-tonal" onclick="generateAIReport()">
+                    <span class="icon sm">refresh</span> Regenerate
+                </button>
+            </div>
+        </div>
+        <div id="aiLoading" style="display:none; text-align:center; padding:2.5rem;">
+            <div class="spinner"><span></span><span></span><span></span></div>
+            <p class="text-sm text-muted mt-1">Analyzing grievances...</p>
+        </div>
+    </div>
+
     <div id="reportContent">
         <!-- KPI Cards -->
         <div class="kpi-grid">
@@ -194,6 +224,16 @@
                 <div style="margin-top:1rem; max-height:250px; overflow-y:auto;" id="districtList">
                     <!-- Populated by JS -->
                 </div>
+            </div>
+        </div>
+
+        <!-- Sentiment Heatmap Row -->
+        <div class="card mb-3">
+            <h3>Sentiment Heatmap (By Department)</h3>
+            <p class="text-muted" style="font-size:0.8rem; margin-bottom:1rem;">Stacked view of citizen sentiment for
+                each department</p>
+            <div style="position:relative; height:300px;">
+                <canvas id="sentimentChart"></canvas>
             </div>
         </div>
 
@@ -262,10 +302,55 @@
 <script>
     let deptChart = null;
     let statusChart = null;
+    let sentimentChart = null;
+    let currentReportTimeframe = 'daily';
+
+    let aiGenerating = false;
+    async function generateAIReport() {
+        if (aiGenerating) return;
+        aiGenerating = true;
+
+        const placeholder = document.getElementById('aiPlaceholder');
+        const content = document.getElementById('aiContent');
+        const loading = document.getElementById('aiLoading');
+
+        placeholder.style.display = 'none';
+        content.style.display = 'none';
+        loading.style.display = 'block';
+
+        try {
+            const data = await api('POST', '/admin/reports/analysis', { timeframe: currentReportTimeframe });
+
+            const list = document.getElementById('aiSummaryList');
+            list.innerHTML = data.summary.map(s => `<li>${typeof marked !== 'undefined' && marked.parseInline ? marked.parseInline(s) : escapeHtml(s)}</li>`).join('');
+
+            const themes = document.getElementById('aiThemes');
+            themes.innerHTML = data.themes.map(t =>
+                `<span class="badge" style="background:var(--primary-container);color:var(--on-primary-container);padding:0.4rem 0.8rem;">
+                    ${escapeHtml(t.name)} <span style="opacity:0.7;margin-left:4px;">(${t.count})</span>
+                 </span>`
+            ).join('');
+
+            content.style.display = 'block';
+        } catch (e) {
+            placeholder.style.display = 'flex';
+            showToast('AI Analysis failed: ' + e.message, 'error');
+        } finally {
+            loading.style.display = 'none';
+            aiGenerating = false;
+        }
+    }
 
     async function loadReport(timeframe) {
+        currentReportTimeframe = timeframe;
         document.getElementById('reportLoading').style.display = 'block';
         document.getElementById('reportContent').style.display = 'none';
+
+        // Reset AI section
+        document.getElementById('aiPlaceholder').style.display = 'flex';
+        document.getElementById('aiContent').style.display = 'none';
+        document.getElementById('aiLoading').style.display = 'none';
+
         document.getElementById('reportSubtitle').textContent = timeframe === 'daily' ? "Today's statistics and activities" : "Overview for the last 7 days";
 
         // Toggle buttons
@@ -293,6 +378,7 @@
             // Charts
             renderDeptChart(data.departments);
             renderStatusChart(data.status_breakdown);
+            renderSentimentChart(data.sentiment_by_dept);
             document.getElementById('chart-dept-total').textContent = 'Total: ' + data.departments.reduce((s, d) => s + d.count, 0);
 
             // Officer Tables
@@ -404,6 +490,42 @@
                 cutout: '65%',
                 plugins: {
                     legend: { position: 'right', labels: { usePointStyle: true, boxWidth: 8 } }
+                }
+            }
+        });
+    }
+
+    function renderSentimentChart(data) {
+        const ctx = document.getElementById('sentimentChart');
+        if (sentimentChart) sentimentChart.destroy();
+
+        if (!data || Object.keys(data).length === 0) return;
+
+        const depts = Object.keys(data);
+        const sentiments = ['frustrated', 'negative', 'neutral', 'positive'];
+        const colors = { 'frustrated': '#C62828', 'negative': '#E57373', 'neutral': '#BDBDBD', 'positive': '#4CAF50' };
+
+        const datasets = sentiments.map(s => ({
+            label: statusLabel(s),
+            data: depts.map(d => data[d][s] || 0),
+            backgroundColor: colors[s]
+        }));
+
+        sentimentChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: depts.map(d => deptLabel(d)),
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { stacked: true },
+                    y: { stacked: true, beginAtZero: true }
+                },
+                plugins: {
+                    legend: { position: 'top' }
                 }
             }
         });
