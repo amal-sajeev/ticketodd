@@ -3554,5 +3554,102 @@ for _path, _template in PAGES:
     app.add_api_route(f"/{_path}" if _path else "/", _make_handler(_template),
                       methods=["GET"], response_class=HTMLResponse, include_in_schema=False)
 
+# ---------------------------------------------------------------------------
+# ADMIN REPORTS ENDPOINTS
+# ---------------------------------------------------------------------------
+@app.get("/admin/reports", response_class=HTMLResponse)
+async def admin_reports_page(request: Request):
+    return templates.TemplateResponse("reports.html", {"request": request})
+
+@app.get("/admin/reports/stats")
+async def admin_reports_stats(
+    timeframe: str = Query("daily", regex="^(daily|weekly)$"),
+    user=Depends(require_role(UserRole.ADMIN.value)),
+    db=Depends(get_db)
+):
+    """
+    Get statistics for Admin Reports.
+    - Daily: usage since midnight local time (approx via UTC offset or just UTC midnight).
+      For simplicity in this demo, 'daily' = since 00:00 UTC today.
+    - Weekly: usage since 7 days ago.
+    """
+    now = datetime.now(timezone.utc)
+    if timeframe == "daily":
+        # Start of today (UTC)
+        start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    else:
+        # Last 7 days
+        start_date = now - timedelta(days=7)
+
+    def fetch_report_data():
+        # 1. Total Active Grievances (Snapshot, independent of timeframe)
+        total_active = db.grievances.count_documents({"status": {"$in": ["pending", "in_progress", "escalated"]}})
+
+        # 2. New Grievances Added in Timeframe
+        new_grievances_cursor = db.grievances.find({"created_at": {"$gte": start_date}}).sort("created_at", -1)
+        new_grievances_list = list(new_grievances_cursor)
+        new_count = len(new_grievances_list)
+        
+        # 3. Resolved in Timeframe
+        resolved_count = db.grievances.count_documents({
+            "updated_at": {"$gte": start_date},
+            "status": "resolved"
+        })
+        
+        # 4. Status Breakdown (All Time / Current Snapshot - matching user expectation)
+        # The user likely wants to see the current state of the system ("Pending: 5, In Progress: 2...")
+        pipeline = [{"$group": {"_id": "$status", "count": {"$sum": 1}}}]
+        status_results = list(db.grievances.aggregate(pipeline))
+        status_counts = {r["_id"]: r["count"] for r in status_results}
+
+        # District-wise (New)
+        district_counts = {}
+        # Department-wise (New)
+        dept_counts = {}
+        # Assigned-to
+        officer_counts = {}
+
+        converted_new_list = []
+        for g in new_grievances_list:
+            d = g.get("district") or "Unknown"
+            district_counts[d] = district_counts.get(d, 0) + 1
+            
+            dept = g.get("department") or "general"
+            dept_counts[dept] = dept_counts.get(dept, 0) + 1
+            
+            off = g.get("assigned_officer")
+            if off:
+                officer_counts[off] = officer_counts.get(off, 0) + 1
+            
+            converted_new_list.append(convert_db_grievance(g))
+
+        # 5. Top Officers by Active Assignment (Snapshot of backlog)
+        active_officer_pipe = [
+            {"$match": {"status": {"$in": ["in_progress", "escalated"]}, "assigned_officer": {"$exists": True, "$ne": None}}},
+            {"$group": {"_id": "$assigned_officer", "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}},
+            {"$limit": 10}
+        ]
+        active_officer_results = list(db.grievances.aggregate(active_officer_pipe))
+        active_officer_load = [{"name": r["_id"], "count": r["count"]} for r in active_officer_results]
+
+        return {
+            "period": "Today" if timeframe == "daily" else "Last 7 Days",
+            "kpi": {
+                "active_total": total_active,
+                "new_added": new_count,
+                "resolved": resolved_count
+            },
+            "status_breakdown": [{"name": k, "count": v} for k,v in status_counts.items()],
+            "districts": [{"name": k, "count": v} for k,v in sorted(district_counts.items(), key=lambda item: item[1], reverse=True)],
+            "departments": [{"name": k, "count": v} for k,v in sorted(dept_counts.items(), key=lambda item: item[1], reverse=True)],
+            "new_by_officer": [{"name": k, "count": v} for k,v in sorted(officer_counts.items(), key=lambda item: item[1], reverse=True)],
+            "current_officer_load": active_officer_load,
+            "recent_grievances": [GrievanceResponse(**g, id=g["_id"]) for g in converted_new_list[:50]]
+        }
+
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(executor, fetch_report_data)
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
