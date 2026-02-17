@@ -12,6 +12,9 @@ requests
 slowapi
 python-multipart
 httpx
+numpy
+opencv-python
+face_recognition
 PyPDF2
 python-docx
 Pillow
