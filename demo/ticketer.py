@@ -3777,11 +3777,116 @@ async def admin_reports_stats(
             "departments": [{"name": k, "count": v} for k,v in sorted(dept_counts.items(), key=lambda item: item[1], reverse=True)],
             "new_by_officer": [{"name": k, "count": v} for k,v in sorted(officer_counts.items(), key=lambda item: item[1], reverse=True)],
             "current_officer_load": active_officer_load,
-            "recent_grievances": [GrievanceResponse(**g, id=g["_id"]) for g in converted_new_list[:50]]
+            "recent_grievances": [GrievanceResponse(**g, id=g["_id"]) for g in converted_new_list[:50]],
+            "sentiment_by_dept": fetch_sentiment_heatmap(db, start_date)
         }
 
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(executor, fetch_report_data)
+
+def fetch_sentiment_heatmap(db, start_date):
+    """
+     aggregations:
+    [
+      { "_id": { "dept": "mgnregs", "sentiment": "frustrated" }, "count": 5 },
+      ...
+    ]
+    Returns:
+    {
+      "mgnregs": {"frustrated": 5, "neutral": 2},
+      ...
+    }
+    """
+    pipeline = [
+        {"$match": {"created_at": {"$gte": start_date}, "district": {"$ne": None}}}, # Match relevant docs
+        {"$group": {
+            "_id": {"dept": "$department", "sentiment": "$sentiment"},
+            "count": {"$sum": 1}
+        }}
+    ]
+    results = list(db.grievances.aggregate(pipeline))
+    output = {}
+    for r in results:
+        dept = r["_id"].get("dept", "Unknown")
+        sent = r["_id"].get("sentiment", "neutral")
+        cnt = r["count"]
+        if dept not in output:
+            output[dept] = {}
+        output[dept][sent] = cnt
+    return output
+
+@app.post("/admin/reports/analysis")
+async def admin_reports_analysis(
+    request: Request,
+    db=Depends(get_db)
+):
+    body = await request.json()
+    timeframe = body.get("timeframe", "weekly")
+    
+    # 1. Fetch data context (reuse logic or simple query)
+    now = datetime.now(timezone.utc)
+    if timeframe == "daily":
+        start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    else:
+        start_date = now - timedelta(days=7)
+        
+    cursor = db.grievances.find(
+        {"created_at": {"$gte": start_date}},
+        {"title": 1, "description": 1, "department": 1, "sentiment": 1, "status": 1}
+    ).limit(100)
+    
+    grievances = list(cursor)
+    
+    if not grievances:
+        return {
+            "summary": ["No grievances found for this period for analysis."],
+            "themes": []
+        }
+        
+    # 2. Construct Prompt
+    # Simplify collection for prompt token efficiency
+    data_summary = [f"- [{g.get('department')}][{g.get('sentiment')}] {g.get('title')}: {g.get('description')[:100]}..." for g in grievances]
+    data_text = "\n".join(data_summary)
+    
+    system_prompt = """
+    You are an expert government policy analyst. Analyze the provided grievance data.
+    
+    Output JSON format only:
+    {
+        "summary": [
+            "Insight 1 (e.g. Surge in water complaints in Ganjam)",
+            "Insight 2 (e.g. High dissatisfaction in MGNREGS payments)",
+            "Insight 3 (e.g. Recurring road maintenance issues)"
+        ],
+        "themes": [
+            {"name": "Theme Name", "count": 5},
+            {"name": "Theme Name", "count": 3}
+        ]
+    }
+    
+    - Summary should be professional, concise, and actionable. Max 3 bullets.
+    - Themes should group similar issues (Auto-clustering). Return max 5 themes.
+    """
+    
+    try:
+        response = await openai_client.chat.completions.create(
+            model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Analyze these grievances:\n{data_text}"}
+            ],
+            response_format={"type": "json_object"}
+        )
+        content = response.choices[0].message.content
+        return json.loads(content)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        print(f"AI Analysis Error: {e}")
+        return {
+            "summary": [f"AI Analysis unavailable: {str(e)}"],
+            "themes": []
+        }
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
