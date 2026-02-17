@@ -164,7 +164,8 @@ function renderNav() {
       <a href="/track">Track</a>
       <a href="/chatbot">Chatbot</a>
       <a href="/schemes">Schemes</a>
-      <a href="/community">Community</a>`;
+      <a href="/community">Community</a>
+      <a href="/profile">Profile</a>`;
   } else if (user.role === 'admin') {
     links = `
       <a href="/officer-dashboard">Dashboard</a>
@@ -172,14 +173,16 @@ function renderNav() {
       <a href="/knowledge">Knowledge</a>
       <a href="/analytics-view">Analytics</a>
       <a href="/admin">Admin</a>
-      <a href="/community">Community</a>`;
+      <a href="/community">Community</a>
+      <a href="/profile">Profile</a>`;
   } else {
     links = `
       <a href="/officer-dashboard">Dashboard</a>
       <a href="/queue">Queue</a>
       <a href="/knowledge">Knowledge</a>
       <a href="/analytics-view">Analytics</a>
-      <a href="/community">Community</a>`;
+      <a href="/community">Community</a>
+      <a href="/profile">Profile</a>`;
   }
 
   const bellHtml = (user.role === 'admin') ? `
