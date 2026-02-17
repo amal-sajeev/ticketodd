@@ -1722,7 +1722,7 @@ async def register(request: Request, user_data: UserCreate, db=Depends(get_db)):
     return TokenResponse(access_token=token, user=user_to_response(user_doc))
 
 @app.post("/auth/login", response_model=TokenResponse)
-@limiter.limit("10/minute")
+@limiter.limit("30/minute")
 async def login(request: Request, form: UserLogin, db=Depends(get_db)):
     loop = asyncio.get_event_loop()
 

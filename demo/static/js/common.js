@@ -64,10 +64,18 @@ async function api(method, endpoint, body = null) {
   try {
     const res = await fetch(`${API}${endpoint}`, opts);
     if (res.status === 401) {
+      const err = await res.json().catch(() => ({}));
+      // Auth endpoints return 401 for wrong credentials — don't treat as session expiry
+      if (endpoint.startsWith('/auth/')) {
+        throw new Error(err.detail || 'Authentication failed');
+      }
       clearAuth();
       showToast('Session expired — please log in again', 'error');
       setTimeout(() => { window.location.href = '/login'; }, 1500);
       throw new Error('Session expired');
+    }
+    if (res.status === 429) {
+      throw new Error('Too many requests — please wait a moment and try again');
     }
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -75,7 +83,8 @@ async function api(method, endpoint, body = null) {
     }
     return await res.json();
   } catch (e) {
-    if (e.message?.includes('Request failed') || e.message === 'Session expired') throw e;
+    if (e.message?.includes('Request failed') || e.message === 'Session expired'
+        || e.message?.includes('Authentication') || e.message?.includes('Too many')) throw e;
     console.error('API Error:', e);
     throw e;
   }
@@ -89,10 +98,17 @@ async function apiFormData(method, endpoint, formData) {
   try {
     const res = await fetch(`${API}${endpoint}`, opts);
     if (res.status === 401) {
+      const err = await res.json().catch(() => ({}));
+      if (endpoint.startsWith('/auth/')) {
+        throw new Error(err.detail || 'Authentication failed');
+      }
       clearAuth();
       showToast('Session expired — please log in again', 'error');
       setTimeout(() => { window.location.href = '/login'; }, 1500);
       throw new Error('Session expired');
+    }
+    if (res.status === 429) {
+      throw new Error('Too many requests — please wait a moment and try again');
     }
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -100,7 +116,8 @@ async function apiFormData(method, endpoint, formData) {
     }
     return await res.json();
   } catch (e) {
-    if (e.message?.includes('Request failed') || e.message === 'Session expired') throw e;
+    if (e.message?.includes('Request failed') || e.message === 'Session expired'
+        || e.message?.includes('Authentication') || e.message?.includes('Too many')) throw e;
     console.error('API Error:', e);
     throw e;
   }
