@@ -3758,6 +3758,7 @@ PAGES = [
     ("community", "community.html"),
     ("systemic-issue-detail", "systemic_issue_detail.html"),
     ("spam-flag-detail", "spam_flag_detail.html"),
+    ("profile", "profile.html"),
 ]
 
 for _path, _template in PAGES:
