@@ -12,3 +12,6 @@ requests
 slowapi
 python-multipart
 httpx
+PyPDF2
+python-docx
+Pillow

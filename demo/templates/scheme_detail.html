@@ -3,36 +3,49 @@
 {% block content %}
 <div class="main-content" style="max-width:800px;">
   <a href="/schemes" class="btn btn-secondary btn-sm mb-2">← Back to Schemes</a>
-  <div id="schemeContent"><div class="spinner"><span></span><span></span><span></span></div></div>
+  <div id="schemeContent">
+    <div class="spinner"><span></span><span></span><span></span></div>
+  </div>
+</div>
+
+<!-- Document Viewer Modal -->
+<div id="docViewerOverlay" class="doc-overlay hidden" onclick="closeDocViewer()">
+  <div class="glass-strong doc-modal" onclick="event.stopPropagation()">
+    <div class="flex-between mb-1">
+      <h3 id="docViewerTitle" style="margin:0;"></h3>
+      <button class="btn btn-sm" onclick="closeDocViewer()" style="font-size:1.1rem;padding:0.3rem 0.7rem;">✕</button>
+    </div>
+    <div id="docViewerContent" style="flex:1;overflow:auto;"></div>
+  </div>
 </div>
 {% endblock %}
 {% block scripts %}
 <script>
-const schemeId = new URLSearchParams(window.location.search).get('id');
-let schemeData = null;
-let answers = {};
+  const schemeId = new URLSearchParams(window.location.search).get('id');
+  let schemeData = null;
+  let answers = {};
 
-if (!schemeId) {
-  document.getElementById('schemeContent').innerHTML = '<p>No scheme ID provided.</p>';
-} else {
-  loadScheme();
-}
-
-async function loadScheme() {
-  try {
-    schemeData = await api('GET', `/knowledge/schemes/${schemeId}`);
-    renderScheme();
-  } catch (e) {
-    document.getElementById('schemeContent').innerHTML = `<div class="glass card" style="padding:2rem;text-align:center;"><p style="color:#C62828;">Scheme not found.</p></div>`;
+  if (!schemeId) {
+    document.getElementById('schemeContent').innerHTML = '<p>No scheme ID provided.</p>';
+  } else {
+    loadScheme();
   }
-}
 
-function renderScheme() {
-  const s = schemeData;
-  const questions = s.eligibility_questions || [];
-  const hasQuestions = questions.length > 0;
+  async function loadScheme() {
+    try {
+      schemeData = await api('GET', `/knowledge/schemes/${schemeId}`);
+      renderScheme();
+    } catch (e) {
+      document.getElementById('schemeContent').innerHTML = `<div class="glass card" style="padding:2rem;text-align:center;"><p style="color:#C62828;">Scheme not found.</p></div>`;
+    }
+  }
 
-  document.getElementById('schemeContent').innerHTML = `
+  function renderScheme() {
+    const s = schemeData;
+    const questions = s.eligibility_questions || [];
+    const hasQuestions = questions.length > 0;
+
+    document.getElementById('schemeContent').innerHTML = `
     <div class="glass-strong card card-animate" style="padding:2rem;">
       <div class="flex-between mb-1">
         <h1 style="font-size:1.5rem;margin-bottom:0;">${escapeHtml(s.name)}</h1>
@@ -47,6 +60,18 @@ function renderScheme() {
         <h3>How to Apply</h3>
         <p style="line-height:1.7;color:#37474F;">${escapeHtml(s.how_to_apply)}</p>
       </div>
+
+      ${(s.documents || []).length ? `
+      <div class="detail-section">
+        <h3>Reference Documents</h3>
+        ${s.documents.map(doc => `
+          <div class="upload-file-item">
+            <span class="upload-file-name">${escapeHtml(doc.filename)}</span>
+            <span class="upload-file-meta">${formatBytes(doc.size || 0)}</span>
+            <button class="btn btn-sm btn-secondary" style="padding:0.2rem 0.6rem;font-size:0.75rem;" onclick="openDocViewer('${doc.id}','${escapeHtml(doc.filename)}','${doc.content_type}')">View</button>
+          </div>`).join('')}
+      </div>
+      ` : ''}
     </div>
 
     ${hasQuestions ? `
@@ -63,13 +88,13 @@ function renderScheme() {
     </div>
     `}`;
 
-  if (hasQuestions) renderQuestions(questions);
-}
+    if (hasQuestions) renderQuestions(questions);
+  }
 
-function renderQuestions(questions) {
-  const el = document.getElementById('questionsList');
-  answers = {};
-  el.innerHTML = questions.map((q, i) => `
+  function renderQuestions(questions) {
+    const el = document.getElementById('questionsList');
+    answers = {};
+    el.innerHTML = questions.map((q, i) => `
     <div class="glass card" style="padding:1rem 1.25rem;margin-bottom:0.75rem;">
       <p style="font-weight:500;margin-bottom:0.75rem;">${i + 1}. ${escapeHtml(q.question)}</p>
       <div class="flex gap-1">
@@ -79,58 +104,91 @@ function renderQuestions(questions) {
           style="min-width:80px;background:rgba(255,255,255,0.25);color:#37474F;border:2px solid transparent;">No</button>
       </div>
     </div>`).join('');
-}
-
-function selectAnswer(index, value, btn) {
-  answers[index] = value;
-  // Reset siblings
-  btn.parentElement.querySelectorAll('.answer-btn').forEach(b => {
-    b.style.border = '2px solid transparent';
-    b.style.background = 'rgba(255,255,255,0.25)';
-    b.style.color = '#37474F';
-  });
-  // Highlight selected
-  if (value === 'yes') {
-    btn.style.border = '2px solid #2E7D32'; btn.style.background = 'rgba(46,125,50,0.15)'; btn.style.color = '#2E7D32';
-  } else {
-    btn.style.border = '2px solid #C62828'; btn.style.background = 'rgba(198,40,40,0.15)'; btn.style.color = '#C62828';
-  }
-  // Enable check button when all answered
-  const total = (schemeData.eligibility_questions || []).length;
-  document.getElementById('checkBtn').disabled = Object.keys(answers).length < total;
-}
-
-function checkEligibility() {
-  const questions = schemeData.eligibility_questions || [];
-  let matches = 0;
-  questions.forEach((q, i) => {
-    if (answers[i] === q.eligible_answer) matches++;
-  });
-  const total = questions.length;
-  const pct = total > 0 ? (matches / total) * 100 : 0;
-  const resultEl = document.getElementById('resultArea');
-  resultEl.classList.remove('hidden');
-
-  let color, icon, title, message;
-  if (pct === 100) {
-    color = 'rgba(46,125,50,0.12)'; icon = '✅'; title = 'You Appear Eligible!';
-    message = `You matched all ${total} criteria. Here's how to apply:<br><br><strong>${escapeHtml(schemeData.how_to_apply)}</strong>`;
-  } else if (pct >= 50) {
-    color = 'rgba(255,152,0,0.12)'; icon = '⚠️'; title = 'You May Be Partially Eligible';
-    message = `You matched ${matches} out of ${total} criteria. You may still qualify — we recommend contacting the ${deptLabel(schemeData.department)} department for clarification.`;
-  } else {
-    color = 'rgba(198,40,40,0.1)'; icon = '❌'; title = 'You May Not Be Eligible';
-    message = `You matched ${matches} out of ${total} criteria. This scheme may not be the right fit, but you can <a href="/schemes" class="auth-link">browse other schemes</a> or <a href="/chatbot" class="auth-link">ask the chatbot</a> for help.`;
   }
 
-  resultEl.innerHTML = `
+  function selectAnswer(index, value, btn) {
+    answers[index] = value;
+    // Reset siblings
+    btn.parentElement.querySelectorAll('.answer-btn').forEach(b => {
+      b.style.border = '2px solid transparent';
+      b.style.background = 'rgba(255,255,255,0.25)';
+      b.style.color = '#37474F';
+    });
+    // Highlight selected
+    if (value === 'yes') {
+      btn.style.border = '2px solid #2E7D32'; btn.style.background = 'rgba(46,125,50,0.15)'; btn.style.color = '#2E7D32';
+    } else {
+      btn.style.border = '2px solid #C62828'; btn.style.background = 'rgba(198,40,40,0.15)'; btn.style.color = '#C62828';
+    }
+    // Enable check button when all answered
+    const total = (schemeData.eligibility_questions || []).length;
+    document.getElementById('checkBtn').disabled = Object.keys(answers).length < total;
+  }
+
+  function checkEligibility() {
+    const questions = schemeData.eligibility_questions || [];
+    let matches = 0;
+    questions.forEach((q, i) => {
+      if (answers[i] === q.eligible_answer) matches++;
+    });
+    const total = questions.length;
+    const pct = total > 0 ? (matches / total) * 100 : 0;
+    const resultEl = document.getElementById('resultArea');
+    resultEl.classList.remove('hidden');
+
+    let color, icon, title, message;
+    if (pct === 100) {
+      color = 'rgba(46,125,50,0.12)'; icon = '✅'; title = 'You Appear Eligible!';
+      message = `You matched all ${total} criteria. Here's how to apply:<br><br><strong>${escapeHtml(schemeData.how_to_apply)}</strong>`;
+    } else if (pct >= 50) {
+      color = 'rgba(255,152,0,0.12)'; icon = '⚠️'; title = 'You May Be Partially Eligible';
+      message = `You matched ${matches} out of ${total} criteria. You may still qualify — we recommend contacting the ${deptLabel(schemeData.department)} department for clarification.`;
+    } else {
+      color = 'rgba(198,40,40,0.1)'; icon = '❌'; title = 'You May Not Be Eligible';
+      message = `You matched ${matches} out of ${total} criteria. This scheme may not be the right fit, but you can <a href="/schemes" class="auth-link">browse other schemes</a> or <a href="/chatbot" class="auth-link">ask the chatbot</a> for help.`;
+    }
+
+    resultEl.innerHTML = `
     <div class="glass-strong card card-animate" style="padding:2rem;text-align:center;background:${color};">
       <div style="font-size:2.5rem;margin-bottom:0.5rem;">${icon}</div>
       <h2>${title}</h2>
       <p style="margin-top:0.75rem;line-height:1.7;">${message}</p>
     </div>`;
 
-  resultEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-}
+    resultEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  // --- Helpers ---
+  function formatBytes(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  function openDocViewer(docId, filename, contentType) {
+    const overlay = document.getElementById('docViewerOverlay');
+    document.getElementById('docViewerTitle').textContent = filename;
+    const content = document.getElementById('docViewerContent');
+    const url = `/attachments/${docId}`;
+    if (contentType === 'application/pdf') {
+      content.innerHTML = `<iframe src="${url}" style="width:100%;height:100%;border:none;border-radius:12px;"></iframe>`;
+    } else if (contentType && contentType.startsWith('image/')) {
+      content.innerHTML = `<img src="${url}" alt="${escapeHtml(filename)}" style="max-width:100%;max-height:calc(85vh - 5rem);object-fit:contain;margin:0 auto;display:block;border-radius:12px;">`;
+    } else {
+      content.innerHTML = `<div style="padding:2rem;text-align:center;"><p class="text-muted">Preview not available.</p><a href="${url}" target="_blank" class="btn btn-primary btn-sm mt-1">Open in new tab</a></div>`;
+    }
+    overlay.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeDocViewer() {
+    document.getElementById('docViewerOverlay').classList.add('hidden');
+    document.getElementById('docViewerContent').innerHTML = '';
+    document.body.style.overflow = '';
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !document.getElementById('docViewerOverlay').classList.contains('hidden')) closeDocViewer();
+  });
 </script>
 {% endblock %}

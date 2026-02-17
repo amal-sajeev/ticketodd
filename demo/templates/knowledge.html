@@ -16,7 +16,8 @@
       <h3>Add Documentation</h3>
       <div class="form-group"><label>Title</label><input type="text" class="form-control" id="docTitle"></div>
       <div class="form-group"><label>Department</label><select class="form-control" id="docCat"></select></div>
-      <div class="form-group"><label>Content</label><textarea class="form-control" id="docContent" style="min-height:100px;"></textarea></div>
+      <div class="form-group"><label>Content</label><textarea class="form-control" id="docContent"
+          style="min-height:100px;"></textarea></div>
       <button class="btn btn-primary btn-sm" onclick="addDoc()">Add Documentation</button>
     </div>
     <h3 class="mt-2">Existing Documentation</h3>
@@ -28,7 +29,8 @@
     <div class="glass-strong card" style="padding:1.5rem;">
       <h3>Add Service Memory</h3>
       <div class="form-group"><label>Grievance Query</label><input type="text" class="form-control" id="memQuery"></div>
-      <div class="form-group"><label>Resolution</label><textarea class="form-control" id="memResolution" style="min-height:80px;"></textarea></div>
+      <div class="form-group"><label>Resolution</label><textarea class="form-control" id="memResolution"
+          style="min-height:80px;"></textarea></div>
       <div class="form-row">
         <div class="form-group"><label>Department</label><select class="form-control" id="memCat"></select></div>
         <div class="form-group"><label>Officer Name</label><input type="text" class="form-control" id="memAgent"></div>
@@ -43,26 +45,79 @@
   <div class="tab-content" id="tab-schemes">
     <div class="glass-strong card" style="padding:1.5rem;">
       <h3>Add Government Scheme</h3>
-      <div class="form-group"><label>Scheme Name</label><input type="text" class="form-control" id="sName"></div>
-      <div class="form-group"><label>Description</label><textarea class="form-control" id="sDesc" style="min-height:80px;"></textarea></div>
-      <div class="form-group"><label>Eligibility Criteria</label><textarea class="form-control" id="sElig" style="min-height:60px;"></textarea></div>
-      <div class="form-row">
-        <div class="form-group"><label>Department</label><select class="form-control" id="sDept"></select></div>
-        <div class="form-group"><label>How to Apply</label><textarea class="form-control" id="sHow" style="min-height:60px;"></textarea></div>
-      </div>
 
-      <!-- Eligibility Questions Editor -->
-      <div style="border-top:1px solid rgba(255,255,255,0.2); margin-top:1rem; padding-top:1rem;">
-        <div class="flex-between mb-1">
-          <h3 style="margin-bottom:0;">Eligibility Questions</h3>
-          <button class="btn btn-secondary btn-sm" id="genQBtn" onclick="generateQuestions()">🤖 Generate from Eligibility</button>
+      <!-- Mode Toggle -->
+      <div class="scheme-mode-toggle">
+        <button class="scheme-mode-btn active" onclick="setSchemeMode('upload')" id="modeUploadBtn">📄 Smart
+          Extract</button>
+        <button class="scheme-mode-btn" onclick="setSchemeMode('manual')" id="modeManualBtn">✏️ Custom Entry</button>
+      </div>
+      <p class="text-sm text-muted" style="margin-top:0.5rem;margin-bottom:1rem;" id="modeHint">Upload scheme PDFs,
+        images, or documents — we'll read and auto-fill the form for you.</p>
+
+      <!-- Upload Mode (shown by default) -->
+      <div id="uploadMode">
+        <div class="upload-zone" id="uploadZone">
+          <input type="file" id="schemeFileInput" multiple accept=".pdf,.docx,.png,.jpg,.jpeg" style="display:none;">
+          <p class="upload-zone-text">Drop scheme documents here, or <strong
+              onclick="document.getElementById('schemeFileInput').click()">browse</strong></p>
+          <p class="upload-zone-hint">PDF, DOCX, PNG, JPG — up to 3 files, 10 MB each</p>
         </div>
-        <p class="text-sm text-muted mb-1">These yes/no questions help citizens check if they're eligible. You can edit, delete, or add them manually.</p>
-        <div id="sQuestions"></div>
-        <button class="btn btn-secondary btn-sm mt-1" onclick="addQuestionRow()">+ Add Question</button>
+        <div class="upload-file-list" id="uploadFileList"></div>
+        <div id="processStatus" class="hidden"></div>
+        <div id="relevanceWarning" class="hidden"></div>
+        <button class="btn btn-primary btn-block mt-2 hidden" id="processBtn" onclick="processDocuments()">Process
+          Documents</button>
       </div>
 
-      <button class="btn btn-primary btn-block mt-2" onclick="addScheme()">Add Scheme</button>
+      <!-- Manual Entry Mode (hidden by default) -->
+      <div id="manualMode" class="hidden">
+        <div class="form-group"><label>Scheme Name</label><input type="text" class="form-control" id="sName"></div>
+        <div class="form-group"><label>Description</label><textarea class="form-control" id="sDesc"
+            style="min-height:80px;"></textarea></div>
+        <div class="form-group"><label>Eligibility Criteria</label><textarea class="form-control" id="sElig"
+            style="min-height:60px;"></textarea></div>
+        <div class="form-row">
+          <div class="form-group"><label>Department</label><select class="form-control" id="sDept"></select></div>
+          <div class="form-group"><label>How to Apply</label><textarea class="form-control" id="sHow"
+              style="min-height:60px;"></textarea></div>
+        </div>
+
+        <!-- Reference Documents Section -->
+        <div style="border-top:1px solid rgba(255,255,255,0.2); margin-top:1rem; padding-top:1rem;">
+          <h3 style="margin-bottom:0.25rem;">📎 Reference Documents</h3>
+          <p class="text-sm text-muted mb-1">Attach the original scheme PDF, circular, or gazette notification for
+            record-keeping.</p>
+          <div class="glass card" style="padding:1rem;">
+            <div class="upload-zone" id="attachZone" style="padding:1.5rem;">
+              <input type="file" id="attachFileInput" multiple accept=".pdf,.docx,.png,.jpg,.jpeg"
+                style="display:none;">
+              <p class="upload-zone-text" style="font-size:0.88rem;">Drop files or <strong
+                  onclick="document.getElementById('attachFileInput').click()">browse</strong></p>
+              <p class="upload-zone-hint">Optional — up to 3 files, 10 MB each</p>
+            </div>
+            <div class="upload-file-list" id="attachFileList"></div>
+          </div>
+        </div>
+
+        <!-- Processed docs indicator (shown after document processing) -->
+        <div id="processedDocsInfo" class="hidden mt-1"></div>
+
+        <!-- Eligibility Questions Editor -->
+        <div style="border-top:1px solid rgba(255,255,255,0.2); margin-top:1rem; padding-top:1rem;">
+          <div class="flex-between mb-1">
+            <h3 style="margin-bottom:0;">Eligibility Questions</h3>
+            <button class="btn btn-secondary btn-sm" id="genQBtn" onclick="generateQuestions()">🤖 Generate from
+              Eligibility</button>
+          </div>
+          <p class="text-sm text-muted mb-1">These yes/no questions help citizens check if they're eligible. You can
+            edit, delete, or add them manually.</p>
+          <div id="sQuestions"></div>
+          <button class="btn btn-secondary btn-sm mt-1" onclick="addQuestionRow()">+ Add Question</button>
+        </div>
+
+        <button class="btn btn-primary btn-block mt-2" onclick="addScheme()">Add Scheme</button>
+      </div>
     </div>
 
     <div class="flex-between mt-3 mb-1">
@@ -70,6 +125,17 @@
       <button class="btn btn-secondary btn-sm" onclick="backfillAll()">🤖 Backfill All Missing Questions</button>
     </div>
     <div id="schemeList"></div>
+  </div>
+</div>
+
+<!-- Document Viewer Modal -->
+<div id="docViewerOverlay" class="doc-overlay hidden" onclick="closeDocViewer()">
+  <div class="glass-strong doc-modal" onclick="event.stopPropagation()">
+    <div class="flex-between mb-1">
+      <h3 id="docViewerTitle" style="margin:0;"></h3>
+      <button class="btn btn-sm" onclick="closeDocViewer()" style="font-size:1.1rem;padding:0.3rem 0.7rem;">✕</button>
+    </div>
+    <div id="docViewerContent" style="flex:1;overflow:auto;"></div>
   </div>
 </div>
 {% endblock %}
@@ -87,178 +153,443 @@
     transition: background 0.2s;
     white-space: nowrap;
   }
-  .kb-delete-btn:hover { background: #B71C1C !important; }
-  .mem-title:hover { color: #1565C0 !important; text-decoration: underline; }
+
+  .kb-delete-btn:hover {
+    background: #B71C1C !important;
+  }
+
+  .mem-title:hover {
+    color: #1565C0 !important;
+    text-decoration: underline;
+  }
 </style>
 <script>
-if (requireAuth()) {
-  ['docCat','memCat','sDept'].forEach(id => document.getElementById(id).innerHTML = deptOptions());
-  loadAllKB();
-}
+  if (requireAuth()) {
+    ['docCat', 'memCat', 'sDept'].forEach(id => document.getElementById(id).innerHTML = deptOptions());
+    loadAllKB();
+  }
 
-function switchTab(name) {
-  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
-  event.target.classList.add('active');
-}
+  function switchTab(name) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    event.target.classList.add('active');
+  }
 
-async function loadAllKB() { loadDocs(); loadMems(); loadSchemes(); }
+  async function loadAllKB() { loadDocs(); loadMems(); loadSchemes(); }
 
-// --- Documentation ---
-async function loadDocs() {
-  showLoading('docList');
-  try {
-    const docs = await api('GET', '/knowledge/documentation');
-    document.getElementById('docList').innerHTML = docs.map(d => `
+  // --- Documentation ---
+  async function loadDocs() {
+    showLoading('docList');
+    try {
+      const docs = await api('GET', '/knowledge/documentation');
+      document.getElementById('docList').innerHTML = docs.map(d => `
       <div class="glass card card-animate">
         <div class="flex-between"><h4 style="margin:0;">${escapeHtml(d.title)}</h4>
           <button class="btn btn-sm kb-delete-btn" data-id="${escapeHtml(d.id)}" data-title="${escapeHtml(d.title)}">🗑️ Delete</button></div>
         ${deptBadge(d.category)}<p class="mt-1 text-sm">${escapeHtml(d.content)}</p></div>`).join('') || '<p class="text-muted">No documentation yet.</p>';
-    document.querySelectorAll('#docList .kb-delete-btn').forEach(btn => {
-      btn.addEventListener('click', () => deleteDoc(btn.dataset.id, btn.dataset.title));
-    });
-  } catch (e) {}
-}
-async function addDoc() {
-  const t = document.getElementById('docTitle').value, c = document.getElementById('docContent').value;
-  if (!t || !c) return;
-  try {
-    await api('POST', '/knowledge/documentation', { title: t, content: c, category: document.getElementById('docCat').value });
-    showToast('Documentation added'); document.getElementById('docTitle').value = ''; document.getElementById('docContent').value = ''; loadDocs();
-  } catch (e) { showToast(e.message, 'error'); }
-}
+      document.querySelectorAll('#docList .kb-delete-btn').forEach(btn => {
+        btn.addEventListener('click', () => deleteDoc(btn.dataset.id, btn.dataset.title));
+      });
+    } catch (e) { }
+  }
+  async function addDoc() {
+    const t = document.getElementById('docTitle').value, c = document.getElementById('docContent').value;
+    if (!t || !c) return;
+    try {
+      await api('POST', '/knowledge/documentation', { title: t, content: c, category: document.getElementById('docCat').value });
+      showToast('Documentation added'); document.getElementById('docTitle').value = ''; document.getElementById('docContent').value = ''; loadDocs();
+    } catch (e) { showToast(e.message, 'error'); }
+  }
 
-// --- Service Memory ---
-async function loadMems() {
-  showLoading('memList');
-  try {
-    const mems = await api('GET', '/knowledge/service-memory');
-    document.getElementById('memList').innerHTML = mems.map(m => {
-      const searchText = (m.query || '').split(' ').slice(0, 6).join(' ');
-      const titleHref = m.grievance_id
-        ? `/grievance-detail?id=${m.grievance_id}`
-        : `/queue?search=${encodeURIComponent(searchText)}`;
-      return `
+  // --- Service Memory ---
+  async function loadMems() {
+    showLoading('memList');
+    try {
+      const mems = await api('GET', '/knowledge/service-memory');
+      document.getElementById('memList').innerHTML = mems.map(m => {
+        const searchText = (m.query || '').split(' ').slice(0, 6).join(' ');
+        const titleHref = m.grievance_id
+          ? `/grievance-detail?id=${m.grievance_id}`
+          : `/queue?search=${encodeURIComponent(searchText)}`;
+        return `
       <div class="glass card card-animate">
         <div class="flex-between">
           <a href="${titleHref}" style="text-decoration:none;color:inherit;flex:1;"><h4 style="margin:0;cursor:pointer;" class="mem-title">${escapeHtml(m.query)}</h4></a>
           <button class="btn btn-sm kb-delete-btn mem-del-btn" data-id="${escapeHtml(m.id)}">🗑️ Delete</button></div>
         <p class="text-sm mt-1"><strong>Resolution:</strong> ${escapeHtml(m.resolution)}</p>
         <div class="badges">${deptBadge(m.category)}<span class="badge badge-dept">👤 ${escapeHtml(m.agent_name)}</span></div></div>`;
-    }).join('') || '<p class="text-muted">No entries yet.</p>';
-    document.querySelectorAll('#memList .mem-del-btn').forEach(btn => {
-      btn.addEventListener('click', () => deleteMem(btn.dataset.id));
-    });
-  } catch (e) {}
-}
-async function addMem() {
-  const q = document.getElementById('memQuery').value, r = document.getElementById('memResolution').value;
-  if (!q || !r) return;
-  try {
-    await api('POST', '/knowledge/service-memory', { query: q, resolution: r, category: document.getElementById('memCat').value, agent_name: document.getElementById('memAgent').value });
-    showToast('Memory added'); document.getElementById('memQuery').value = ''; document.getElementById('memResolution').value = ''; loadMems();
-  } catch (e) { showToast(e.message, 'error'); }
-}
+      }).join('') || '<p class="text-muted">No entries yet.</p>';
+      document.querySelectorAll('#memList .mem-del-btn').forEach(btn => {
+        btn.addEventListener('click', () => deleteMem(btn.dataset.id));
+      });
+    } catch (e) { }
+  }
+  async function addMem() {
+    const q = document.getElementById('memQuery').value, r = document.getElementById('memResolution').value;
+    if (!q || !r) return;
+    try {
+      await api('POST', '/knowledge/service-memory', { query: q, resolution: r, category: document.getElementById('memCat').value, agent_name: document.getElementById('memAgent').value });
+      showToast('Memory added'); document.getElementById('memQuery').value = ''; document.getElementById('memResolution').value = ''; loadMems();
+    } catch (e) { showToast(e.message, 'error'); }
+  }
 
-// --- Question Editor Helpers ---
-function renderQuestionRow(q = {question: '', eligible_answer: 'yes'}, container = 'sQuestions') {
-  const el = document.getElementById(container);
-  const row = document.createElement('div');
-  row.className = 'flex gap-1 mb-1';
-  row.style.alignItems = 'center';
-  row.innerHTML = `
+  // ===================================================================
+  // SCHEME MODE TOGGLE & FILE MANAGEMENT
+  // ===================================================================
+  let schemeMode = 'upload';
+  let uploadFiles = [];      // files for upload-mode processing
+  let attachFiles = [];      // files for manual-mode optional attach
+  let processedDocs = [];    // document refs from processing result
+
+  function setSchemeMode(mode) {
+    schemeMode = mode;
+    document.getElementById('manualMode').classList.toggle('hidden', mode === 'upload');
+    document.getElementById('uploadMode').classList.toggle('hidden', mode === 'manual');
+    document.getElementById('modeManualBtn').classList.toggle('active', mode === 'manual');
+    document.getElementById('modeUploadBtn').classList.toggle('active', mode === 'upload');
+    document.getElementById('modeHint').textContent = mode === 'upload'
+      ? 'Upload scheme PDFs, images, or documents \u2014 we\u2019ll read and auto-fill the form for you.'
+      : 'Fill in all the scheme details by hand.';
+  }
+
+  // --- File size formatting ---
+  function formatBytes(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  // --- File extension to readable type ---
+  function fileTypeLabel(name) {
+    const ext = name.split('.').pop().toLowerCase();
+    return { pdf: 'PDF', docx: 'DOCX', png: 'PNG', jpg: 'JPG', jpeg: 'JPG' }[ext] || ext.toUpperCase();
+  }
+
+  // --- Render file list ---
+  function renderFileList(files, containerId, removeCallback) {
+    const el = document.getElementById(containerId);
+    el.innerHTML = files.map((f, i) => `
+    <div class="upload-file-item">
+      <span class="upload-file-name">${escapeHtml(f.name)}</span>
+      <span class="upload-file-meta">${fileTypeLabel(f.name)} · ${formatBytes(f.size)}</span>
+      <button class="upload-file-remove" onclick="${removeCallback}(${i})">✕</button>
+    </div>`).join('');
+  }
+
+  // --- Upload zone drag & drop ---
+  function setupDropZone(zoneId, fileInputId, addCallback) {
+    const zone = document.getElementById(zoneId);
+    const input = document.getElementById(fileInputId);
+    if (!zone || !input) return;
+
+    zone.addEventListener('click', (e) => { if (e.target === zone || e.target.classList.contains('upload-zone-text') || e.target.classList.contains('upload-zone-hint')) input.click(); });
+    zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('dragover'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+    zone.addEventListener('drop', (e) => { e.preventDefault(); zone.classList.remove('dragover'); addCallback(Array.from(e.dataTransfer.files)); });
+    input.addEventListener('change', () => { addCallback(Array.from(input.files)); input.value = ''; });
+  }
+
+  function validateAndAddFiles(newFiles, existingFiles, listId, removeCallback) {
+    const ALLOWED_EXTS = ['pdf', 'docx', 'png', 'jpg', 'jpeg'];
+    const MAX_SIZE = 10 * 1024 * 1024;
+    const MAX_COUNT = 3;
+
+    for (const f of newFiles) {
+      if (existingFiles.length >= MAX_COUNT) { showToast(`Maximum ${MAX_COUNT} files`, 'error'); break; }
+      const ext = f.name.split('.').pop().toLowerCase();
+      if (!ALLOWED_EXTS.includes(ext)) { showToast(`${f.name}: unsupported format`, 'error'); continue; }
+      if (f.size > MAX_SIZE) { showToast(`${f.name}: exceeds 10 MB`, 'error'); continue; }
+      if (existingFiles.some(e => e.name === f.name && e.size === f.size)) continue; // skip dupe
+      existingFiles.push(f);
+    }
+    renderFileList(existingFiles, listId, removeCallback);
+    return existingFiles;
+  }
+
+  // Upload mode files
+  function addUploadFiles(newFiles) {
+    uploadFiles = validateAndAddFiles(newFiles, uploadFiles, 'uploadFileList', 'removeUploadFile');
+    document.getElementById('processBtn').classList.toggle('hidden', uploadFiles.length === 0);
+  }
+  function removeUploadFile(i) {
+    uploadFiles.splice(i, 1);
+    renderFileList(uploadFiles, 'uploadFileList', 'removeUploadFile');
+    document.getElementById('processBtn').classList.toggle('hidden', uploadFiles.length === 0);
+  }
+
+  // Attach mode files
+  function addAttachFiles(newFiles) {
+    attachFiles = validateAndAddFiles(newFiles, attachFiles, 'attachFileList', 'removeAttachFile');
+  }
+  function removeAttachFile(i) {
+    attachFiles.splice(i, 1);
+    renderFileList(attachFiles, 'attachFileList', 'removeAttachFile');
+  }
+
+  function toggleAttach() {
+    document.getElementById('attachSection').classList.toggle('hidden');
+  }
+
+  // Initialize drop zones
+  setTimeout(() => {
+    setupDropZone('uploadZone', 'schemeFileInput', addUploadFiles);
+    setupDropZone('attachZone', 'attachFileInput', addAttachFiles);
+  }, 100);
+
+  // ===================================================================
+  // DOCUMENT PROCESSING
+  // ===================================================================
+  async function processDocuments() {
+    if (!uploadFiles.length) return;
+    const btn = document.getElementById('processBtn');
+    const statusEl = document.getElementById('processStatus');
+    btn.disabled = true;
+    btn.textContent = 'Processing…';
+    statusEl.className = 'process-status mt-1';
+    statusEl.innerHTML = '<div class="spinner" style="transform:scale(0.5);margin:0;"><span></span><span></span><span></span></div> Reading documents…';
+
+    try {
+      const fd = new FormData();
+      uploadFiles.forEach(f => fd.append('files', f));
+
+      // Update status through stages
+      setTimeout(() => { if (!btn.disabled) return; statusEl.innerHTML = '<div class="spinner" style="transform:scale(0.5);margin:0;"><span></span><span></span><span></span></div> Extracting scheme details…'; }, 3000);
+      setTimeout(() => { if (!btn.disabled) return; statusEl.innerHTML = '<div class="spinner" style="transform:scale(0.5);margin:0;"><span></span><span></span><span></span></div> Generating questions…'; }, 8000);
+
+      const result = await apiFormData('POST', '/knowledge/schemes/process-documents', fd);
+
+      // --- Handle irrelevant / unextractable documents ---
+      if (result.relevant === false) {
+        const warnEl = document.getElementById('relevanceWarning');
+        const reason = result.relevance_reason || result.message || '';
+        warnEl.className = 'glass-strong card mt-2';
+        warnEl.style.cssText = 'padding:1.5rem 1.75rem;background:rgba(198,40,40,0.06);border-left:4px solid #C62828;';
+        warnEl.innerHTML = `
+          <p style="font-weight:700;color:#C62828;font-size:1.05rem;margin-bottom:0.6rem;">⚠️ These documents couldn't be used</p>
+          ${reason ? `<p style="color:#37474F;line-height:1.7;margin-bottom:1rem;">${escapeHtml(reason)}</p>` : ''}
+          <p style="font-weight:600;color:#1565C0;margin-bottom:0.4rem;">What does Smart Extract expect?</p>
+          <p class="text-sm" style="color:#37474F;line-height:1.7;margin-bottom:0.75rem;">
+            This tool is designed to read <strong>official government scheme documents</strong> and automatically fill in the scheme form. It works best with:
+          </p>
+          <ul style="margin:0 0 1rem 1.25rem;color:#37474F;line-height:1.8;font-size:0.88rem;">
+            <li>Government Orders (GOs), circulars, or gazette notifications describing a welfare scheme</li>
+            <li>Scheme guidelines or brochures from government departments</li>
+            <li>Policy documents mentioning eligibility criteria, benefits, and application processes</li>
+          </ul>
+          <p class="text-sm" style="color:#37474F;line-height:1.7;margin-bottom:0.75rem;">
+            Documents like personal letters, invoices, receipts, general news articles, or files unrelated to a public welfare / benefit programme won't produce useful results.
+          </p>
+          <p class="text-sm" style="color:#546E7A;line-height:1.6;">
+            <strong>What can you do?</strong> Upload a different document that describes a government scheme, or switch to <strong>"✏️ Custom Entry"</strong> to type the details by hand.
+          </p>`;
+        showToast('Could not extract scheme details from these files', 'error');
+        btn.disabled = false;
+        btn.textContent = 'Process Documents';
+        statusEl.className = 'hidden';
+        return;
+      }
+
+      // Clear any previous warning
+      document.getElementById('relevanceWarning').className = 'hidden';
+
+      // Store processed docs
+      processedDocs = result.documents || [];
+
+      // Auto-populate fields
+      const ext = result.extracted || {};
+      if (ext.name) document.getElementById('sName').value = ext.name;
+      if (ext.description) document.getElementById('sDesc').value = ext.description;
+      if (ext.eligibility) document.getElementById('sElig').value = ext.eligibility;
+      if (ext.how_to_apply) document.getElementById('sHow').value = ext.how_to_apply;
+      if (ext.department) {
+        const deptSel = document.getElementById('sDept');
+        for (let opt of deptSel.options) {
+          if (opt.value === ext.department) { deptSel.value = ext.department; break; }
+        }
+      }
+
+      // Populate questions
+      if (result.eligibility_questions?.length) {
+        populateQuestions(result.eligibility_questions);
+      }
+
+      // Flash fields to draw attention
+      ['sName', 'sDesc', 'sElig', 'sHow'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el.value) { el.classList.add('field-flash'); setTimeout(() => el.classList.remove('field-flash'), 700); }
+      });
+
+      // Show processed docs info
+      if (processedDocs.length) {
+        const docsInfo = document.getElementById('processedDocsInfo');
+        docsInfo.className = 'mt-1';
+        docsInfo.innerHTML = `<p class="text-sm text-muted" style="margin-bottom:0.5rem;">Attached ${processedDocs.length} document${processedDocs.length > 1 ? 's' : ''}:</p>` +
+          processedDocs.map(d => `<div class="upload-file-item"><span class="upload-file-name">${escapeHtml(d.filename)}</span><span class="upload-file-meta">${formatBytes(d.size)}</span><button class="btn btn-sm btn-secondary" style="padding:0.2rem 0.6rem;font-size:0.75rem;" onclick="openDocViewer('${d.id}','${escapeHtml(d.filename)}','${d.content_type}')">View</button></div>`).join('');
+      }
+
+      // Switch to manual mode so officer can review and edit
+      setSchemeMode('manual');
+      showToast(result.message || 'Extracted — review and edit below');
+
+    } catch (e) {
+      showToast(e.message || 'Processing failed', 'error');
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Process Documents';
+    statusEl.className = 'hidden';
+  }
+
+
+  // ===================================================================
+  // QUESTION EDITOR HELPERS (unchanged logic, kept as-is)
+  // ===================================================================
+  function renderQuestionRow(q = { question: '', eligible_answer: 'yes' }, container = 'sQuestions') {
+    const el = document.getElementById(container);
+    const row = document.createElement('div');
+    row.className = 'flex gap-1 mb-1';
+    row.style.alignItems = 'center';
+    row.innerHTML = `
     <input type="text" class="form-control q-text" value="${escapeHtml(q.question)}" placeholder="Enter question..." style="flex:1;">
     <button class="btn btn-sm q-toggle" onclick="toggleAnswer(this)" data-answer="${q.eligible_answer}" style="min-width:60px;${q.eligible_answer === 'yes' ? 'background:rgba(46,125,50,0.2);color:#2E7D32;' : 'background:rgba(198,40,40,0.2);color:#C62828;'}">${q.eligible_answer === 'yes' ? 'Yes' : 'No'}</button>
     <button class="btn btn-sm btn-danger" onclick="this.parentElement.remove()" style="padding:0.4rem 0.6rem;">✕</button>`;
-  el.appendChild(row);
-}
+    el.appendChild(row);
+  }
 
-function toggleAnswer(btn) {
-  const current = btn.getAttribute('data-answer');
-  const next = current === 'yes' ? 'no' : 'yes';
-  btn.setAttribute('data-answer', next);
-  btn.textContent = next === 'yes' ? 'Yes' : 'No';
-  btn.style.background = next === 'yes' ? 'rgba(46,125,50,0.2)' : 'rgba(198,40,40,0.2)';
-  btn.style.color = next === 'yes' ? '#2E7D32' : '#C62828';
-}
+  function toggleAnswer(btn) {
+    const current = btn.getAttribute('data-answer');
+    const next = current === 'yes' ? 'no' : 'yes';
+    btn.setAttribute('data-answer', next);
+    btn.textContent = next === 'yes' ? 'Yes' : 'No';
+    btn.style.background = next === 'yes' ? 'rgba(46,125,50,0.2)' : 'rgba(198,40,40,0.2)';
+    btn.style.color = next === 'yes' ? '#2E7D32' : '#C62828';
+  }
 
-function addQuestionRow(container = 'sQuestions') {
-  renderQuestionRow({question: '', eligible_answer: 'yes'}, container);
-}
+  function addQuestionRow(container = 'sQuestions') {
+    renderQuestionRow({ question: '', eligible_answer: 'yes' }, container);
+  }
 
-function collectQuestions(container = 'sQuestions') {
-  const rows = document.getElementById(container).querySelectorAll('.flex');
-  const questions = [];
-  rows.forEach(row => {
-    const text = row.querySelector('.q-text')?.value?.trim();
-    const answer = row.querySelector('.q-toggle')?.getAttribute('data-answer') || 'yes';
-    if (text) questions.push({question: text, eligible_answer: answer});
-  });
-  return questions;
-}
-
-function populateQuestions(questions, container = 'sQuestions') {
-  document.getElementById(container).innerHTML = '';
-  questions.forEach(q => renderQuestionRow(q, container));
-}
-
-// --- Generate Questions via AI ---
-async function generateQuestions() {
-  const elig = document.getElementById('sElig').value.trim();
-  const name = document.getElementById('sName').value.trim();
-  if (!elig) { showToast('Enter eligibility criteria first', 'error'); return; }
-  const btn = document.getElementById('genQBtn');
-  btn.textContent = 'Generating...'; btn.disabled = true;
-  try {
-    const data = await api('POST', '/knowledge/schemes/generate-questions', { eligibility: elig, scheme_name: name });
-    populateQuestions(data.questions || []);
-    showToast(`Generated ${(data.questions || []).length} questions`);
-  } catch (e) { showToast(e.message, 'error'); }
-  btn.textContent = '🤖 Generate from Eligibility'; btn.disabled = false;
-}
-
-// --- Add Scheme ---
-async function addScheme() {
-  const n = document.getElementById('sName').value, d = document.getElementById('sDesc').value;
-  if (!n || !d) return;
-  try {
-    await api('POST', '/knowledge/schemes', {
-      name: n, description: d, eligibility: document.getElementById('sElig').value,
-      department: document.getElementById('sDept').value, how_to_apply: document.getElementById('sHow').value,
-      eligibility_questions: collectQuestions()
+  function collectQuestions(container = 'sQuestions') {
+    const rows = document.getElementById(container).querySelectorAll('.flex');
+    const questions = [];
+    rows.forEach(row => {
+      const text = row.querySelector('.q-text')?.value?.trim();
+      const answer = row.querySelector('.q-toggle')?.getAttribute('data-answer') || 'yes';
+      if (text) questions.push({ question: text, eligible_answer: answer });
     });
-    showToast('Scheme added');
-    document.getElementById('sName').value = ''; document.getElementById('sDesc').value = '';
-    document.getElementById('sElig').value = ''; document.getElementById('sHow').value = '';
-    document.getElementById('sQuestions').innerHTML = '';
-    loadSchemes();
-  } catch (e) { showToast(e.message, 'error'); }
-}
+    return questions;
+  }
 
-// --- Load Schemes with Edit Questions ---
-async function loadSchemes() {
-  showLoading('schemeList');
-  try {
-    const schemes = await api('GET', '/knowledge/schemes');
-    document.getElementById('schemeList').innerHTML = schemes.map(s => {
-      const qCount = (s.eligibility_questions || []).length;
-      const eName = escapeHtml(s.name);
-      const eDesc = escapeHtml(s.description);
-      const eElig = escapeHtml(s.eligibility);
-      const eHow = escapeHtml(s.how_to_apply);
-      return `
+  function populateQuestions(questions, container = 'sQuestions') {
+    document.getElementById(container).innerHTML = '';
+    questions.forEach(q => renderQuestionRow(q, container));
+  }
+
+  // --- Generate Questions via AI ---
+  async function generateQuestions() {
+    const elig = document.getElementById('sElig').value.trim();
+    const name = document.getElementById('sName').value.trim();
+    if (!elig) { showToast('Enter eligibility criteria first', 'error'); return; }
+    const btn = document.getElementById('genQBtn');
+    btn.textContent = 'Generating...'; btn.disabled = true;
+    try {
+      const data = await api('POST', '/knowledge/schemes/generate-questions', { eligibility: elig, scheme_name: name });
+      populateQuestions(data.questions || []);
+      showToast(`Generated ${(data.questions || []).length} questions`);
+    } catch (e) { showToast(e.message, 'error'); }
+    btn.textContent = '🤖 Generate from Eligibility'; btn.disabled = false;
+  }
+
+  // ===================================================================
+  // ADD SCHEME (updated to handle documents)
+  // ===================================================================
+  async function addScheme() {
+    const n = document.getElementById('sName').value, d = document.getElementById('sDesc').value;
+    if (!n || !d) { showToast('Name and description are required', 'error'); return; }
+
+    // First add the scheme
+    try {
+      const result = await api('POST', '/knowledge/schemes', {
+        name: n, description: d, eligibility: document.getElementById('sElig').value,
+        department: document.getElementById('sDept').value, how_to_apply: document.getElementById('sHow').value,
+        eligibility_questions: collectQuestions()
+      });
+
+      // Upload attach-mode files if any
+      let allDocs = [...processedDocs];
+      if (attachFiles.length) {
+        const fd = new FormData();
+        attachFiles.forEach(f => fd.append('files', f));
+        try {
+          const attachResult = await apiFormData('POST', '/knowledge/schemes/process-documents', fd);
+          allDocs = [...allDocs, ...(attachResult.documents || [])];
+        } catch (e) { /* non-critical, scheme already saved */ }
+      }
+
+      // If we have documents, update the most recently created scheme
+      // Since we just added it, reload and update the first matching one
+      if (allDocs.length) {
+        try {
+          const schemes = await api('GET', '/knowledge/schemes');
+          const newest = schemes.find(s => s.name === n);
+          if (newest) {
+            await api('PUT', `/knowledge/schemes/${newest.id}/documents`, { documents: allDocs });
+          }
+        } catch (e) { /* non-critical */ }
+      }
+
+      showToast('Scheme added');
+      // Reset form
+      document.getElementById('sName').value = ''; document.getElementById('sDesc').value = '';
+      document.getElementById('sElig').value = ''; document.getElementById('sHow').value = '';
+      document.getElementById('sQuestions').innerHTML = '';
+      processedDocs = [];
+      attachFiles = [];
+      uploadFiles = [];
+      document.getElementById('processedDocsInfo').className = 'hidden';
+      document.getElementById('uploadFileList').innerHTML = '';
+      document.getElementById('attachFileList').innerHTML = '';
+      loadSchemes();
+    } catch (e) { showToast(e.message, 'error'); }
+  }
+
+  // ===================================================================
+  // LOAD SCHEMES (with document badges and view docs)
+  // ===================================================================
+  async function loadSchemes() {
+    showLoading('schemeList');
+    try {
+      const schemes = await api('GET', '/knowledge/schemes');
+      document.getElementById('schemeList').innerHTML = schemes.map(s => {
+        const qCount = (s.eligibility_questions || []).length;
+        const docCount = (s.documents || []).length;
+        const eName = escapeHtml(s.name);
+        const eDesc = escapeHtml(s.description);
+        const eElig = escapeHtml(s.eligibility);
+        const eHow = escapeHtml(s.how_to_apply);
+        return `
       <div class="scheme-card glass card card-animate" id="scheme-${s.id}">
         <h4>${eName}</h4>
         <p>${eDesc}</p>
         <p><strong>Eligibility:</strong> ${eElig}</p>
         <div class="badges mb-1">${deptBadge(s.department)}
           <span class="badge ${qCount ? 'badge-resolved' : 'badge-pending'}">${qCount ? qCount + ' questions' : 'No questions'}</span>
+          ${docCount ? `<span class="doc-badge">${docCount} doc${docCount > 1 ? 's' : ''}</span>` : ''}
         </div>
         <div class="flex gap-1">
           <button class="btn btn-secondary btn-sm scheme-edit-details-btn" data-id="${escapeHtml(s.id)}">✏️ Edit Details</button>
           <button class="btn btn-secondary btn-sm scheme-edit-q-btn" data-id="${escapeHtml(s.id)}">Edit Questions</button>
+          ${docCount ? `<button class="btn btn-secondary btn-sm scheme-view-docs-btn" data-id="${escapeHtml(s.id)}">View Docs</button>` : ''}
           <button class="btn btn-sm scheme-del-btn" style="color:#C62828;background:rgba(198,40,40,0.1);" data-id="${escapeHtml(s.id)}" data-name="${escapeHtml(s.name)}">🗑️ Delete</button>
+        </div>
+        <div id="docs-${s.id}" class="hidden mt-1" style="border-top:1px solid rgba(255,255,255,0.2);padding-top:0.75rem;">
+          ${(s.documents || []).map(doc => `
+            <div class="upload-file-item">
+              <span class="upload-file-name">${escapeHtml(doc.filename)}</span>
+              <span class="upload-file-meta">${formatBytes(doc.size || 0)}</span>
+              <button class="btn btn-sm btn-secondary" style="padding:0.2rem 0.6rem;font-size:0.75rem;" onclick="openDocViewer('${doc.id}','${escapeHtml(doc.filename)}','${doc.content_type}')">View</button>
+            </div>`).join('')}
         </div>
         <div id="details-${s.id}" class="hidden mt-1" style="border-top:1px solid rgba(255,255,255,0.2);padding-top:0.75rem;">
           <div class="form-group"><label>Scheme Name</label><input type="text" class="form-control" id="dn-${s.id}" value="${eName}"></div>
@@ -279,119 +610,162 @@ async function loadSchemes() {
           </div>
         </div>
       </div>`;
-    }).join('') || '<p class="text-muted">No schemes yet.</p>';
-    // Bind event handlers safely (no inline onclick)
-    document.querySelectorAll('.scheme-edit-details-btn').forEach(btn => {
-      btn.addEventListener('click', () => toggleEditDetails(btn.dataset.id));
-    });
-    document.querySelectorAll('.scheme-edit-q-btn').forEach(btn => {
-      btn.addEventListener('click', () => toggleEditQuestions(btn.dataset.id));
-    });
-    document.querySelectorAll('.scheme-del-btn').forEach(btn => {
-      btn.addEventListener('click', () => deleteScheme(btn.dataset.id, btn.dataset.name));
-    });
-    document.querySelectorAll('.scheme-save-details-btn').forEach(btn => {
-      btn.addEventListener('click', () => saveSchemeDetails(btn.dataset.id));
-    });
-    document.querySelectorAll('.scheme-add-q-btn').forEach(btn => {
-      btn.addEventListener('click', () => addQuestionRow('eq-' + btn.dataset.id));
-    });
-    document.querySelectorAll('.scheme-gen-q-btn').forEach(btn => {
-      btn.addEventListener('click', () => genEditQuestions(btn.dataset.id));
-    });
-    document.querySelectorAll('.scheme-save-q-btn').forEach(btn => {
-      btn.addEventListener('click', () => saveEditQuestions(btn.dataset.id));
-    });
-  } catch (e) {}
-}
+      }).join('') || '<p class="text-muted">No schemes yet.</p>';
+      // Bind event handlers
+      document.querySelectorAll('.scheme-edit-details-btn').forEach(btn => {
+        btn.addEventListener('click', () => toggleEditDetails(btn.dataset.id));
+      });
+      document.querySelectorAll('.scheme-edit-q-btn').forEach(btn => {
+        btn.addEventListener('click', () => toggleEditQuestions(btn.dataset.id));
+      });
+      document.querySelectorAll('.scheme-view-docs-btn').forEach(btn => {
+        btn.addEventListener('click', () => toggleViewDocs(btn.dataset.id));
+      });
+      document.querySelectorAll('.scheme-del-btn').forEach(btn => {
+        btn.addEventListener('click', () => deleteScheme(btn.dataset.id, btn.dataset.name));
+      });
+      document.querySelectorAll('.scheme-save-details-btn').forEach(btn => {
+        btn.addEventListener('click', () => saveSchemeDetails(btn.dataset.id));
+      });
+      document.querySelectorAll('.scheme-add-q-btn').forEach(btn => {
+        btn.addEventListener('click', () => addQuestionRow('eq-' + btn.dataset.id));
+      });
+      document.querySelectorAll('.scheme-gen-q-btn').forEach(btn => {
+        btn.addEventListener('click', () => genEditQuestions(btn.dataset.id));
+      });
+      document.querySelectorAll('.scheme-save-q-btn').forEach(btn => {
+        btn.addEventListener('click', () => saveEditQuestions(btn.dataset.id));
+      });
+    } catch (e) { }
+  }
 
-async function toggleEditQuestions(id) {
-  const panel = document.getElementById('edit-' + id);
-  if (!panel.classList.contains('hidden')) { panel.classList.add('hidden'); return; }
-  panel.classList.remove('hidden');
-  const container = 'eq-' + id;
-  showLoading(container);
-  try {
-    const scheme = await api('GET', `/knowledge/schemes/${id}`);
-    populateQuestions(scheme.eligibility_questions || [], container);
-    // Store eligibility text for generation
-    panel.dataset.eligibility = scheme.eligibility || '';
-    panel.dataset.name = scheme.name || '';
-  } catch (e) { showToast(e.message, 'error'); }
-}
+  function toggleViewDocs(id) {
+    const panel = document.getElementById('docs-' + id);
+    panel.classList.toggle('hidden');
+  }
 
-async function genEditQuestions(id) {
-  const panel = document.getElementById('edit-' + id);
-  const elig = panel.dataset.eligibility;
-  const name = panel.dataset.name;
-  if (!elig) { showToast('No eligibility text available', 'error'); return; }
-  try {
-    const data = await api('POST', '/knowledge/schemes/generate-questions', { eligibility: elig, scheme_name: name });
-    populateQuestions(data.questions || [], 'eq-' + id);
-    showToast(`Generated ${(data.questions || []).length} questions`);
-  } catch (e) { showToast(e.message, 'error'); }
-}
+  async function toggleEditQuestions(id) {
+    const panel = document.getElementById('edit-' + id);
+    if (!panel.classList.contains('hidden')) { panel.classList.add('hidden'); return; }
+    panel.classList.remove('hidden');
+    const container = 'eq-' + id;
+    showLoading(container);
+    try {
+      const scheme = await api('GET', `/knowledge/schemes/${id}`);
+      populateQuestions(scheme.eligibility_questions || [], container);
+      panel.dataset.eligibility = scheme.eligibility || '';
+      panel.dataset.name = scheme.name || '';
+    } catch (e) { showToast(e.message, 'error'); }
+  }
 
-async function saveEditQuestions(id) {
-  const questions = collectQuestions('eq-' + id);
-  try {
-    await api('PUT', `/knowledge/schemes/${id}/questions`, { questions });
-    showToast('Questions saved');
-    loadSchemes();
-  } catch (e) { showToast(e.message, 'error'); }
-}
+  async function genEditQuestions(id) {
+    const panel = document.getElementById('edit-' + id);
+    const elig = panel.dataset.eligibility;
+    const name = panel.dataset.name;
+    if (!elig) { showToast('No eligibility text available', 'error'); return; }
+    try {
+      const data = await api('POST', '/knowledge/schemes/generate-questions', { eligibility: elig, scheme_name: name });
+      populateQuestions(data.questions || [], 'eq-' + id);
+      showToast(`Generated ${(data.questions || []).length} questions`);
+    } catch (e) { showToast(e.message, 'error'); }
+  }
 
-async function backfillAll() {
-  if (!confirm('Generate AI questions for all schemes missing them?')) return;
-  try {
-    const data = await api('POST', '/knowledge/schemes/backfill-questions');
-    showToast(data.message);
-    loadSchemes();
-  } catch (e) { showToast(e.message, 'error'); }
-}
+  async function saveEditQuestions(id) {
+    const questions = collectQuestions('eq-' + id);
+    try {
+      await api('PUT', `/knowledge/schemes/${id}/questions`, { questions });
+      showToast('Questions saved');
+      loadSchemes();
+    } catch (e) { showToast(e.message, 'error'); }
+  }
 
-// --- Edit Scheme Details ---
-function deptOptionsSelected(current) {
-  return DEPARTMENTS.map(d => `<option value="${d}"${d === current ? ' selected' : ''}>${deptLabel(d)}</option>`).join('');
-}
+  async function backfillAll() {
+    if (!confirm('Generate AI questions for all schemes missing them?')) return;
+    try {
+      const data = await api('POST', '/knowledge/schemes/backfill-questions');
+      showToast(data.message);
+      loadSchemes();
+    } catch (e) { showToast(e.message, 'error'); }
+  }
 
-function toggleEditDetails(id) {
-  const panel = document.getElementById('details-' + id);
-  panel.classList.toggle('hidden');
-}
+  // --- Edit Scheme Details ---
+  function deptOptionsSelected(current) {
+    return DEPARTMENTS.map(d => `<option value="${d}"${d === current ? ' selected' : ''}>${deptLabel(d)}</option>`).join('');
+  }
 
-async function saveSchemeDetails(id) {
-  const name = document.getElementById('dn-' + id).value;
-  const desc = document.getElementById('dd-' + id).value;
-  const elig = document.getElementById('de-' + id).value;
-  const dept = document.getElementById('dp-' + id).value;
-  const how = document.getElementById('dh-' + id).value;
-  if (!name || !desc) { showToast('Name and description are required', 'error'); return; }
-  try {
-    await api('PUT', `/knowledge/schemes/${id}`, {
-      name, description: desc, eligibility: elig, department: dept, how_to_apply: how,
-      eligibility_questions: []
-    });
-    showToast('Scheme details updated');
-    loadSchemes();
-  } catch (e) { showToast(e.message, 'error'); }
-}
+  function toggleEditDetails(id) {
+    const panel = document.getElementById('details-' + id);
+    panel.classList.toggle('hidden');
+  }
 
-// --- Delete functions ---
-async function deleteDoc(id, title) {
-  if (!confirm(`Delete documentation "${title}"?`)) return;
-  try { await api('DELETE', `/knowledge/documentation/${id}`); showToast('Deleted'); loadDocs(); }
-  catch (e) { showToast(e.message, 'error'); }
-}
-async function deleteMem(id) {
-  if (!confirm('Delete this service memory entry?')) return;
-  try { await api('DELETE', `/knowledge/service-memory/${id}`); showToast('Deleted'); loadMems(); }
-  catch (e) { showToast(e.message, 'error'); }
-}
-async function deleteScheme(id, name) {
-  if (!confirm(`Delete scheme "${name}"? This cannot be undone.`)) return;
-  try { await api('DELETE', `/knowledge/schemes/${id}`); showToast('Scheme deleted'); loadSchemes(); }
-  catch (e) { showToast(e.message, 'error'); }
-}
+  async function saveSchemeDetails(id) {
+    const name = document.getElementById('dn-' + id).value;
+    const desc = document.getElementById('dd-' + id).value;
+    const elig = document.getElementById('de-' + id).value;
+    const dept = document.getElementById('dp-' + id).value;
+    const how = document.getElementById('dh-' + id).value;
+    if (!name || !desc) { showToast('Name and description are required', 'error'); return; }
+    try {
+      await api('PUT', `/knowledge/schemes/${id}`, {
+        name, description: desc, eligibility: elig, department: dept, how_to_apply: how,
+        eligibility_questions: []
+      });
+      showToast('Scheme details updated');
+      loadSchemes();
+    } catch (e) { showToast(e.message, 'error'); }
+  }
+
+  // --- Delete functions ---
+  async function deleteDoc(id, title) {
+    if (!confirm(`Delete documentation "${title}"?`)) return;
+    try { await api('DELETE', `/knowledge/documentation/${id}`); showToast('Deleted'); loadDocs(); }
+    catch (e) { showToast(e.message, 'error'); }
+  }
+  async function deleteMem(id) {
+    if (!confirm('Delete this service memory entry?')) return;
+    try { await api('DELETE', `/knowledge/service-memory/${id}`); showToast('Deleted'); loadMems(); }
+    catch (e) { showToast(e.message, 'error'); }
+  }
+  async function deleteScheme(id, name) {
+    if (!confirm(`Delete scheme "${name}"? This cannot be undone.`)) return;
+    try { await api('DELETE', `/knowledge/schemes/${id}`); showToast('Scheme deleted'); loadSchemes(); }
+    catch (e) { showToast(e.message, 'error'); }
+  }
+
+  // ===================================================================
+  // DOCUMENT VIEWER MODAL
+  // ===================================================================
+  function openDocViewer(docId, filename, contentType) {
+    const overlay = document.getElementById('docViewerOverlay');
+    const title = document.getElementById('docViewerTitle');
+    const content = document.getElementById('docViewerContent');
+
+    title.textContent = filename;
+    const url = `/attachments/${docId}`;
+
+    if (contentType === 'application/pdf') {
+      content.innerHTML = `<iframe src="${url}" style="width:100%;height:100%;border:none;border-radius:12px;"></iframe>`;
+    } else if (contentType && contentType.startsWith('image/')) {
+      content.innerHTML = `<img src="${url}" alt="${escapeHtml(filename)}" style="max-width:100%;max-height:calc(85vh - 5rem);object-fit:contain;margin:0 auto;display:block;border-radius:12px;">`;
+    } else {
+      content.innerHTML = `<div style="padding:2rem;text-align:center;"><p class="text-muted">Preview not available for this file type.</p><a href="${url}" target="_blank" class="btn btn-primary btn-sm mt-1">Open in new tab</a></div>`;
+    }
+
+    overlay.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeDocViewer() {
+    document.getElementById('docViewerOverlay').classList.add('hidden');
+    document.getElementById('docViewerContent').innerHTML = '';
+    document.body.style.overflow = '';
+  }
+
+  // Close on Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !document.getElementById('docViewerOverlay').classList.contains('hidden')) {
+      closeDocViewer();
+    }
+  });
 </script>
 {% endblock %}
