@@ -1781,6 +1781,66 @@ async def admin_delete_user(user_id: str,
     return {"detail": f"User '{target['username']}' deleted"}
 
 # ---------------------------------------------------------------------------
+# ADMIN DEADLINE ALERTS ENDPOINT
+# ---------------------------------------------------------------------------
+@app.get("/admin/deadline-alerts")
+async def admin_deadline_alerts(
+    user=Depends(require_role(UserRole.ADMIN.value)),
+    db=Depends(get_db),
+):
+    """Return unresolved grievances nearing or past their SLA deadline."""
+    now = datetime.now(timezone.utc)
+    threshold_24h = now + timedelta(hours=24)
+    threshold_48h = now + timedelta(hours=48)
+
+    def fetch():
+        # All unresolved grievances that have an SLA deadline within 48h or already breached
+        cursor = db.grievances.find(
+            {
+                "status": {"$in": ["pending", "in_progress", "escalated"]},
+                "sla_deadline": {"$exists": True, "$ne": None, "$lte": threshold_48h},
+            },
+            {
+                "_id": 1, "tracking_number": 1, "title": 1, "department": 1,
+                "priority": 1, "status": 1, "sla_deadline": 1, "created_at": 1,
+            },
+        ).sort("sla_deadline", 1)
+        return list(cursor)
+
+    loop = asyncio.get_event_loop()
+    results = await loop.run_in_executor(executor, fetch)
+
+    breached, critical, warning = [], [], []
+    for g in results:
+        item = {
+            "id": g["_id"],
+            "tracking_number": g["tracking_number"],
+            "title": g["title"],
+            "department": g.get("department", "general"),
+            "priority": g.get("priority", "medium"),
+            "status": g["status"],
+            "sla_deadline": g["sla_deadline"].isoformat() if g.get("sla_deadline") else None,
+            "created_at": g["created_at"].isoformat() if g.get("created_at") else None,
+        }
+        deadline = g["sla_deadline"]
+        # Ensure both sides are tz-aware for comparison (MongoDB may store naive datetimes)
+        if deadline.tzinfo is None:
+            deadline = deadline.replace(tzinfo=timezone.utc)
+        if deadline <= now:
+            breached.append(item)
+        elif deadline <= threshold_24h:
+            critical.append(item)
+        else:
+            warning.append(item)
+
+    return {
+        "breached": breached,
+        "critical": critical,
+        "warning": warning,
+        "total_alerts": len(breached) + len(critical) + len(warning),
+    }
+
+# ---------------------------------------------------------------------------
 # GRIEVANCE ENDPOINTS
 # ---------------------------------------------------------------------------
 @app.post("/grievances", response_model=GrievanceResponse)

@@ -5,15 +5,15 @@
 const API = '';
 
 const ODISHA_DISTRICTS = [
-  "Angul","Balangir","Balasore","Bargarh","Bhadrak","Boudh","Cuttack","Deogarh",
-  "Dhenkanal","Gajapati","Ganjam","Jagatsinghpur","Jajpur","Jharsuguda","Kalahandi",
-  "Kandhamal","Kendrapara","Kendujhar","Khordha","Koraput","Malkangiri","Mayurbhanj",
-  "Nabarangpur","Nayagarh","Nuapada","Puri","Rayagada","Sambalpur","Subarnapur","Sundargarh"
+  "Angul", "Balangir", "Balasore", "Bargarh", "Bhadrak", "Boudh", "Cuttack", "Deogarh",
+  "Dhenkanal", "Gajapati", "Ganjam", "Jagatsinghpur", "Jajpur", "Jharsuguda", "Kalahandi",
+  "Kandhamal", "Kendrapara", "Kendujhar", "Khordha", "Koraput", "Malkangiri", "Mayurbhanj",
+  "Nabarangpur", "Nayagarh", "Nuapada", "Puri", "Rayagada", "Sambalpur", "Subarnapur", "Sundargarh"
 ];
 
 const DEPARTMENTS = [
-  "panchayati_raj","rural_water_supply","mgnregs","rural_housing",
-  "rural_livelihoods","sanitation","infrastructure","general"
+  "panchayati_raj", "rural_water_supply", "mgnregs", "rural_housing",
+  "rural_livelihoods", "sanitation", "infrastructure", "general"
 ];
 
 // --- Auth ---
@@ -132,7 +132,7 @@ function renderMarkdown(text) {
     marked.setOptions({ breaks: true, gfm: true });
     const raw = marked.parse(text);
     if (typeof DOMPurify !== 'undefined') {
-      return DOMPurify.sanitize(raw, { ALLOWED_TAGS: ['p','br','strong','em','ul','ol','li','h1','h2','h3','h4','h5','h6','a','code','pre','blockquote','table','thead','tbody','tr','th','td','hr','span','div'], ALLOWED_ATTR: ['href','target','class'] });
+      return DOMPurify.sanitize(raw, { ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'a', 'code', 'pre', 'blockquote', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'hr', 'span', 'div'], ALLOWED_ATTR: ['href', 'target', 'class'] });
     }
     return raw;
   }
@@ -181,12 +181,27 @@ function renderNav() {
       <a href="/community">Community</a>`;
   }
 
+  const bellHtml = (user.role === 'admin') ? `
+    <div class="notif-bell-wrap" id="notifBellWrap">
+      <button class="notif-bell" id="notifBell" onclick="toggleNotifDropdown()" title="SLA Alerts">
+        🔔<span class="notif-badge" id="notifBadge" style="display:none;">0</span>
+      </button>
+      <div class="notif-dropdown" id="notifDropdown">
+        <div class="notif-dropdown-header">⚠️ SLA Deadline Alerts</div>
+        <div class="notif-dropdown-body" id="notifDropdownBody">
+          <div style="padding:1rem;text-align:center;opacity:0.6;">Loading…</div>
+        </div>
+        <a href="/admin" class="notif-dropdown-footer">View All in Admin Panel →</a>
+      </div>
+    </div>` : '';
+
   nav.innerHTML = `
     <a class="logo" href="${user.role === 'citizen' ? '/dashboard' : '/officer-dashboard'}">
       <span>🏛️</span> PR&DW Portal
     </a>
     <div class="nav-links">${links}</div>
     <div class="nav-user">
+      ${bellHtml}
       <span class="user-badge">${escapeHtml(user.full_name)} (${user.role})</span>
       <button class="btn-logout" onclick="logout()">Logout</button>
     </div>`;
@@ -221,7 +236,99 @@ function deptOptions(selected, includeAll = false) {
   return html;
 }
 
+// --- Notification Bell (Admin) ---
+let _notifDropdownOpen = false;
+let _notifPollTimer = null;
+
+function toggleNotifDropdown() {
+  const dd = document.getElementById('notifDropdown');
+  if (!dd) return;
+  _notifDropdownOpen = !_notifDropdownOpen;
+  dd.classList.toggle('open', _notifDropdownOpen);
+  if (_notifDropdownOpen) fetchNotifAlerts();
+}
+
+function closeNotifDropdown(e) {
+  if (_notifDropdownOpen && !e.target.closest('.notif-bell-wrap')) {
+    _notifDropdownOpen = false;
+    const dd = document.getElementById('notifDropdown');
+    if (dd) dd.classList.remove('open');
+  }
+}
+
+async function fetchNotifAlerts() {
+  try {
+    const data = await api('GET', '/admin/deadline-alerts');
+    const badge = document.getElementById('notifBadge');
+    const bell = document.getElementById('notifBell');
+    if (badge) {
+      if (data.total_alerts > 0) {
+        badge.textContent = data.total_alerts > 99 ? '99+' : data.total_alerts;
+        badge.style.display = 'flex';
+        if (bell) bell.classList.add('has-alerts');
+      } else {
+        badge.style.display = 'none';
+        if (bell) bell.classList.remove('has-alerts');
+      }
+    }
+    // Render dropdown body
+    const body = document.getElementById('notifDropdownBody');
+    if (!body) return;
+    if (data.total_alerts === 0) {
+      body.innerHTML = '<div style="padding:1.25rem;text-align:center;color:#2E7D32;font-weight:600;">✅ All clear — no alerts</div>';
+      return;
+    }
+    let html = '';
+    const items = [
+      ...data.breached.map(g => ({ ...g, sev: 'breached', icon: '🚨' })),
+      ...data.critical.map(g => ({ ...g, sev: 'critical', icon: '⏰' })),
+      ...data.warning.map(g => ({ ...g, sev: 'warning', icon: '⚡' })),
+    ].slice(0, 8); // Show max 8 in dropdown
+    items.forEach(g => {
+      const timeText = _notifCountdown(g.sla_deadline, g.sev);
+      html += `<a href="/grievance-detail?id=${encodeURIComponent(g.id)}" class="notif-item notif-${g.sev}">
+        <span class="notif-item-icon">${g.icon}</span>
+        <span class="notif-item-body">
+          <span class="notif-item-title">${escapeHtml(g.title)}</span>
+          <span class="notif-item-meta">${escapeHtml(g.tracking_number)} · ${timeText}</span>
+        </span>
+      </a>`;
+    });
+    if (data.total_alerts > 8) {
+      html += `<div style="padding:0.5rem 1rem;text-align:center;font-size:0.82rem;opacity:0.7;">+${data.total_alerts - 8} more…</div>`;
+    }
+    body.innerHTML = html;
+  } catch (e) {
+    const body = document.getElementById('notifDropdownBody');
+    if (body) body.innerHTML = '<div style="padding:1rem;text-align:center;color:#C62828;">Failed to load alerts</div>';
+  }
+}
+
+function _notifCountdown(iso, sev) {
+  if (!iso) return '';
+  const diff = new Date(iso) - new Date();
+  if (diff <= 0) {
+    const h = Math.floor(Math.abs(diff) / 3600000);
+    const d = Math.floor(h / 24);
+    return d > 0 ? `${d}d ${h % 24}h overdue` : `${h}h overdue`;
+  }
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  return h > 0 ? `${h}h ${m}m left` : `${m}m left`;
+}
+
+function startNotifPolling() {
+  const user = getUser();
+  if (!user || user.role !== 'admin') return;
+  // Initial fetch (silent, just badge count)
+  fetchNotifAlerts();
+  // Poll every 60 seconds
+  _notifPollTimer = setInterval(fetchNotifAlerts, 60000);
+}
+
 // --- Init nav on load ---
 document.addEventListener('DOMContentLoaded', () => {
   renderNav();
+  startNotifPolling();
+  document.addEventListener('click', closeNotifDropdown);
 });
