@@ -2005,11 +2005,14 @@ async def admin_deadline_alerts(
         else:
             warning.append(item)
 
+    completed_count = await loop.run_in_executor(executor, db.grievances.count_documents, {"status": "resolved"})
+
     return {
         "breached": breached,
         "critical": critical,
         "warning": warning,
         "total_alerts": len(breached) + len(critical) + len(warning),
+        "completed": completed_count
     }
 
 # ---------------------------------------------------------------------------
