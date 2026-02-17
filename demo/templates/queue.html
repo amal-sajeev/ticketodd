@@ -32,6 +32,10 @@ if (requireAuth()) {
   if (urlParams.get('district')) document.getElementById('fDistrict').value = urlParams.get('district');
   if (urlParams.get('status')) document.getElementById('fStatus').value = urlParams.get('status');
   if (urlParams.get('search')) document.getElementById('fSearch').value = urlParams.get('search');
+  const queueUser = getUser();
+  if (queueUser && queueUser.role === 'officer' && queueUser.department && !urlParams.get('department')) {
+    document.getElementById('fDept').value = queueUser.department;
+  }
   loadQueue();
   ['fStatus','fDept','fPriority','fDistrict','fSort'].forEach(id => document.getElementById(id).addEventListener('change', loadQueue));
   document.getElementById('fSearch').addEventListener('input', debounce(loadQueue, 300));

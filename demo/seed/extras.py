@@ -27,7 +27,7 @@ def _grv_ids(grievances: list[dict], *, district: str | None = None,
 def _build_systemic_issues(grievances: list[dict]) -> list[dict]:
     now = now_utc()
     return [
-        # --- detected ---
+        # --- detected (3 — these show on the officer dashboard) ---
         {"_id": new_id(),
          "title": "Widespread JJM pipeline failures across Rayagada block",
          "root_cause_analysis": (
@@ -49,7 +49,6 @@ def _build_systemic_issues(grievances: list[dict]) -> list[dict]:
          "updated_at": now - timedelta(days=3),
          "assigned_officer": None},
 
-        # --- acknowledged ---
         {"_id": new_id(),
          "title": "Recurring MGNREGS wage payment delays in western Odisha blocks",
          "root_cause_analysis": (
@@ -65,12 +64,11 @@ def _build_systemic_issues(grievances: list[dict]) -> list[dict]:
          "grievance_ids": _grv_ids(grievances, department="mgnregs", limit=4),
          "estimated_population_affected": 15000,
          "priority": "high",
-         "status": "acknowledged",
-         "created_at": now - timedelta(days=10),
-         "updated_at": now - timedelta(days=5),
-         "assigned_officer": "Sri Bikram Sahu, MGNREGS PO"},
+         "status": "detected",
+         "created_at": now - timedelta(days=2),
+         "updated_at": now - timedelta(days=2),
+         "assigned_officer": None},
 
-        # --- in_progress ---
         {"_id": new_id(),
          "title": "ODF Plus sustainability failure in Kendrapara and Jajpur",
          "root_cause_analysis": (
@@ -87,20 +85,43 @@ def _build_systemic_issues(grievances: list[dict]) -> list[dict]:
          "grievance_ids": _grv_ids(grievances, department="sanitation", limit=3),
          "estimated_population_affected": 45000,
          "priority": "high",
-         "status": "in_progress",
-         "created_at": now - timedelta(days=20),
-         "updated_at": now - timedelta(days=2),
-         "assigned_officer": "Smt. Sarojini Das, Block Sanitation Coord."},
+         "status": "detected",
+         "created_at": now - timedelta(days=1),
+         "updated_at": now - timedelta(days=1),
+         "assigned_officer": None},
 
-        # --- resolved ---
+        # --- acknowledged ---
+        {"_id": new_id(),
+         "title": "Fluoride contamination pattern in Jharsuguda and Sundargarh bore wells",
+         "root_cause_analysis": (
+             "4 grievances from adjacent blocks in Jharsuguda and Sundargarh report fluoride-"
+             "affected drinking water causing dental fluorosis in children. Root cause: bore wells "
+             "drilled into fluoride-bearing geological formations without pre-commissioning water "
+             "quality testing. Basudha and JJM schemes both affected. Estimated 3,200 households "
+             "consuming unsafe water."
+         ),
+         "department": "rural_water_supply",
+         "district": "Jharsuguda",
+         "affected_area_center": geojson_point("Jharsuguda"),
+         "affected_radius_km": 20.0,
+         "grievance_ids": _grv_ids(grievances, district="Jharsuguda", limit=2)
+                        + _grv_ids(grievances, district="Sundargarh", limit=2),
+         "estimated_population_affected": 14000,
+         "priority": "high",
+         "status": "acknowledged",
+         "created_at": now - timedelta(days=10),
+         "updated_at": now - timedelta(days=5),
+         "assigned_officer": "Er. Anil Panigrahi, EE-RWSS"},
+
+        # --- in_progress ---
         {"_id": new_id(),
          "title": "PMAY-G geo-tagging photo rejection causing mass installment delays",
          "root_cause_analysis": (
              "12 grievances from Ganjam and Puri districts identified a common pattern: "
              "PMAY-G second and third installments stuck because geo-tagged photos were "
              "rejected by the Awaas+ portal. Root cause: Block Technical Assistants using "
-             "phones with poor GPS accuracy (>50m error). Resolution: GPS calibration "
-             "training and procurement of GPS-enabled cameras for all BTAs."
+             "phones with poor GPS accuracy (>50m error). GPS calibration training and "
+             "procurement of GPS-enabled cameras approved for all BTAs."
          ),
          "department": "rural_housing",
          "district": "Ganjam",
@@ -109,10 +130,32 @@ def _build_systemic_issues(grievances: list[dict]) -> list[dict]:
          "grievance_ids": _grv_ids(grievances, department="rural_housing", limit=3),
          "estimated_population_affected": 8000,
          "priority": "medium",
+         "status": "in_progress",
+         "created_at": now - timedelta(days=25),
+         "updated_at": now - timedelta(days=3),
+         "assigned_officer": "Smt. Lopamudra Jena, BDO Housing"},
+
+        # --- resolved ---
+        {"_id": new_id(),
+         "title": "BGBO contractor cartel inflating estimates in Sundargarh tribal blocks",
+         "root_cause_analysis": (
+             "Audit of 6 BGBO infrastructure complaints in Sundargarh revealed that 3 "
+             "contractors — all from the same business group — were awarded 80% of projects "
+             "in ITDA blocks. Estimates were inflated 15-20% above Schedule of Rates. Quality "
+             "parameters compromised. Resolved: Contracts terminated, blacklisted, re-tendered "
+             "with mandatory third-party quality audit."
+         ),
+         "department": "infrastructure",
+         "district": "Sundargarh",
+         "affected_area_center": geojson_point("Sundargarh"),
+         "affected_radius_km": 35.0,
+         "grievance_ids": _grv_ids(grievances, district="Sundargarh", limit=2),
+         "estimated_population_affected": 30000,
+         "priority": "high",
          "status": "resolved",
          "created_at": now - timedelta(days=45),
          "updated_at": now - timedelta(days=5),
-         "assigned_officer": "Smt. Lopamudra Jena, BDO Housing"},
+         "assigned_officer": "Sri Debashis Swain, Sr. District Officer"},
     ]
 
 

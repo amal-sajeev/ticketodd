@@ -2,8 +2,18 @@
 {% block title %}Officer Dashboard — PR&DW Portal{% endblock %}
 {% block content %}
 <div class="main-content wide">
-  <h1>Officer Dashboard</h1>
-  <p class="subtitle">System overview, district map, and recent activity</p>
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
+    <div>
+      <h1 style="margin-bottom:0;">Officer Dashboard</h1>
+      <p class="subtitle" style="margin-top:0.25rem;">System overview, district map, and recent activity</p>
+    </div>
+    <div id="deptToggleWrap" style="display:none;">
+      <div style="display:inline-flex;border-radius:10px;overflow:hidden;border:1px solid var(--outline-variant);font-size:0.85rem;">
+        <button id="btnMyDept" onclick="setDeptScope('mine')" style="padding:0.4rem 1rem;border:none;cursor:pointer;font-weight:600;transition:all .2s;">My Department</button>
+        <button id="btnAllDept" onclick="setDeptScope('all')" style="padding:0.4rem 1rem;border:none;cursor:pointer;font-weight:600;transition:all .2s;">All Departments</button>
+      </div>
+    </div>
+  </div>
 
   <!-- KPI Cards -->
   <div class="card-grid-6 mb-3" id="kpis"></div>
@@ -21,9 +31,9 @@
   <!-- Main two-column: Recent Grievances (left) + District Map (right) -->
   <div class="dash-columns mb-3">
     <!-- Recent Grievances -->
-    <div class="card" style="padding:1.25rem;overflow:hidden;display:flex;flex-direction:column;">
+    <div class="card" style="padding:1.25rem;overflow:hidden;display:flex;flex-direction:column;min-height:0;">
       <h3 style="margin:0 0 0.75rem;">Recent Grievances</h3>
-      <div id="recentList" style="flex:1;overflow-y:auto;max-height:460px;"></div>
+      <div id="recentList" style="flex:1;overflow-y:auto;min-height:0;"></div>
     </div>
 
     <!-- District Map -->
@@ -69,7 +79,7 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1rem;
-    align-items: start;
+    align-items: stretch;
   }
 
   /* Recent grievances compact cards */
@@ -134,9 +144,6 @@
   }
 </style>
 <script>
-if (!requireAuth()) {}
-else { loadOfficerDash(); }
-
 const STATUS_COLORS = {
   pending: '#E37400',
   in_progress: '#1A73E8',
@@ -153,7 +160,6 @@ const STATUS_LABELS = {
 function heatColor(count, maxCount) {
   if (count === 0) return 'hsl(130, 30%, 90%)';
   const ratio = Math.min(count / Math.max(maxCount, 1), 1);
-  // Continuous HSL gradient: green (130°) → yellow (55°) → red (0°)
   const hue = 130 * (1 - Math.pow(ratio, 0.75));
   const sat = 45 + 35 * ratio;
   const lit = 75 - 25 * ratio;
@@ -165,12 +171,46 @@ function textColor(count, maxCount) {
   return ratio > 0.5 ? '#fff' : '#1a1a2e';
 }
 
+let currentDeptScope = 'mine';
+const dashUser = getUser();
+const officerDept = (dashUser && dashUser.role === 'officer' && dashUser.department) ? dashUser.department : null;
+
+(function initDeptToggle() {
+  const wrap = document.getElementById('deptToggleWrap');
+  if (officerDept) {
+    wrap.style.display = '';
+    updateToggleUI();
+  }
+})();
+
+if (!requireAuth()) {}
+else { loadOfficerDash(); }
+
+function updateToggleUI() {
+  const mine = document.getElementById('btnMyDept');
+  const all = document.getElementById('btnAllDept');
+  if (currentDeptScope === 'mine') {
+    mine.style.background = 'var(--primary)'; mine.style.color = 'var(--on-primary)';
+    all.style.background = 'var(--surface-container)'; all.style.color = 'var(--on-surface)';
+  } else {
+    all.style.background = 'var(--primary)'; all.style.color = 'var(--on-primary)';
+    mine.style.background = 'var(--surface-container)'; mine.style.color = 'var(--on-surface)';
+  }
+}
+
+function setDeptScope(scope) {
+  currentDeptScope = scope;
+  updateToggleUI();
+  loadOfficerDash();
+}
+
 async function loadOfficerDash() {
   showLoading('kpis');
   try {
+    const deptParam = (officerDept && currentDeptScope === 'mine') ? `&department=${encodeURIComponent(officerDept)}` : '';
     const [analytics, grievances] = await Promise.all([
-      api('GET', '/analytics?days=30'),
-      api('GET', '/grievances?limit=10')
+      api('GET', '/analytics?days=30' + deptParam),
+      api('GET', '/grievances?limit=10' + deptParam)
     ]);
 
     // --- KPI Cards (8) ---
