@@ -5,8 +5,8 @@
     var sw = window.innerWidth, sh = window.innerHeight;
     var scale = Math.min(sw / 1280, sh / 720);
     deck.style.transform = 'scale(' + scale + ')';
-    deck.style.marginLeft = ((sw - 1280 * scale) / 2) + 'px';
-    deck.style.marginTop = ((sh - 720 * scale) / 2) + 'px';
+    deck.style.left = ((sw - 1280 * scale) / 2) + 'px';
+    deck.style.top = ((sh - 720 * scale) / 2) + 'px';
   }
   scaleDeck();
   window.addEventListener('resize', scaleDeck);
