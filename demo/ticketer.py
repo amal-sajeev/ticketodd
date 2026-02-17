@@ -3596,11 +3596,15 @@ async def admin_reports_stats(
             "status": "resolved"
         })
         
-        # 4. Status Breakdown (All Time / Current Snapshot - matching user expectation)
-        # The user likely wants to see the current state of the system ("Pending: 5, In Progress: 2...")
-        pipeline = [{"$group": {"_id": "$status", "count": {"$sum": 1}}}]
+        # 4. Status Breakdown (filtered by timeframe)
+        # User requested Daily/Weekly distribution
+        pipeline = [
+            {"$match": {"created_at": {"$gte": start_date}}},
+            {"$group": {"_id": "$status", "count": {"$sum": 1}}}
+        ]
         status_results = list(db.grievances.aggregate(pipeline))
         status_counts = {r["_id"]: r["count"] for r in status_results}
+        print(f"DEBUG: Status Breakdown Results ({timeframe}): {status_results}") # Debug logging
 
         # District-wise (New)
         district_counts = {}

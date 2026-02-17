@@ -177,7 +177,7 @@
         <div class="charts-grid" style="grid-template-columns: 1fr 1fr 1fr;">
             <div class="chart-card">
                 <h3>Status Breakdown</h3>
-                <p class="text-muted" style="font-size:0.8rem; margin-bottom:1rem;">All time distribution</p>
+                <p class="text-muted" style="font-size:0.8rem; margin-bottom:1rem;">Distribution for this period</p>
                 <div style="position:relative; height:250px;">
                     <canvas id="statusChart"></canvas>
                 </div>
@@ -353,6 +353,8 @@
     }
 
     function getStatusColor(s) {
+        if (!s) return '#9E9E9E';
+        const key = s.toLowerCase();
         const colors = {
             pending: '#757575',
             in_progress: '#0288D1',
@@ -360,7 +362,7 @@
             escalated: '#D32F2F',
             rejected: '#C62828'
         };
-        return colors[s] || '#9E9E9E';
+        return colors[key] || '#9E9E9E';
     }
 
     function statusLabel(s) {

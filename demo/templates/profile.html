@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+{% block title %}Profile — PR&DW Portal{% endblock %}
+
+{% block head %}
+<!-- Allow camera access -->
+<meta http-equiv="Permissions-Policy" content="camera=*">
+{% endblock %}
+
+{% block content %}
+<div class="main-content">
+    <h1>My Profile</h1>
+    <p class="subtitle">Manage your account settings</p>
+
+    <div class="card" style="max-width: 600px;">
+        <div class="profile-header" style="display:flex;align-items:center;gap:1rem;margin-bottom:2rem;">
+            <div class="avatar-circle"
+                style="width:64px;height:64px;background:var(--primary);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:600;">
+                <span id="avatarLetter"></span>
+            </div>
+            <div>
+                <h2 id="pName" style="margin:0;">Loading...</h2>
+                <p id="pRole" style="margin:0;opacity:0.7;text-transform:capitalize;"></p>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Username</label>
+            <input type="text" class="form-control" id="pUsername" readonly disabled>
+        </div>
+        <div class="form-group">
+            <label>Email</label>
+            <input type="email" class="form-control" id="pEmail" readonly disabled>
+        </div>
+
+        <hr style="margin: 2rem 0;border:0;border-top:1px solid var(--border);">
+
+        <h3>Face ID Security</h3>
+        <div id="faceStatusContainer" style="margin-top:1rem;">
+            <p>Status: <span id="faceIdStatus" class="badge">Checking...</span></p>
+
+            <div id="faceActionContainer" style="margin-top:1rem;">
+                <!-- Button to start enrollment -->
+                <button id="startFaceBtn" class="btn btn-primary" onclick="startFaceEnrollment()" style="display:none;">
+                    <span class="icon">face</span> Set up Face ID
+                </button>
+            </div>
+
+            <!-- Camera UI (Hidden by default) -->
+            <div id="cameraContainer" style="display:none;margin-top:1.5rem;">
+                <div class="video-contain">
+                    <video id="video" autoplay muted playsinline></video>
+                    <canvas id="canvas"></canvas>
+                </div>
+                <p class="text-center text-sm mb-3" id="camStatus">Initializing...</p>
+                <button class="btn btn-secondary btn-block mb-2" id="captureBtn" onclick="captureFace()"
+                    disabled>Capture Face</button>
+                <button class="btn btn-primary btn-block" id="saveBtn" onclick="saveFace()" style="display:none;">Save
+                    Face ID</button>
+                <button class="btn btn-link btn-block btn-sm" onclick="cancelFaceEnrollment()">Cancel</button>
+            </div>
+            <div id="profileError" class="text-sm" style="color:var(--error);margin-top:1rem;display:none;"></div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+    .video-contain {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 4/3;
+        background: #000;
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 1rem;
+    }
+
+    video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transform: scaleX(-1);
+    }
+
+    canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        transform: scaleX(-1);
+    }
+</style>
+<script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<script>
+    let stream = null;
+    let faceDescriptor = null;
+    let faceModelsLoaded = false;
+    let currentUser = null;
+
+    document.addEventListener('DOMContentLoaded', loadProfile);
+
+    async function loadProfile() {
+        if (!requireAuth()) return;
+        try {
+            // Fetch fresh user data
+            currentUser = await api('GET', '/auth/me');
+            if (!currentUser) return;
+
+            // Update local storage just in case
+            const oldToken = getToken();
+            setAuth(oldToken, currentUser);
+
+            // Populate UI
+            document.getElementById('pName').textContent = currentUser.full_name;
+            document.getElementById('pRole').textContent = currentUser.role;
+            document.getElementById('avatarLetter').textContent = currentUser.full_name.charAt(0).toUpperCase();
+            document.getElementById('pUsername').value = currentUser.username;
+            document.getElementById('pEmail').value = currentUser.email;
+
+            updateFaceStatusUI(currentUser.has_face_id);
+
+        } catch (e) {
+            console.error(e);
+            showToast(e.message, 'error');
+        }
+    }
+
+    function updateFaceStatusUI(hasFace) {
+        const badge = document.getElementById('faceIdStatus');
+        const btn = document.getElementById('startFaceBtn');
+
+        if (hasFace) {
+            badge.textContent = "Active";
+            badge.className = "badge badge-success"; // Assuming green badge style exists or generic
+            badge.style.background = "var(--success)";
+            badge.style.color = "#fff";
+            btn.style.display = 'none';
+        } else {
+            badge.textContent = "Not Setup";
+            badge.className = "badge badge-warning";
+            badge.style.background = "var(--warning)";
+            badge.style.color = "#000";
+            btn.style.display = 'inline-flex';
+        }
+    }
+
+    async function startFaceEnrollment() {
+        document.getElementById('startFaceBtn').style.display = 'none';
+        document.getElementById('cameraContainer').style.display = 'block';
+        await startCamera();
+    }
+
+    function cancelFaceEnrollment() {
+        stopCamera();
+        document.getElementById('cameraContainer').style.display = 'none';
+        updateFaceStatusUI(currentUser.has_face_id);
+    }
+
+
+    // --- Camera Logic (Reused) ---
+    async function startCamera() {
+        const statusEl = document.getElementById('camStatus');
+        statusEl.textContent = "Loading models...";
+
+        if (!faceModelsLoaded) {
+            try {
+                const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
+                await Promise.all([
+                    faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+                ]);
+                faceModelsLoaded = true;
+            } catch (e) {
+                showError("Failed to load AI models");
+                return;
+            }
+        }
+
+        statusEl.textContent = "Starting camera...";
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+            const video = document.getElementById('video');
+            video.srcObject = stream;
+
+            video.addEventListener('play', () => {
+                const canvas = document.getElementById('canvas');
+
+                // Wait for video dimensions
+                const checkVideo = setInterval(() => {
+                    if (video.videoWidth > 0 && video.videoHeight > 0) {
+                        clearInterval(checkVideo);
+                        const displaySize = { width: video.clientWidth, height: video.clientHeight };
+                        faceapi.matchDimensions(canvas, displaySize);
+
+                        statusEl.textContent = "Position your face...";
+
+                        startDetectionLoop(video, canvas, displaySize, statusEl);
+                    }
+                }, 100);
+            });
+        } catch (err) {
+            showError("Camera error: " + err.message);
+            cancelFaceEnrollment();
+        }
+    }
+
+    function startDetectionLoop(video, canvas, displaySize, statusEl) {
+        const intervalId = setInterval(async () => {
+            if (document.getElementById('cameraContainer').style.display === 'none') {
+                clearInterval(intervalId);
+                return;
+            }
+            if (faceDescriptor && document.getElementById('saveBtn').style.display === 'block') return;
+
+            const detections = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+                .withFaceLandmarks().withFaceDescriptor();
+
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (detections) {
+                const resized = faceapi.resizeResults(detections, displaySize);
+                faceapi.draw.drawDetections(canvas, resized);
+                statusEl.textContent = "Face detected!";
+                statusEl.style.color = "#2E7D32";
+                document.getElementById('captureBtn').disabled = false;
+                window.lastDescriptor = detections.descriptor;
+            } else {
+                statusEl.textContent = "Looking for face...";
+                statusEl.style.color = "#666";
+                document.getElementById('captureBtn').disabled = true;
+            }
+        }, 500);
+    }
+
+    function captureFace() {
+        if (window.lastDescriptor) {
+            faceDescriptor = Array.from(window.lastDescriptor);
+            document.getElementById('camStatus').textContent = "✅ Face captured!";
+
+            // Freeze the image
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.save();
+            ctx.scale(-1, 1);
+            ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+            ctx.restore();
+
+            document.getElementById('captureBtn').style.display = 'none';
+            document.getElementById('saveBtn').style.display = 'block';
+            stopCamera();
+        }
+    }
+
+    function stopCamera() {
+        if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+        const video = document.getElementById('video');
+        if (video) video.srcObject = null;
+    }
+
+    async function saveFace() {
+        const btn = document.getElementById('saveBtn');
+        btn.disabled = true;
+        btn.textContent = "Saving...";
+
+        try {
+            const res = await api('PUT', '/auth/me', { face_descriptor: faceDescriptor });
+            // Success
+            currentUser = res; // Update local user
+            setAuth(getToken(), currentUser);
+
+            showToast("Face ID set successfully!");
+            cancelFaceEnrollment(); // Hide camera, update UI
+
+        } catch (e) {
+            showError(e.message);
+            btn.disabled = false;
+            btn.textContent = "Save Face ID";
+        }
+    }
+
+    function showError(msg) {
+        const el = document.getElementById('profileError');
+        el.textContent = msg;
+        el.style.display = 'block';
+    }
+</script>
+{% endblock %}
