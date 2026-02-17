@@ -267,14 +267,21 @@ def _build_vouches(grievances: list[dict], user_ids: dict[str, str]) -> list[dic
     cit_entries = [(uname, uid) for uname, uid in user_ids.items() if uname.startswith("citizen")]
 
     comment_idx = 0
+    used_pairs: set[tuple[str, str]] = set()
     for idx, grv in enumerate(public_grvs[:6]):
         # Each public grievance gets 1-3 vouches from different citizens
         n_vouches = 3 if idx < 2 else (2 if idx < 4 else 1)
         for v_idx in range(n_vouches):
-            uname, uid = cit_entries[(idx + v_idx + 1) % len(cit_entries)]
-            # Skip if citizen filed this grievance
-            if grv.get("citizen_user_id") == uid:
-                uname, uid = cit_entries[(idx + v_idx + 2) % len(cit_entries)]
+            # Find a citizen who didn't file this grievance and hasn't vouched it yet
+            offset = 1
+            while offset <= len(cit_entries):
+                uname, uid = cit_entries[(idx + v_idx + offset) % len(cit_entries)]
+                if grv.get("citizen_user_id") != uid and (grv["_id"], uid) not in used_pairs:
+                    break
+                offset += 1
+            else:
+                continue  # no eligible citizen left for this grievance
+            used_pairs.add((grv["_id"], uid))
             is_anonymous = (comment_idx % 5 == 3)  # roughly 1 in 5 are anonymous
             comment = _vouch_comments[comment_idx % len(_vouch_comments)]
             comment_idx += 1
