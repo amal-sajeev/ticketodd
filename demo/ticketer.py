@@ -3167,17 +3167,41 @@ async def get_attachment(attachment_id: str,
     try:
         loop = asyncio.get_event_loop()
         oid = ObjectId(attachment_id)
-        
-        # 1. Fetch file first to check metadata
-        try:
-            fobj = await loop.run_in_executor(executor, lambda: gfs.get(oid))
-        except Exception:
-            raise HTTPException(status_code=404, detail="Attachment not found")
-
-        # 2. Check if it is a public scheme document
-        if fobj.metadata and fobj.metadata.get("type") == "scheme_document":
-            # Public access allowed
-            pass
+        grievance = await loop.run_in_executor(executor, lambda: db.grievances.find_one(
+            {"attachments": attachment_id}, {"citizen_user_id": 1, "is_public": 1}))
+        # Check if it's a scheme document (publicly accessible)
+        grid_file = await loop.run_in_executor(executor, lambda: gfs.exists(oid))
+        if grid_file:
+            file_meta = await loop.run_in_executor(executor, lambda: db.fs.files.find_one(
+                {"_id": oid}, {"metadata": 1}))
+            if file_meta and file_meta.get("metadata", {}).get("type") == "scheme_document":
+                # Scheme documents are public — skip access control
+                fobj = await loop.run_in_executor(executor, lambda: gfs.get(oid))
+                def iterfile_scheme():
+                    while True:
+                        chunk = fobj.read(8192)
+                        if not chunk:
+                            break
+                        yield chunk
+                return StreamingResponse(iterfile_scheme(), media_type=fobj.content_type or "application/octet-stream",
+                                         headers={"Content-Disposition": f'inline; filename="{fobj.filename}"'})
+        # Also check if it's vouch evidence
+        vouch = None
+        if not grievance:
+            vouch = await loop.run_in_executor(executor, lambda: db.vouches.find_one(
+                {"evidence_file_ids": attachment_id}))
+        # Allow access if: user is officer/admin, or it's a public grievance,
+        # or the citizen owns the grievance, or it's vouch evidence
+        if grievance:
+            is_public = grievance.get("is_public", False)
+            is_owner = user and str(grievance.get("citizen_user_id", "")) == str(user.get("_id", ""))
+            is_staff = user and user.get("role") in ("officer", "admin")
+            if not (is_public or is_owner or is_staff):
+                raise HTTPException(status_code=403, detail="Access denied to this attachment")
+        elif vouch:
+            pass  # Vouch evidence is viewable by anyone who can see the grievance
+        elif user and user.get("role") in ("officer", "admin"):
+            pass  # Staff can access any attachment (e.g. photo IDs)
         else:
             # 3. If not public, enforce strict grievance/vouch permissions
             grievance = await loop.run_in_executor(executor, lambda: db.grievances.find_one(

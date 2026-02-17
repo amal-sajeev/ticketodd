@@ -24,6 +24,13 @@
 /* Queue-specific styles are now in the main stylesheet */
 </style>
 <script>
+function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+function impactColor(s) { return s<=30?'#66BB6A':s<=60?'#FFB74D':s<=80?'#FF7043':'#EF5350'; }
+
+const QUEUE_PAGE_SIZE = 50;
+let queueOffset = 0;
+let queueHasMore = false;
+
 if (requireAuth()) {
   document.getElementById('fDept').innerHTML = deptOptions('', true);
   document.getElementById('fDistrict').innerHTML = '<option value="">All Districts</option>' +
@@ -37,16 +44,9 @@ if (requireAuth()) {
     document.getElementById('fDept').value = queueUser.department;
   }
   loadQueue();
-  ['fStatus','fDept','fPriority','fDistrict','fSort'].forEach(id => document.getElementById(id).addEventListener('change', loadQueue));
-  document.getElementById('fSearch').addEventListener('input', debounce(loadQueue, 300));
+  ['fStatus','fDept','fPriority','fDistrict','fSort'].forEach(id => document.getElementById(id).addEventListener('change', () => loadQueue()));
+  document.getElementById('fSearch').addEventListener('input', debounce(() => loadQueue(), 300));
 }
-
-function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
-function impactColor(s) { return s<=30?'#66BB6A':s<=60?'#FFB74D':s<=80?'#FF7043':'#EF5350'; }
-
-const QUEUE_PAGE_SIZE = 50;
-let queueOffset = 0;
-let queueHasMore = false;
 
 async function loadQueue(append = false) {
   if (!append) { showLoading('queueList'); queueOffset = 0; }
