@@ -6,6 +6,35 @@ An intelligent grievance management portal built for the **Odisha Panchayati Raj
 
 ## Changelog
 
+### v2.2 — February 2026
+
+**Officer department features**
+
+- **Dashboard personalization** — officer dashboard KPIs default to their department's numbers; toggle between "My Department" and "All Departments" to switch between filtered and system-wide stats. Admins (no department) see system-wide only.
+- **Queue auto-filtering** — when an officer opens the queue, the department dropdown auto-sets to their department. Deep links (e.g. from the district map) override this. The "All" option removes the filter.
+- **Escalation routing** — when a grievance is escalated (at creation, on deadline breach, or via manual status change), it is auto-assigned to an officer in the matching department. Falls back gracefully if no officer is found.
+- **`GET /analytics` department filter** — optional `department` query parameter scopes all KPI counts, aggregations, and distributions to a single department.
+
+**Spam flag detail page**
+
+- **New page: `/spam-flag-detail`** — dedicated detail view for flagged/blocked users, accessible to officers and admins
+- **Evidence panel** (left column): full pattern flag history with severity badges and icons, user's grievances with per-card tagging (DUPLICATE for exact hash matches, SIMILAR for 75%+ text similarity with percentage, RAPID for burst filings), filing timeline, and IP addresses
+- **Near-duplicate detection** — pairwise `difflib.SequenceMatcher` comparison across a user's grievances catches content with just a word or two changed; shows similarity percentage and cross-references by tracking number
+- **Summary panel** (right column): user info, spam score gauge bar, block status, photo ID verification with inline image preview, and admin action buttons (Approve & Unblock, Reject Photo ID, Block)
+- **`GET /admin/spam-flagged/{user_id}`** — new endpoint returning full spam record (all flags, IPs, filing timestamps, duplicate hashes) plus user's last 20 grievances with content hashes and similarity annotations
+- **Admin panel links** — spam flagged user cards now have a "View Details" link; blocked users in the user management table have a clickable "Blocked" badge and "Flag" link leading to the detail page
+
+**New files**
+
+- `demo/templates/spam_flag_detail.html` — flagged user detail page
+- `demo/seed/` — modular seed data package (config, users, knowledge, schemes, grievances, extras)
+
+**New endpoints**
+
+- `GET /admin/spam-flagged/{user_id}` — full spam flag detail with grievances and similarity analysis
+
+---
+
 ### v2.1 — February 2026
 
 **UI overhaul — Material 3**
@@ -152,7 +181,14 @@ ticketodd-main/
     ticketer.py              # Main FastAPI application (all backend logic)
     requirements.txt         # Python dependencies
     runner.py                # Test/seed runner
-    importer.py              # Data import utilities
+    importer.py              # Seed data orchestrator
+    seed/                    # Modular seed data package
+      config.py              # Shared config, helpers, env loading
+      users.py               # Citizen, officer, and admin accounts
+      knowledge.py           # Documentation and service memory entries
+      schemes.py             # Government schemes with eligibility questions
+      grievances.py          # Comprehensive grievance seed data
+      extras.py              # Systemic issues, forecasts, vouches, spam, anomalies
     templates/
       base.html              # Base template with nav
       login.html             # Login page
@@ -163,6 +199,7 @@ ticketodd-main/
       queue.html             # Officer grievance queue (date-grouped, impact scores)
       officer_dashboard.html # Officer dashboard (systemic issues, forecasts)
       admin.html             # Admin panel (spam review, officer anomalies)
+      spam_flag_detail.html  # Flagged user detail (evidence, actions)
       community.html         # Public social grievance feed
       systemic_issue_detail.html  # Systemic issue detail page
       track.html             # Grievance tracking
