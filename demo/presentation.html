@@ -3,16 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PR&DW Grievance Portal — Demo Presentation</title>
+<title>PR&amp;DW Grievance Portal — Demo Presentation</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
 <style>
-/* ======== RESET & BASE ======== */
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{font-size:16px;scroll-behavior:smooth}
-body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:#0d1117;color:#e6edf3;overflow:hidden;height:100vh;width:100vw;-webkit-font-smoothing:antialiased}
+/* ==========================================================================
+   PR&DW Grievance Portal — Presentation Base Styles
+   1280x720 fixed-frame design
+   ========================================================================== */
 
-/* ======== DESIGN TOKENS ======== */
+/* --- Reset --- */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+/* --- Design Tokens (dark presentation theme) --- */
 :root{
   --primary:#1A73E8;
   --primary-light:#4da3ff;
@@ -33,49 +36,74 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:#0d1117;c
   --radius-lg:20px;
   --shadow:0 8px 32px rgba(0,0,0,.4);
   --shadow-glow:0 0 40px rgba(26,115,232,.15);
+  /* App M3 tokens (for mockups) */
+  --app-primary:#1A73E8;
+  --app-surface:#FFFFFF;
+  --app-surface-dim:#F0F2F5;
+  --app-surface-container:#ECEEF3;
+  --app-on-surface:#1A1C1E;
+  --app-on-surface-variant:#44474E;
+  --app-outline-variant:#C4C6D0;
+  --app-error:#D93025;
+  --app-success:#1E8E3E;
+  --app-warning:#E37400;
+  --app-primary-container:#D3E3FD;
+  --app-primary-container-low:#ECF2FE;
+  --app-error-container:#FCE8E6;
+  --app-success-container:#E6F4EA;
+  --app-warning-container:#FEF7E0;
 }
 
-/* ======== MATERIAL SYMBOLS ======== */
-.icon{font-family:'Material Symbols Outlined';font-weight:normal;font-style:normal;font-size:24px;line-height:1;letter-spacing:normal;text-transform:none;display:inline-block;white-space:nowrap;word-wrap:normal;direction:ltr;-webkit-font-smoothing:antialiased;font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24}
+/* --- Body & Centering --- */
+html{font-size:16px;overflow:hidden}
+body{
+  font-family:'Inter',system-ui,-apple-system,sans-serif;
+  background:#0a0e14;color:var(--text-primary);
+  margin:0;padding:0;overflow:hidden;
+  width:100vw;height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* --- Material Symbols --- */
+.icon{font-family:'Material Symbols Outlined';font-weight:normal;font-style:normal;font-size:24px;line-height:1;letter-spacing:normal;text-transform:none;display:inline-block;white-space:nowrap;word-wrap:normal;direction:ltr;-webkit-font-smoothing:antialiased;font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;vertical-align:middle}
 .icon.filled{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
 
-/* ======== PRESENTATION CONTAINER ======== */
-.deck{position:relative;width:100vw;height:100vh;overflow:hidden}
-
-/* ======== SINGLE SLIDE ======== */
+/* ==========================================================================
+   Deck & Slides — 1280x720 fixed frame
+   ========================================================================== */
+.deck{
+  position:absolute;
+  top:0;left:0;
+  width:1280px;height:720px;
+  overflow:hidden;
+  background:var(--surface);
+  border-radius:8px;
+  box-shadow:0 0 80px rgba(0,0,0,.6);
+  transform-origin:0 0;
+}
 .slide{
-  position:absolute;inset:0;
+  position:absolute;
+  width:1280px;height:720px;
+  overflow:hidden;
+  padding:48px 64px 56px;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  padding:60px 80px 80px;
-  opacity:0;transform:translateX(60px);
-  transition:opacity .5s cubic-bezier(.4,0,.2,1),transform .5s cubic-bezier(.4,0,.2,1);
-  pointer-events:none;z-index:0;
+  opacity:0;pointer-events:none;z-index:0;
+  will-change:transform,opacity;
 }
-.slide.active{opacity:1;transform:translateX(0);pointer-events:auto;z-index:2}
-.slide.prev{opacity:0;transform:translateX(-60px)}
-
+.slide.active{opacity:1;pointer-events:auto;z-index:2}
 .slide-inner{
-  max-width:1100px;width:100%;flex:1;
+  width:100%;max-width:1152px;height:100%;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  text-align:center;gap:28px;
+  text-align:center;gap:20px;
+  position:relative;
+  overflow:hidden;
 }
 
-/* ======== FOOTER BAR ======== */
-.footer-bar{
-  position:fixed;bottom:0;left:0;right:0;z-index:100;
-  display:flex;align-items:center;justify-content:space-between;
-  padding:10px 32px;
-  background:rgba(13,17,23,.92);backdrop-filter:blur(12px);
-  border-top:1px solid var(--border);
-  font-size:13px;color:var(--text-muted);
-}
-.footer-bar .govt{display:flex;align-items:center;gap:6px}
-.footer-bar .govt .icon{font-size:16px;color:var(--primary)}
-.footer-bar .counter{font-weight:600;color:var(--text-secondary);font-variant-numeric:tabular-nums}
-
-/* ======== PROGRESS BAR ======== */
+/* ==========================================================================
+   Progress Bar
+   ========================================================================== */
 .progress-track{
-  position:fixed;top:0;left:0;right:0;height:3px;z-index:100;
+  position:absolute;top:0;left:0;right:0;height:3px;z-index:100;
   background:rgba(255,255,255,.06);
 }
 .progress-fill{
@@ -84,248 +112,484 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:#0d1117;c
   box-shadow:0 0 12px var(--primary-glow);
 }
 
-/* ======== NAVIGATION HINTS ======== */
+/* ==========================================================================
+   Footer Bar
+   ========================================================================== */
+.footer-bar{
+  position:absolute;bottom:0;left:0;right:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 28px;
+  background:rgba(13,17,23,.92);backdrop-filter:blur(12px);
+  border-top:1px solid var(--border);
+  font-size:12px;color:var(--text-muted);
+}
+.footer-bar .govt{display:flex;align-items:center;gap:5px}
+.footer-bar .govt .icon{font-size:14px;color:var(--primary)}
+.footer-bar .counter{font-weight:600;color:var(--text-secondary);font-variant-numeric:tabular-nums}
+
+/* ==========================================================================
+   Navigation
+   ========================================================================== */
 .nav-hint{
-  position:fixed;bottom:54px;right:32px;z-index:100;
-  display:flex;gap:6px;
+  position:absolute;bottom:38px;right:24px;z-index:100;
+  display:flex;gap:5px;
 }
 .nav-btn{
-  width:36px;height:36px;border-radius:8px;border:1px solid var(--border);
+  width:32px;height:32px;border-radius:8px;border:1px solid var(--border);
   background:rgba(255,255,255,.04);color:var(--text-secondary);
   display:flex;align-items:center;justify-content:center;cursor:pointer;
   transition:all .2s;font-size:0;
 }
 .nav-btn:hover{background:rgba(26,115,232,.15);color:var(--primary-light);border-color:rgba(26,115,232,.3)}
-.nav-btn .icon{font-size:20px}
+.nav-btn .icon{font-size:18px}
 
-/* ======== TYPOGRAPHY ======== */
-.slide h1{font-size:3rem;font-weight:800;line-height:1.15;letter-spacing:-.02em}
-.slide h2{font-size:2.25rem;font-weight:700;line-height:1.2;letter-spacing:-.015em}
-.slide h3{font-size:1.35rem;font-weight:600;line-height:1.3}
-.slide p,.slide li{font-size:1.1rem;line-height:1.7;color:var(--text-secondary)}
-.slide .lead{font-size:1.3rem;color:var(--text-secondary);max-width:700px}
-.slide .tag{
-  display:inline-block;padding:6px 16px;border-radius:100px;
-  font-size:.8rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
-}
+/* ==========================================================================
+   Typography (px-based for 1280x720)
+   ========================================================================== */
+.slide h1{font-size:44px;font-weight:800;line-height:1.12;letter-spacing:-.5px}
+.slide h2{font-size:32px;font-weight:700;line-height:1.2;letter-spacing:-.3px}
+.slide h3{font-size:18px;font-weight:600;line-height:1.3}
+.slide p,.slide li{font-size:15px;line-height:1.6;color:var(--text-secondary)}
+.slide .lead{font-size:17px;color:var(--text-secondary);max-width:700px}
+
+/* --- Tags --- */
+.tag{display:inline-block;padding:4px 14px;border-radius:100px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
 .tag-blue{background:rgba(26,115,232,.15);color:var(--primary-light)}
 .tag-cyan{background:rgba(0,188,212,.12);color:#4dd0e1}
 .tag-purple{background:rgba(124,77,255,.12);color:#b388ff}
 .tag-green{background:rgba(30,142,62,.15);color:#69f0ae}
+.tag-orange{background:rgba(227,116,0,.12);color:#ffb74d}
 
-/* ======== GRADIENT TEXT ======== */
-.grad-text{
-  background:var(--gradient-hero);-webkit-background-clip:text;-webkit-text-fill-color:transparent;
-  background-clip:text;
-}
+/* --- Gradient Text --- */
+.grad-text{background:var(--gradient-hero);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 
-/* ======== CARDS GRID ======== */
-.cards{display:grid;gap:20px;width:100%;text-align:left}
+/* ==========================================================================
+   Card Grid
+   ========================================================================== */
+.cards{display:grid;gap:16px;width:100%;text-align:left}
 .cards-2{grid-template-columns:1fr 1fr}
 .cards-3{grid-template-columns:1fr 1fr 1fr}
 .cards-4{grid-template-columns:1fr 1fr 1fr 1fr}
-
 .card{
   background:var(--surface-raised);border:1px solid var(--border);
-  border-radius:var(--radius);padding:28px;
-  display:flex;flex-direction:column;gap:10px;
+  border-radius:var(--radius);padding:20px;
+  display:flex;flex-direction:column;gap:8px;
   transition:border-color .25s,box-shadow .25s;
 }
 .card:hover{border-color:rgba(26,115,232,.25);box-shadow:var(--shadow-glow)}
 .card .card-icon{
-  width:48px;height:48px;border-radius:12px;
+  width:40px;height:40px;border-radius:10px;
   display:flex;align-items:center;justify-content:center;
-  font-size:0;margin-bottom:4px;
+  margin-bottom:2px;
 }
-.card .card-icon .icon{font-size:26px}
+.card .card-icon .icon{font-size:22px}
 .card-icon-blue{background:rgba(26,115,232,.12);color:var(--primary-light)}
 .card-icon-cyan{background:rgba(0,188,212,.10);color:#4dd0e1}
 .card-icon-purple{background:rgba(124,77,255,.10);color:#b388ff}
 .card-icon-green{background:rgba(30,142,62,.12);color:#69f0ae}
 .card-icon-orange{background:rgba(227,116,0,.12);color:#ffb74d}
 .card-icon-red{background:rgba(217,48,37,.12);color:#ef9a9a}
+.card h3{font-size:15px;color:var(--text-primary)}
+.card p{font-size:13px;line-height:1.55;color:var(--text-secondary)}
 
-.card h3{font-size:1.1rem;color:var(--text-primary)}
-.card p{font-size:.95rem;line-height:1.6;color:var(--text-secondary)}
+/* ==========================================================================
+   Split Layout
+   ========================================================================== */
+.split{display:flex;gap:40px;align-items:center;width:100%;text-align:left}
+.split-text{flex:1;display:flex;flex-direction:column;gap:14px}
+.split-visual{flex:0 0 auto;display:flex;align-items:center;justify-content:center}
 
-/* ======== FLOW DIAGRAM ======== */
-.flow{display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:wrap}
+/* ==========================================================================
+   Feature List
+   ========================================================================== */
+.feature-list{list-style:none;text-align:left;display:flex;flex-direction:column;gap:10px}
+.feature-list li{display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--text-secondary)}
+.feature-list .icon{color:var(--primary-light);font-size:20px;flex-shrink:0;margin-top:1px}
+
+/* ==========================================================================
+   Stats
+   ========================================================================== */
+.stats{display:flex;gap:40px;justify-content:center;flex-wrap:wrap}
+.stat{display:flex;flex-direction:column;align-items:center;gap:2px}
+.stat .num{font-size:42px;font-weight:800}
+.stat .lbl{font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
+
+/* ==========================================================================
+   Department Badges
+   ========================================================================== */
+.dept-badges{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:900px}
+.dept-badge{padding:5px 12px;border-radius:100px;font-size:12px;font-weight:500;background:var(--surface-raised);border:1px solid var(--border);color:var(--text-secondary)}
+
+/* ==========================================================================
+   Flow Diagram (non-SVG fallback elements)
+   ========================================================================== */
+.flow{display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:nowrap}
 .flow-step{
-  display:flex;flex-direction:column;align-items:center;gap:12px;
-  padding:28px 32px;min-width:200px;
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+  padding:20px 24px;min-width:170px;
   background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius-lg);
   position:relative;
 }
 .flow-step .step-num{
-  position:absolute;top:-14px;left:50%;transform:translateX(-50%);
-  width:28px;height:28px;border-radius:50%;
+  position:absolute;top:-12px;left:50%;transform:translateX(-50%);
+  width:24px;height:24px;border-radius:50%;
   background:var(--gradient-hero);color:#fff;
-  font-size:.8rem;font-weight:700;
+  font-size:11px;font-weight:700;
   display:flex;align-items:center;justify-content:center;
 }
-.flow-step .icon{font-size:36px}
-.flow-step h3{font-size:1rem}
-.flow-step p{font-size:.85rem;color:var(--text-muted);text-align:center}
-.flow-arrow{font-size:28px;color:var(--text-muted);padding:0 8px}
-.flow-arrow .icon{font-size:32px}
+.flow-step .icon{font-size:30px}
+.flow-step h3{font-size:14px}
+.flow-step p{font-size:12px;color:var(--text-muted);text-align:center}
+.flow-arrow{font-size:24px;color:var(--text-muted);padding:0 6px}
+.flow-arrow .icon{font-size:28px}
 
-/* ======== SCORE VISUAL ======== */
-.score-ring{
-  width:140px;height:140px;border-radius:50%;
-  background:conic-gradient(var(--primary) 0% 72%,var(--surface-bright) 72% 100%);
-  display:flex;align-items:center;justify-content:center;
-  position:relative;flex-shrink:0;
-}
-.score-ring-inner{
-  width:110px;height:110px;border-radius:50%;
-  background:var(--surface);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-}
-.score-ring-inner .num{font-size:2.4rem;font-weight:800;color:var(--primary-light)}
-.score-ring-inner .lbl{font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em}
-
-/* ======== FACTOR LIST ======== */
-.factors{display:flex;flex-direction:column;gap:14px;text-align:left}
-.factor{display:flex;align-items:center;gap:14px}
-.factor-bar-track{flex:1;height:8px;background:var(--surface-bright);border-radius:4px;overflow:hidden}
-.factor-bar{height:100%;border-radius:4px}
-.factor-label{width:170px;font-size:.9rem;color:var(--text-secondary);flex-shrink:0}
-.factor-val{width:40px;font-size:.85rem;font-weight:600;color:var(--text-primary);text-align:right;flex-shrink:0}
-
-/* ======== STAT ROW ======== */
-.stats{display:flex;gap:32px;justify-content:center;flex-wrap:wrap}
-.stat{display:flex;flex-direction:column;align-items:center;gap:4px}
-.stat .num{font-size:2.8rem;font-weight:800}
-.stat .lbl{font-size:.85rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
-
-/* ======== TECH STACK TABLE ======== */
+/* ==========================================================================
+   Tech Table
+   ========================================================================== */
 .tech-table{
   width:100%;border-collapse:collapse;text-align:left;
   background:var(--surface-raised);border-radius:var(--radius);overflow:hidden;
-  border:1px solid var(--border);
+  border:1px solid var(--border);font-size:13px;
 }
 .tech-table th{
-  padding:14px 24px;font-size:.8rem;font-weight:600;
+  padding:10px 20px;font-size:11px;font-weight:600;
   color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;
   background:var(--surface-bright);border-bottom:1px solid var(--border);
 }
 .tech-table td{
-  padding:14px 24px;font-size:.95rem;color:var(--text-secondary);
+  padding:10px 20px;color:var(--text-secondary);
   border-bottom:1px solid var(--border);
 }
 .tech-table tr:last-child td{border-bottom:none}
 .tech-table td:first-child{color:var(--text-primary);font-weight:500}
 
-/* ======== DEPT BADGES ======== */
-.dept-badges{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
-.dept-badge{
-  padding:8px 18px;border-radius:100px;
-  font-size:.85rem;font-weight:500;
-  background:var(--surface-raised);border:1px solid var(--border);
-  color:var(--text-secondary);
-}
-
-/* ======== TITLE SLIDE SPECIAL ======== */
+/* ==========================================================================
+   Title Slide Specials
+   ========================================================================== */
 .title-emblem{
-  width:80px;height:80px;border-radius:50%;
+  width:72px;height:72px;border-radius:50%;
   background:var(--gradient-hero);
   display:flex;align-items:center;justify-content:center;
   box-shadow:0 0 40px var(--primary-glow);
-  margin-bottom:8px;
 }
-.title-emblem .icon{font-size:42px;color:#fff}
-
-.title-dept{
-  font-size:1rem;font-weight:500;color:var(--text-muted);
-  letter-spacing:.08em;text-transform:uppercase;margin-top:-8px;
-}
+.title-emblem .icon{font-size:38px;color:#fff}
+.title-dept{font-size:13px;font-weight:500;color:var(--text-muted);letter-spacing:.06em;text-transform:uppercase}
 .title-version{
-  display:inline-flex;align-items:center;gap:6px;
-  padding:6px 16px;border-radius:100px;
+  display:inline-flex;align-items:center;gap:5px;
+  padding:5px 14px;border-radius:100px;
   background:rgba(30,142,62,.12);color:#69f0ae;
-  font-size:.8rem;font-weight:600;
+  font-size:12px;font-weight:600;
 }
 
-/* ======== SLIDE-SPECIFIC LAYOUTS ======== */
-.split{display:flex;gap:48px;align-items:center;width:100%;text-align:left}
-.split-text{flex:1;display:flex;flex-direction:column;gap:16px}
-.split-visual{flex:0 0 320px;display:flex;align-items:center;justify-content:center}
-
-/* ======== LIST STYLES ======== */
-.feature-list{list-style:none;text-align:left;display:flex;flex-direction:column;gap:14px}
-.feature-list li{display:flex;align-items:flex-start;gap:12px;font-size:1rem;color:var(--text-secondary)}
-.feature-list .icon{color:var(--primary-light);font-size:22px;flex-shrink:0;margin-top:2px}
-
-/* ======== CLUSTER VIS ======== */
-.cluster-vis{
-  width:280px;height:280px;border-radius:50%;position:relative;
-  background:radial-gradient(circle,rgba(26,115,232,.08) 0%,transparent 70%);
-  border:1px dashed rgba(26,115,232,.2);flex-shrink:0;
-}
-.cluster-dot{
-  position:absolute;width:14px;height:14px;border-radius:50%;
-  box-shadow:0 0 8px currentColor;
-}
-
-/* ======== THANK-YOU SLIDE ======== */
+/* ==========================================================================
+   CTA Box (Thank You slide)
+   ========================================================================== */
 .cta-box{
   display:inline-flex;flex-direction:column;align-items:center;gap:8px;
-  padding:28px 48px;border-radius:var(--radius-lg);
+  padding:24px 40px;border-radius:var(--radius-lg);
   background:var(--gradient-subtle);border:1px solid rgba(26,115,232,.2);
 }
 
-/* ======== ANIMATIONS ======== */
-@keyframes fadeInUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
-.slide.active .animate{animation:fadeInUp .6s cubic-bezier(.4,0,.2,1) both}
-.slide.active .a-d1{animation-delay:.1s}
-.slide.active .a-d2{animation-delay:.2s}
-.slide.active .a-d3{animation-delay:.3s}
-.slide.active .a-d4{animation-delay:.4s}
-.slide.active .a-d5{animation-delay:.5s}
-.slide.active .a-d6{animation-delay:.6s}
-
-/* ======== RESPONSIVE ======== */
-@media(max-width:900px){
-  .slide{padding:40px 32px 70px}
-  .slide h1{font-size:2.2rem}
-  .slide h2{font-size:1.7rem}
-  .cards-3,.cards-4{grid-template-columns:1fr 1fr}
-  .cards-2{grid-template-columns:1fr}
-  .split{flex-direction:column;text-align:center}
-  .split-visual{flex:0 0 auto}
-  .flow{flex-direction:column}
-  .flow-arrow{transform:rotate(90deg)}
+/* ==========================================================================
+   Mockup Frame
+   ========================================================================== */
+.mockup-frame{
+  border-radius:10px;overflow:hidden;
+  box-shadow:0 8px 40px rgba(0,0,0,.35),0 0 0 1px rgba(255,255,255,.06);
+  background:var(--app-surface-dim);
+  font-family:'Inter',system-ui,sans-serif;
+  color:var(--app-on-surface);
+  font-size:12px;
+  transform:perspective(1200px) rotateY(-2deg);
+  transition:transform .6s cubic-bezier(.16,1,.3,1);
 }
+.slide.active .mockup-frame{transform:perspective(1200px) rotateY(0deg)}
+
+/* --- Mockup Navbar --- */
+.m-navbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 12px;height:36px;
+  background:var(--app-surface);
+  border-bottom:1px solid var(--app-outline-variant);
+  box-shadow:0 1px 3px rgba(0,0,0,.06);
+}
+.m-navbar .m-logo{display:flex;align-items:center;gap:4px;font-weight:700;font-size:11px;color:var(--app-primary)}
+.m-navbar .m-logo .icon{font-size:16px;font-variation-settings:'FILL' 1,'wght' 500}
+.m-nav-links{display:flex;gap:2px}
+.m-nav-links span{padding:3px 8px;border-radius:14px;font-size:10px;font-weight:500;color:var(--app-on-surface-variant)}
+.m-nav-links span.active{background:var(--app-primary-container);color:#0842A0;font-weight:600}
+.m-user-badge{padding:2px 8px;border-radius:14px;font-size:9px;font-weight:500;background:var(--app-primary-container-low);color:#0842A0}
+
+/* --- Mockup Metric Card --- */
+.m-metrics{display:flex;gap:6px;padding:10px 12px 0}
+.m-metric-card{
+  flex:1;text-align:center;padding:8px 4px;
+  background:var(--app-surface);border:1px solid var(--app-outline-variant);
+  border-radius:8px;box-shadow:0 1px 2px rgba(0,0,0,.04);
+}
+.m-metric-card .m-metric-icon{
+  width:24px;height:24px;border-radius:6px;
+  display:inline-flex;align-items:center;justify-content:center;
+  margin:0 auto 3px;
+}
+.m-metric-card .m-metric-icon .icon{font-size:14px}
+.m-metric-card .m-metric-icon.blue{background:var(--app-primary-container-low);color:var(--app-primary)}
+.m-metric-card .m-metric-icon.green{background:var(--app-success-container);color:var(--app-success)}
+.m-metric-card .m-metric-icon.amber{background:var(--app-warning-container);color:var(--app-warning)}
+.m-metric-card .m-metric-icon.red{background:var(--app-error-container);color:var(--app-error)}
+.m-metric-card .m-metric-val{font-size:16px;font-weight:700;color:var(--app-on-surface)}
+.m-metric-card .m-metric-lbl{font-size:8px;color:var(--app-on-surface-variant);font-weight:500;margin-top:1px}
+
+/* --- Mockup Date Group Header --- */
+.m-date-header{
+  display:flex;align-items:center;gap:4px;
+  padding:6px 12px 2px;font-size:9px;font-weight:600;
+  color:var(--app-on-surface-variant);
+}
+.m-date-header .icon{font-size:12px}
+.m-date-header .count{
+  font-size:8px;background:var(--app-surface-container);
+  padding:1px 5px;border-radius:4px;margin-left:auto;
+}
+
+/* --- Mockup Grievance Card --- */
+.m-grievance-card{
+  margin:4px 12px;padding:10px 12px;
+  background:var(--app-surface);border:1px solid var(--app-outline-variant);
+  border-radius:8px;box-shadow:0 1px 2px rgba(0,0,0,.04);
+}
+.m-grievance-card.status-pending{border-left:3px solid var(--app-warning)}
+.m-grievance-card.status-in_progress{border-left:3px solid var(--app-primary)}
+.m-grievance-card.status-resolved{border-left:3px solid var(--app-success)}
+.m-grievance-card.status-escalated{border-left:3px solid var(--app-error)}
+.m-grievance-card h4{font-size:11px;font-weight:600;color:var(--app-on-surface);margin-bottom:4px}
+.m-grievance-card p{font-size:10px;color:var(--app-on-surface-variant);margin-bottom:5px;line-height:1.4}
+.m-badges{display:flex;flex-wrap:wrap;gap:3px;align-items:center}
+
+/* --- Mockup Badges --- */
+.m-badge{display:inline-flex;align-items:center;gap:2px;padding:1px 6px;border-radius:4px;font-size:8px;font-weight:600;white-space:nowrap}
+.m-badge-pending{background:var(--app-warning-container);color:#B45309}
+.m-badge-in_progress{background:var(--app-primary-container-low);color:#0842A0}
+.m-badge-resolved{background:var(--app-success-container);color:#15803D}
+.m-badge-escalated{background:var(--app-error-container);color:#B91C1C}
+.m-badge-dept{background:var(--app-surface-container);color:var(--app-on-surface-variant)}
+.m-badge-priority-low{background:var(--app-success-container);color:#15803D}
+.m-badge-priority-medium{background:var(--app-warning-container);color:#B45309}
+.m-badge-priority-high{background:var(--app-error-container);color:#B91C1C}
+.m-badge-priority-urgent{background:#F3E8FD;color:#6D28D9}
+.m-badge-impact{display:inline-flex;align-items:center;justify-content:center;padding:1px 5px;border-radius:3px;font-size:8px;font-weight:700;color:#fff}
+
+/* --- Mockup Filter Bar --- */
+.m-filter-bar{
+  display:flex;gap:6px;padding:8px 12px;margin:8px 12px 0;
+  background:var(--app-surface);border:1px solid var(--app-outline-variant);
+  border-radius:8px;
+}
+.m-filter-item{
+  flex:1;display:flex;flex-direction:column;gap:2px;
+}
+.m-filter-item label{font-size:8px;font-weight:600;color:var(--app-on-surface-variant)}
+.m-filter-item .m-select{
+  padding:3px 6px;border-radius:4px;
+  background:var(--app-surface-dim);border:1px solid var(--app-outline-variant);
+  font-size:9px;color:var(--app-on-surface);
+}
+
+/* --- Mockup Button --- */
+.m-btn{
+  display:inline-flex;align-items:center;gap:3px;
+  padding:4px 10px;border-radius:14px;
+  font-size:9px;font-weight:600;border:none;
+}
+.m-btn-primary{background:var(--app-primary);color:#fff}
+.m-btn-secondary{background:var(--app-surface-container);color:var(--app-on-surface-variant);border:1px solid var(--app-outline-variant)}
+.m-btn-success{background:var(--app-success);color:#fff}
+
+/* --- Mockup Impact Circle --- */
+.m-impact-circle{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:28px;height:28px;border-radius:50%;
+  font-weight:700;font-size:10px;color:#fff;flex-shrink:0;
+}
+
+/* --- Mockup Detail Rows --- */
+.m-detail-row{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:10px}
+.m-detail-row .m-label{width:100px;color:var(--app-on-surface-variant);font-weight:500;flex-shrink:0}
+.m-detail-row .m-value{color:var(--app-on-surface);font-weight:500}
+
+/* --- Mockup AI Resolution Box --- */
+.m-ai-box{
+  margin:8px 0;padding:10px;border-radius:8px;
+  background:linear-gradient(135deg,rgba(26,115,232,.06),rgba(0,188,212,.04),rgba(124,77,255,.06));
+  border:1px solid rgba(26,115,232,.15);
+}
+.m-ai-box .m-ai-header{display:flex;align-items:center;gap:4px;font-size:10px;font-weight:600;color:var(--app-primary);margin-bottom:4px}
+.m-ai-box .m-ai-header .icon{font-size:14px}
+.m-ai-box p{font-size:9px;color:var(--app-on-surface-variant);line-height:1.5}
+
+/* --- Mockup Tabs --- */
+.m-tabs{display:flex;gap:0;border-bottom:1px solid var(--app-outline-variant);padding:0 12px}
+.m-tab{padding:6px 12px;font-size:10px;font-weight:500;color:var(--app-on-surface-variant);border-bottom:2px solid transparent;margin-bottom:-1px}
+.m-tab.active{color:var(--app-primary);border-bottom-color:var(--app-primary);font-weight:600}
+
+/* --- Mockup Upload Zone --- */
+.m-upload-zone{
+  margin:8px 12px;padding:14px;border-radius:8px;
+  border:2px dashed var(--app-outline-variant);
+  text-align:center;font-size:10px;color:var(--app-on-surface-variant);
+}
+.m-upload-zone .icon{font-size:20px;color:var(--app-primary);display:block;margin:0 auto 4px}
+
+/* --- Mockup Two Column --- */
+.m-two-col{display:flex;gap:10px;padding:8px 12px}
+.m-two-col .m-col-main{flex:2;display:flex;flex-direction:column;gap:6px}
+.m-two-col .m-col-side{flex:1;display:flex;flex-direction:column;gap:6px}
+
+/* --- Mockup Vouch --- */
+.m-vouch-count{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:10px;background:var(--app-success-container);color:var(--app-success);font-weight:600;font-size:9px}
+.m-distance-badge{display:inline-flex;align-items:center;gap:2px;padding:1px 6px;border-radius:8px;background:var(--app-primary-container-low);color:var(--app-primary);font-size:9px}
+
+/* --- Mockup Spam Score Gauge --- */
+.m-gauge-track{width:100%;height:6px;background:var(--app-surface-container);border-radius:3px;overflow:hidden}
+.m-gauge-fill{height:100%;border-radius:3px}
+
+/* --- Mockup Section Header --- */
+.m-section-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 12px 0;
+}
+.m-section-header h3{font-size:12px;font-weight:700;color:var(--app-on-surface);display:flex;align-items:center;gap:4px}
+.m-section-header h3 .icon{font-size:16px}
+
+/* ==========================================================================
+   Animations
+   ========================================================================== */
+@keyframes fadeInUp{
+  from{opacity:0;transform:translateY(24px) scale(.98);filter:blur(2px)}
+  to{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}
+}
+@keyframes shimmer{
+  0%{background-position:200% center}
+  100%{background-position:-200% center}
+}
+@keyframes particleFloat{
+  0%,100%{transform:translate(0,0);opacity:.3}
+  25%{transform:translate(10px,-20px);opacity:.6}
+  50%{transform:translate(-5px,-40px);opacity:.4}
+  75%{transform:translate(15px,-20px);opacity:.5}
+}
+@keyframes pulseEmblem{
+  0%,100%{box-shadow:0 0 40px var(--primary-glow)}
+  50%{box-shadow:0 0 60px rgba(26,115,232,.4)}
+}
+@keyframes slideInRight{
+  from{opacity:0;transform:perspective(1200px) rotateY(-4deg) translateX(40px)}
+  to{opacity:1;transform:perspective(1200px) rotateY(-2deg) translateX(0)}
+}
+
+/* --- Stagger delays --- */
+.slide.active .animate{animation:fadeInUp .55s cubic-bezier(.16,1,.3,1) both}
+.slide.active .a-d1{animation-delay:.08s}
+.slide.active .a-d2{animation-delay:.16s}
+.slide.active .a-d3{animation-delay:.24s}
+.slide.active .a-d4{animation-delay:.32s}
+.slide.active .a-d5{animation-delay:.4s}
+.slide.active .a-d6{animation-delay:.48s}
+.slide.active .a-d7{animation-delay:.56s}
+.slide.active .a-d8{animation-delay:.64s}
+
+/* Mockup frame slide-in */
+.slide.active .mockup-animate{animation:slideInRight .7s cubic-bezier(.16,1,.3,1) both;animation-delay:.2s}
+
+/* ==========================================================================
+   Slide Transitions
+   ========================================================================== */
+/* Default: slide horizontal */
+.slide{transition:opacity .5s cubic-bezier(.16,1,.3,1),transform .5s cubic-bezier(.16,1,.3,1)}
+.slide.exit-left{opacity:0;transform:translateX(-80px) scale(.97)}
+.slide.exit-right{opacity:0;transform:translateX(80px) scale(.97)}
+.slide.enter-left{transform:translateX(-80px) scale(.97)}
+.slide.enter-right{transform:translateX(80px) scale(.97)}
+
+/* Zoom */
+.slide[data-transition="zoom"].exit-left,.slide[data-transition="zoom"].exit-right{opacity:0;transform:scale(1.08)}
+.slide[data-transition="zoom"].enter-left,.slide[data-transition="zoom"].enter-right{transform:scale(.88)}
+
+/* Morph */
+.slide[data-transition="morph"].exit-left,.slide[data-transition="morph"].exit-right{opacity:0;transform:translateY(-30px)}
+.slide[data-transition="morph"].enter-left,.slide[data-transition="morph"].enter-right{transform:translateY(30px)}
+
+/* Reveal */
+.slide[data-transition="reveal"]{transition:opacity .5s,clip-path .6s cubic-bezier(.16,1,.3,1)}
+.slide[data-transition="reveal"].enter-left,.slide[data-transition="reveal"].enter-right{clip-path:circle(0% at 50% 50%);opacity:1}
+.slide[data-transition="reveal"].active{clip-path:circle(75% at 50% 50%)}
+
+/* ==========================================================================
+   Particles (used on title & thank-you slides)
+   ========================================================================== */
+.particles{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+.particle{
+  position:absolute;border-radius:50%;
+  background:var(--primary);opacity:.2;
+  animation:particleFloat linear infinite;
+}
+
+/* Pulse animation (used for SLA breach badges etc.) */
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
 </style>
 </head>
 <body>
 
-<!-- ===== PROGRESS BAR ===== -->
-<div class="progress-track"><div class="progress-fill" id="progressFill" style="width:6.25%"></div></div>
-
-<!-- ===== SLIDE DECK ===== -->
+<!-- ===== SLIDE DECK (1280x720) ===== -->
 <div class="deck" id="deck">
 
-<!-- ==================== SLIDE 1 — TITLE ==================== -->
+<!-- ===== PROGRESS BAR ===== -->
+<div class="progress-track"><div class="progress-fill" id="progressFill" style="width:5.56%"></div></div>
+
+<!-- slide-01-title.html -->
+<!-- SLIDE 1 — TITLE -->
 <div class="slide active" data-slide="0">
-  <div class="slide-inner">
-    <div class="title-emblem animate"><span class="icon filled">account_balance</span></div>
-    <div class="title-dept animate a-d1">Panchayati Raj & Drinking Water Department &middot; Government of Odisha</div>
-    <h1 class="animate a-d2">AI-Powered<br><span class="grad-text">Grievance Redressal System</span></h1>
+  <!-- Particle background -->
+  <div class="particles">
+    <div class="particle" style="width:4px;height:4px;top:12%;left:8%;animation-duration:8s"></div>
+    <div class="particle" style="width:3px;height:3px;top:25%;left:22%;animation-duration:12s;animation-delay:1s;background:#00BCD4"></div>
+    <div class="particle" style="width:5px;height:5px;top:60%;left:15%;animation-duration:10s;animation-delay:2s;background:#7C4DFF"></div>
+    <div class="particle" style="width:3px;height:3px;top:75%;left:80%;animation-duration:9s;animation-delay:0.5s"></div>
+    <div class="particle" style="width:4px;height:4px;top:20%;left:70%;animation-duration:11s;animation-delay:3s;background:#00BCD4"></div>
+    <div class="particle" style="width:3px;height:3px;top:45%;left:90%;animation-duration:7s;animation-delay:1.5s;background:#7C4DFF"></div>
+    <div class="particle" style="width:4px;height:4px;top:85%;left:45%;animation-duration:13s;animation-delay:2.5s"></div>
+    <div class="particle" style="width:3px;height:3px;top:10%;left:55%;animation-duration:9s;animation-delay:4s;background:#00BCD4"></div>
+    <div class="particle" style="width:5px;height:5px;top:50%;left:35%;animation-duration:14s;animation-delay:1s;background:#7C4DFF"></div>
+    <div class="particle" style="width:3px;height:3px;top:35%;left:65%;animation-duration:10s;animation-delay:3.5s"></div>
+    <div class="particle" style="width:4px;height:4px;top:70%;left:25%;animation-duration:8s;animation-delay:2s;background:#00BCD4"></div>
+    <div class="particle" style="width:3px;height:3px;top:90%;left:75%;animation-duration:11s;animation-delay:0.8s"></div>
+    <div class="particle" style="width:4px;height:4px;top:5%;left:42%;animation-duration:12s;animation-delay:3s;background:#7C4DFF"></div>
+    <div class="particle" style="width:3px;height:3px;top:55%;left:58%;animation-duration:9s;animation-delay:1.2s"></div>
+    <div class="particle" style="width:5px;height:5px;top:40%;left:5%;animation-duration:10s;animation-delay:4.5s;background:#00BCD4"></div>
+  </div>
+  <div class="slide-inner" style="z-index:1">
+    <div class="title-emblem animate" style="animation:pulseEmblem 3s ease-in-out infinite,fadeInUp .55s cubic-bezier(.16,1,.3,1) both">
+      <span class="icon filled">account_balance</span>
+    </div>
+    <div class="title-dept animate a-d1">Panchayati Raj &amp; Drinking Water Department &middot; Government of Odisha</div>
+    <h1 class="animate a-d2">AI-Powered<br><span class="grad-text" style="background-size:200%;animation:shimmer 4s linear infinite;background-image:linear-gradient(90deg,#1A73E8,#00BCD4,#7C4DFF,#1A73E8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Grievance Redressal System</span></h1>
     <p class="lead animate a-d3">Transforming how citizens connect with their government &mdash; faster resolution, smarter triage, complete transparency.</p>
-    <div style="display:flex;gap:12px;align-items:center" class="animate a-d4">
-      <span class="title-version"><span class="icon filled" style="font-size:16px">new_releases</span> Version 2.0</span>
+    <div style="display:flex;gap:10px;align-items:center" class="animate a-d4">
+      <span class="title-version"><span class="icon filled" style="font-size:14px">new_releases</span> Version 2.2</span>
       <span class="tag tag-blue">February 2026</span>
     </div>
   </div>
 </div>
 
-<!-- ==================== SLIDE 2 — THE CHALLENGE ==================== -->
-<div class="slide" data-slide="1">
+
+<!-- slide-02-challenge.html -->
+<!-- SLIDE 2 — THE CHALLENGE -->
+<div class="slide" data-slide="1" data-transition="slide">
   <div class="slide-inner">
     <span class="tag tag-purple animate">The Challenge</span>
     <h2 class="animate a-d1">Why We Need a Better System</h2>
-    <div class="cards cards-2 animate a-d2">
+    <div class="cards cards-2 animate a-d2" style="max-width:1050px">
       <div class="card">
         <div class="card-icon card-icon-red"><span class="icon filled">schedule</span></div>
         <h3>Slow Manual Triage</h3>
@@ -350,17 +614,19 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:#0d1117;c
   </div>
 </div>
 
-<!-- ==================== SLIDE 3 — OUR SOLUTION ==================== -->
-<div class="slide" data-slide="2">
+
+<!-- slide-03-solution.html -->
+<!-- SLIDE 3 — OUR SOLUTION -->
+<div class="slide" data-slide="2" data-transition="zoom">
   <div class="slide-inner">
     <span class="tag tag-green animate">Our Solution</span>
-    <h2 class="animate a-d1"><span class="grad-text">PR&DW Grievance Portal</span></h2>
+    <h2 class="animate a-d1"><span class="grad-text">PR&amp;DW Grievance Portal</span></h2>
     <p class="lead animate a-d2">A unified, AI-powered platform where every grievance is intelligently classified, prioritized, and tracked from filing to resolution.</p>
     <div class="stats animate a-d3">
-      <div class="stat"><span class="num grad-text">8</span><span class="lbl">Departments</span></div>
-      <div class="stat"><span class="num grad-text">30</span><span class="lbl">Districts</span></div>
-      <div class="stat"><span class="num grad-text">61</span><span class="lbl">API Endpoints</span></div>
-      <div class="stat"><span class="num grad-text">3</span><span class="lbl">User Roles</span></div>
+      <div class="stat"><span class="num grad-text" data-count-to="8">0</span><span class="lbl">Departments</span></div>
+      <div class="stat"><span class="num grad-text" data-count-to="30">0</span><span class="lbl">Districts</span></div>
+      <div class="stat"><span class="num grad-text" data-count-to="73">0</span><span class="lbl">API Endpoints</span></div>
+      <div class="stat"><span class="num grad-text" data-count-to="3">0</span><span class="lbl">User Roles</span></div>
     </div>
     <div class="dept-badges animate a-d4">
       <span class="dept-badge">Panchayati Raj</span>
@@ -375,204 +641,406 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:#0d1117;c
   </div>
 </div>
 
-<!-- ==================== SLIDE 4 — HOW IT WORKS ==================== -->
-<div class="slide" data-slide="3">
+
+<!-- slide-04-how-it-works.html -->
+<!-- SLIDE 4 — HOW IT WORKS -->
+<div class="slide" data-slide="3" data-transition="morph">
   <div class="slide-inner">
     <span class="tag tag-blue animate">How It Works</span>
     <h2 class="animate a-d1">From Complaint to Resolution</h2>
-    <div class="flow animate a-d2">
-      <div class="flow-step">
-        <span class="step-num">1</span>
-        <span class="icon filled" style="color:var(--primary-light)">edit_note</span>
-        <h3>Citizen Files</h3>
-        <p>Multilingual form with<br>photo, audio & video uploads</p>
-      </div>
-      <div class="flow-arrow"><span class="icon">arrow_forward</span></div>
-      <div class="flow-step">
-        <span class="step-num">2</span>
-        <span class="icon filled" style="color:#4dd0e1">psychology</span>
-        <h3>AI Classifies</h3>
-        <p>GPT-5 routes to department,<br>sets priority & impact score</p>
-      </div>
-      <div class="flow-arrow"><span class="icon">arrow_forward</span></div>
-      <div class="flow-step">
-        <span class="step-num">3</span>
-        <span class="icon filled" style="color:#b388ff">support_agent</span>
-        <h3>Officer Resolves</h3>
-        <p>AI-drafted response reviewed<br>and approved by officer</p>
-      </div>
-      <div class="flow-arrow"><span class="icon">arrow_forward</span></div>
-      <div class="flow-step">
-        <span class="step-num">4</span>
-        <span class="icon filled" style="color:#69f0ae">verified</span>
-        <h3>Citizen Confirms</h3>
-        <p>Tracks status and confirms<br>resolution via dashboard</p>
-      </div>
+    <div class="animate a-d2" style="width:1050px;margin:0 auto">
+      <svg class="anim-trigger" viewBox="0 0 1050 220" width="1050" height="220" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="glowBlue" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="6" result="blur"/>
+            <animate attributeName="stdDeviation" values="4;8;4" dur="3s" repeatCount="indefinite" begin="0s"/>
+            <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+          </filter>
+          <filter id="glowCyan" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="6" result="blur"/>
+            <animate attributeName="stdDeviation" values="4;8;4" dur="3s" repeatCount="indefinite" begin="0.5s"/>
+            <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+          </filter>
+          <filter id="glowPurple" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="6" result="blur"/>
+            <animate attributeName="stdDeviation" values="4;8;4" dur="3s" repeatCount="indefinite" begin="1s"/>
+            <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+          </filter>
+          <filter id="glowGreen" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="6" result="blur"/>
+            <animate attributeName="stdDeviation" values="4;8;4" dur="3s" repeatCount="indefinite" begin="1.5s"/>
+            <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+          </filter>
+          <linearGradient id="heroGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#1A73E8"/>
+            <stop offset="50%" stop-color="#00BCD4"/>
+            <stop offset="100%" stop-color="#7C4DFF"/>
+          </linearGradient>
+        </defs>
+
+        <!-- Connecting arrows -->
+        <line x1="230" y1="110" x2="280" y2="110" stroke="#4da3ff" stroke-width="2" stroke-dasharray="50" stroke-dashoffset="50" opacity="0.6">
+          <animate attributeName="stroke-dashoffset" from="50" to="0" dur="0.6s" begin="0.5s" fill="freeze"/>
+        </line>
+        <polygon points="278,104 290,110 278,116" fill="#4da3ff" opacity="0">
+          <animate attributeName="opacity" from="0" to="0.6" dur="0.2s" begin="1s" fill="freeze"/>
+        </polygon>
+
+        <line x1="500" y1="110" x2="550" y2="110" stroke="#4dd0e1" stroke-width="2" stroke-dasharray="50" stroke-dashoffset="50" opacity="0.6">
+          <animate attributeName="stroke-dashoffset" from="50" to="0" dur="0.6s" begin="1s" fill="freeze"/>
+        </line>
+        <polygon points="548,104 560,110 548,116" fill="#4dd0e1" opacity="0">
+          <animate attributeName="opacity" from="0" to="0.6" dur="0.2s" begin="1.5s" fill="freeze"/>
+        </polygon>
+
+        <line x1="770" y1="110" x2="820" y2="110" stroke="#b388ff" stroke-width="2" stroke-dasharray="50" stroke-dashoffset="50" opacity="0.6">
+          <animate attributeName="stroke-dashoffset" from="50" to="0" dur="0.6s" begin="1.5s" fill="freeze"/>
+        </line>
+        <polygon points="818,104 830,110 818,116" fill="#b388ff" opacity="0">
+          <animate attributeName="opacity" from="0" to="0.6" dur="0.2s" begin="2s" fill="freeze"/>
+        </polygon>
+
+        <!-- Node 1: Citizen Files -->
+        <g filter="url(#glowBlue)">
+          <rect x="20" y="40" width="210" height="140" rx="16" fill="#1c2333" stroke="rgba(77,163,255,0.3)" stroke-width="1.5"/>
+          <circle cx="125" cy="28" r="14" fill="url(#heroGrad)"/>
+          <text x="125" y="33" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">1</text>
+          <text x="125" y="85" text-anchor="middle" fill="#4da3ff" font-family="Material Symbols Outlined" font-size="32">&#xe745;</text>
+          <text x="125" y="120" text-anchor="middle" fill="#e6edf3" font-size="14" font-weight="600">Citizen Files</text>
+          <text x="125" y="140" text-anchor="middle" fill="#8b949e" font-size="11">Multilingual form with</text>
+          <text x="125" y="155" text-anchor="middle" fill="#8b949e" font-size="11">photo, audio &amp; video</text>
+        </g>
+
+        <!-- Node 2: AI Classifies -->
+        <g filter="url(#glowCyan)">
+          <rect x="290" y="40" width="210" height="140" rx="16" fill="#1c2333" stroke="rgba(77,208,225,0.3)" stroke-width="1.5"/>
+          <circle cx="395" cy="28" r="14" fill="url(#heroGrad)"/>
+          <text x="395" y="33" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">2</text>
+          <text x="395" y="85" text-anchor="middle" fill="#4dd0e1" font-family="Material Symbols Outlined" font-size="32">&#xe4a2;</text>
+          <text x="395" y="120" text-anchor="middle" fill="#e6edf3" font-size="14" font-weight="600">AI Classifies</text>
+          <text x="395" y="140" text-anchor="middle" fill="#8b949e" font-size="11">Routes to department,</text>
+          <text x="395" y="155" text-anchor="middle" fill="#8b949e" font-size="11">sets priority &amp; impact</text>
+        </g>
+
+        <!-- Node 3: Officer Resolves -->
+        <g filter="url(#glowPurple)">
+          <rect x="560" y="40" width="210" height="140" rx="16" fill="#1c2333" stroke="rgba(179,136,255,0.3)" stroke-width="1.5"/>
+          <circle cx="665" cy="28" r="14" fill="url(#heroGrad)"/>
+          <text x="665" y="33" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">3</text>
+          <text x="665" y="85" text-anchor="middle" fill="#b388ff" font-family="Material Symbols Outlined" font-size="32">&#xf0e1;</text>
+          <text x="665" y="120" text-anchor="middle" fill="#e6edf3" font-size="14" font-weight="600">Officer Resolves</text>
+          <text x="665" y="140" text-anchor="middle" fill="#8b949e" font-size="11">AI-drafted response</text>
+          <text x="665" y="155" text-anchor="middle" fill="#8b949e" font-size="11">reviewed by officer</text>
+        </g>
+
+        <!-- Node 4: Citizen Confirms -->
+        <g filter="url(#glowGreen)">
+          <rect x="830" y="40" width="210" height="140" rx="16" fill="#1c2333" stroke="rgba(105,240,174,0.3)" stroke-width="1.5"/>
+          <circle cx="935" cy="28" r="14" fill="url(#heroGrad)"/>
+          <text x="935" y="33" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">4</text>
+          <text x="935" y="85" text-anchor="middle" fill="#69f0ae" font-family="Material Symbols Outlined" font-size="32">&#xef76;</text>
+          <text x="935" y="120" text-anchor="middle" fill="#e6edf3" font-size="14" font-weight="600">Citizen Confirms</text>
+          <text x="935" y="140" text-anchor="middle" fill="#8b949e" font-size="11">Tracks status and</text>
+          <text x="935" y="155" text-anchor="middle" fill="#8b949e" font-size="11">confirms resolution</text>
+        </g>
+      </svg>
     </div>
-    <p class="animate a-d3" style="font-size:.95rem;color:var(--text-muted);margin-top:8px">Three resolution tiers: <strong style="color:var(--text-secondary)">Self-resolvable</strong> (AI guidance) &rarr; <strong style="color:var(--text-secondary)">Officer Action</strong> (AI draft + review) &rarr; <strong style="color:var(--text-secondary)">Escalation</strong></p>
+    <p class="animate a-d3" style="font-size:14px;color:var(--text-muted);margin-top:6px">Three resolution tiers: <strong style="color:var(--text-secondary)">Self-resolvable</strong> (AI guidance) &rarr; <strong style="color:var(--text-secondary)">Officer Action</strong> (AI draft + review) &rarr; <strong style="color:var(--text-secondary)">Escalation</strong></p>
   </div>
 </div>
 
-<!-- ==================== SLIDE 5 — FOR CITIZENS ==================== -->
-<div class="slide" data-slide="4">
-  <div class="slide-inner">
-    <span class="tag tag-cyan animate">Citizen Experience</span>
-    <h2 class="animate a-d1">Built for Every Citizen of Odisha</h2>
-    <div class="cards cards-3 animate a-d2">
-      <div class="card">
-        <div class="card-icon card-icon-blue"><span class="icon filled">translate</span></div>
-        <h3>Multilingual Filing</h3>
-        <p>Submit grievances in English, Odia, or Hindi. AI understands all three.</p>
-      </div>
-      <div class="card">
-        <div class="card-icon card-icon-cyan"><span class="icon filled">attach_file</span></div>
-        <h3>Rich Attachments</h3>
-        <p>Upload up to 5 photos, audio recordings, or videos (50 MB each) as evidence.</p>
-      </div>
-      <div class="card">
-        <div class="card-icon card-icon-green"><span class="icon filled">my_location</span></div>
-        <h3>Auto Location</h3>
-        <p>GPS or IP-based geolocation fills in your coordinates automatically.</p>
-      </div>
-      <div class="card">
-        <div class="card-icon card-icon-purple"><span class="icon filled">visibility_off</span></div>
-        <h3>Anonymous Filing</h3>
-        <p>File sensitive complaints anonymously &mdash; your identity stays protected.</p>
-      </div>
-      <div class="card">
-        <div class="card-icon card-icon-blue"><span class="icon filled">smart_toy</span></div>
-        <h3>AI Chatbot</h3>
-        <p>Ask questions or file grievances through a conversational AI assistant.</p>
-      </div>
-      <div class="card">
-        <div class="card-icon card-icon-orange"><span class="icon filled">search</span></div>
-        <h3>Track Your Grievance</h3>
-        <p>Enter your tracking number (e.g. GRV-2026-000001) and see real-time status.</p>
+
+<!-- slide-05-citizen.html -->
+<!-- SLIDE 5 — CITIZEN EXPERIENCE + DASHBOARD MOCKUP -->
+<div class="slide" data-slide="4" data-transition="slide">
+  <div class="slide-inner" style="flex-direction:row;text-align:left;gap:36px">
+    <!-- Left: Feature list -->
+    <div style="flex:0 0 400px;display:flex;flex-direction:column;gap:14px">
+      <span class="tag tag-cyan animate">Citizen Experience</span>
+      <h2 class="animate a-d1" style="font-size:28px">Built for Every Citizen</h2>
+      <ul class="feature-list animate a-d2">
+        <li><span class="icon filled">translate</span><div><strong style="color:var(--text-primary)">Multilingual Filing</strong><br>Submit in English, Odia, or Hindi</div></li>
+        <li><span class="icon filled">attach_file</span><div><strong style="color:var(--text-primary)">Rich Attachments</strong><br>Photos, audio, video (50 MB each)</div></li>
+        <li><span class="icon filled">my_location</span><div><strong style="color:var(--text-primary)">Auto Geolocation</strong><br>GPS then IP fallback</div></li>
+        <li><span class="icon filled">visibility_off</span><div><strong style="color:var(--text-primary)">Anonymous Filing</strong><br>Identity stays protected</div></li>
+        <li><span class="icon filled">smart_toy</span><div><strong style="color:var(--text-primary)">AI Chatbot</strong><br>Conversational grievance filing</div></li>
+        <li><span class="icon filled">search</span><div><strong style="color:var(--text-primary)">Public Tracking</strong><br>Track by GRV-2026-XXXXXX</div></li>
+        <li><span class="icon filled">face</span><div><strong style="color:var(--text-primary)">Face Login</strong><br>Biometric auth via face-api.js</div></li>
+      </ul>
+    </div>
+    <!-- Right: Dashboard Mockup -->
+    <div style="flex:1;min-width:0" class="mockup-animate">
+      <div class="mockup-frame" style="width:100%">
+        <!-- Navbar -->
+        <div class="m-navbar">
+          <div class="m-logo"><span class="icon filled">account_balance</span> PR&amp;DW Portal</div>
+          <div class="m-nav-links">
+            <span class="active">Dashboard</span>
+            <span>File</span>
+            <span>Track</span>
+            <span>Chatbot</span>
+            <span>Schemes</span>
+            <span>Community</span>
+          </div>
+          <div class="m-user-badge">Ramesh K &middot; citizen</div>
+        </div>
+        <!-- Content -->
+        <div style="padding:10px 12px 6px">
+          <div style="font-size:14px;font-weight:700;color:var(--app-on-surface)">Welcome, Ramesh Kumar</div>
+          <div style="font-size:10px;color:var(--app-on-surface-variant)">Your grievance overview</div>
+        </div>
+        <!-- Metrics -->
+        <div class="m-metrics">
+          <div class="m-metric-card"><div class="m-metric-icon blue"><span class="icon">assignment</span></div><div class="m-metric-val">12</div><div class="m-metric-lbl">Total Filed</div></div>
+          <div class="m-metric-card"><div class="m-metric-icon green"><span class="icon">check_circle</span></div><div class="m-metric-val">5</div><div class="m-metric-lbl">Resolved</div></div>
+          <div class="m-metric-card"><div class="m-metric-icon amber"><span class="icon">schedule</span></div><div class="m-metric-val">4</div><div class="m-metric-lbl">Pending</div></div>
+          <div class="m-metric-card"><div class="m-metric-icon blue"><span class="icon">sync</span></div><div class="m-metric-val">3</div><div class="m-metric-lbl">In Progress</div></div>
+        </div>
+        <!-- Date group -->
+        <div class="m-date-header">
+          <span class="icon">calendar_today</span>
+          14 February 2026
+          <span class="count">3 grievances</span>
+        </div>
+        <!-- Grievance cards -->
+        <div class="m-grievance-card status-pending">
+          <h4>#GRV-2026-000042 &mdash; No drinking water supply for 3 weeks</h4>
+          <div class="m-badges">
+            <span class="m-badge m-badge-pending">Pending</span>
+            <span class="m-badge m-badge-dept">Rural Water Supply</span>
+            <span class="m-badge m-badge-priority-high">High</span>
+            <span class="m-badge-impact" style="background:#FF7043">72</span>
+          </div>
+        </div>
+        <div class="m-grievance-card status-in_progress">
+          <h4>#GRV-2026-000038 &mdash; Road damage near Balasore market</h4>
+          <div class="m-badges">
+            <span class="m-badge m-badge-in_progress">In Progress</span>
+            <span class="m-badge m-badge-dept">Infrastructure</span>
+            <span class="m-badge m-badge-priority-medium">Medium</span>
+            <span class="m-badge-impact" style="background:#FFB74D">45</span>
+          </div>
+        </div>
+        <div style="height:8px"></div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ==================== SLIDE 6 — AI CLASSIFICATION ==================== -->
-<div class="slide" data-slide="5">
-  <div class="slide-inner">
-    <span class="tag tag-blue animate">AI Classification</span>
-    <h2 class="animate a-d1">Intelligent Triage in Seconds</h2>
-    <p class="lead animate a-d2">Every grievance is instantly analyzed by GPT-5 across four dimensions:</p>
-    <div class="cards cards-4 animate a-d3">
-      <div class="card" style="text-align:center">
-        <div class="card-icon card-icon-blue" style="margin:0 auto"><span class="icon filled">domain</span></div>
-        <h3>Department</h3>
-        <p>Auto-routed to the correct department out of 8 categories</p>
-      </div>
-      <div class="card" style="text-align:center">
-        <div class="card-icon card-icon-orange" style="margin:0 auto"><span class="icon filled">priority_high</span></div>
-        <h3>Priority</h3>
-        <p>Low, Medium, High, or Urgent based on content analysis</p>
-      </div>
-      <div class="card" style="text-align:center">
-        <div class="card-icon card-icon-purple" style="margin:0 auto"><span class="icon filled">sentiment_satisfied</span></div>
-        <h3>Sentiment</h3>
-        <p>Detects positive, neutral, negative, or frustrated tone</p>
-      </div>
-      <div class="card" style="text-align:center">
-        <div class="card-icon card-icon-green" style="margin:0 auto"><span class="icon filled">call_split</span></div>
-        <h3>Resolution Tier</h3>
-        <p>Self-resolvable, officer-action, or escalation</p>
-      </div>
-    </div>
-    <p class="animate a-d4" style="font-size:.9rem;color:var(--text-muted)">Powered by OpenAI GPT-5 with text-embedding-3-large for semantic understanding</p>
-  </div>
-</div>
 
-<!-- ==================== SLIDE 7 — IMPACT SCORE ==================== -->
-<div class="slide" data-slide="6">
-  <div class="slide-inner">
-    <span class="tag tag-cyan animate">Citizen Impact Score</span>
-    <h2 class="animate a-d1">Data-Driven Prioritization</h2>
-    <div class="split animate a-d2">
-      <div class="split-visual">
-        <div class="score-ring">
-          <div class="score-ring-inner">
-            <span class="num">72</span>
-            <span class="lbl">Impact</span>
+<!-- slide-06-ai-classification.html -->
+<!-- SLIDE 6 — AI CLASSIFICATION + GRIEVANCE DETAIL MOCKUP -->
+<div class="slide" data-slide="5" data-transition="reveal">
+  <div class="slide-inner" style="flex-direction:row;text-align:left;gap:36px">
+    <!-- Left: 4 AI dimensions -->
+    <div style="flex:0 0 380px;display:flex;flex-direction:column;gap:14px">
+      <span class="tag tag-blue animate">AI Classification</span>
+      <h2 class="animate a-d1" style="font-size:26px">Intelligent Triage<br>in Seconds</h2>
+      <p class="animate a-d2" style="font-size:14px;color:var(--text-secondary)">Every grievance is instantly analyzed by GPT-5 across four dimensions:</p>
+      <div class="animate a-d3" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="card" style="padding:14px;text-align:center">
+          <div class="card-icon card-icon-blue" style="margin:0 auto;width:34px;height:34px"><span class="icon filled" style="font-size:18px">domain</span></div>
+          <h3 style="font-size:13px">Department</h3>
+          <p style="font-size:11px">Auto-routed to 1 of 8</p>
+        </div>
+        <div class="card" style="padding:14px;text-align:center">
+          <div class="card-icon card-icon-orange" style="margin:0 auto;width:34px;height:34px"><span class="icon filled" style="font-size:18px">priority_high</span></div>
+          <h3 style="font-size:13px">Priority</h3>
+          <p style="font-size:11px">Low / Med / High / Urgent</p>
+        </div>
+        <div class="card" style="padding:14px;text-align:center">
+          <div class="card-icon card-icon-purple" style="margin:0 auto;width:34px;height:34px"><span class="icon filled" style="font-size:18px">sentiment_satisfied</span></div>
+          <h3 style="font-size:13px">Sentiment</h3>
+          <p style="font-size:11px">Positive to Frustrated</p>
+        </div>
+        <div class="card" style="padding:14px;text-align:center">
+          <div class="card-icon card-icon-green" style="margin:0 auto;width:34px;height:34px"><span class="icon filled" style="font-size:18px">call_split</span></div>
+          <h3 style="font-size:13px">Resolution Tier</h3>
+          <p style="font-size:11px">Self / Officer / Escalation</p>
+        </div>
+      </div>
+      <p class="animate a-d4" style="font-size:11px;color:var(--text-muted)">Powered by GPT-5-mini + text-embedding-3-large</p>
+    </div>
+    <!-- Right: Grievance Detail Mockup -->
+    <div style="flex:1;min-width:0" class="mockup-animate">
+      <div class="mockup-frame" style="width:100%">
+        <div class="m-navbar">
+          <div class="m-logo"><span class="icon filled">account_balance</span> PR&amp;DW Portal</div>
+          <div class="m-nav-links"><span>Dashboard</span><span>Queue</span><span>Knowledge</span></div>
+          <div class="m-user-badge">Officer BDO &middot; officer</div>
+        </div>
+        <div style="padding:8px 12px">
+          <div style="font-size:13px;font-weight:700;color:var(--app-on-surface);margin-bottom:6px">No drinking water supply for 3 weeks</div>
+          <div style="font-size:10px;color:var(--app-on-surface-variant);line-height:1.5;margin-bottom:8px">Our village Patnagarh Block has had no piped water for the past three weeks. The hand pump is also broken. Women have to walk 2km to the nearest well. Children are falling sick. Please help urgently.</div>
+          <!-- Detail rows -->
+          <div class="m-detail-row"><span class="m-label">Status</span><span class="m-badge m-badge-pending">Pending</span></div>
+          <div class="m-detail-row"><span class="m-label">Department</span><span class="m-badge m-badge-dept">Rural Water Supply</span></div>
+          <div class="m-detail-row"><span class="m-label">Priority</span><span class="m-badge m-badge-priority-high">High</span></div>
+          <div class="m-detail-row"><span class="m-label">Impact Score</span><span class="m-impact-circle" style="background:#FF7043;width:24px;height:24px;font-size:9px">72</span></div>
+          <div class="m-detail-row"><span class="m-label">Sentiment</span><span class="m-badge" style="background:#F3E8FD;color:#6D28D9">Frustrated</span></div>
+          <div class="m-detail-row"><span class="m-label">District</span><span class="m-value">Bolangir</span></div>
+          <!-- AI Resolution -->
+          <div class="m-ai-box">
+            <div class="m-ai-header"><span class="icon filled">auto_awesome</span> AI-Drafted Resolution</div>
+            <p>Based on similar past cases in Bolangir district, the Rural Water Supply division should inspect the Patnagarh pipeline junction. Previous outages in this area were caused by valve failures at the main distribution point. Recommend dispatching a JE within 48 hours and arranging tanker supply as interim measure.</p>
           </div>
         </div>
       </div>
-      <div class="split-text">
-        <p style="margin-bottom:8px">A composite score from <strong style="color:var(--text-primary)">0 to 100</strong> that replaces simple 4-level priority. Uses Census 2011 data for all 30 Odisha districts.</p>
-        <div class="factors">
-          <div class="factor">
-            <span class="factor-label">Survival Necessity</span>
-            <div class="factor-bar-track"><div class="factor-bar" style="width:85%;background:var(--primary)"></div></div>
-            <span class="factor-val">85</span>
-          </div>
-          <div class="factor">
-            <span class="factor-label">District Vulnerability</span>
-            <div class="factor-bar-track"><div class="factor-bar" style="width:70%;background:#00BCD4"></div></div>
-            <span class="factor-val">70</span>
-          </div>
-          <div class="factor">
-            <span class="factor-label">Duration Pending</span>
-            <div class="factor-bar-track"><div class="factor-bar" style="width:60%;background:#7C4DFF"></div></div>
-            <span class="factor-val">60</span>
-          </div>
-          <div class="factor">
-            <span class="factor-label">Recurrence</span>
-            <div class="factor-bar-track"><div class="factor-bar" style="width:75%;background:#E37400"></div></div>
-            <span class="factor-val">75</span>
-          </div>
-          <div class="factor">
-            <span class="factor-label">Seasonal Urgency</span>
-            <div class="factor-bar-track"><div class="factor-bar" style="width:50%;background:#1E8E3E"></div></div>
-            <span class="factor-val">50</span>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 </div>
 
-<!-- ==================== SLIDE 8 — CONSTELLATION ENGINE ==================== -->
-<div class="slide" data-slide="7">
-  <div class="slide-inner">
-    <span class="tag tag-purple animate">Systemic Issue Detection</span>
-    <h2 class="animate a-d1">The <span class="grad-text">Constellation Engine</span></h2>
-    <p class="lead animate a-d2">Automatically clusters nearby same-department grievances using geospatial + semantic similarity, then generates a root-cause analysis.</p>
-    <div class="split animate a-d3">
-      <div class="split-visual">
-        <div class="cluster-vis">
-          <div class="cluster-dot" style="top:25%;left:35%;background:#1A73E8;color:#1A73E8;width:16px;height:16px"></div>
-          <div class="cluster-dot" style="top:30%;left:42%;background:#1A73E8;color:#1A73E8"></div>
-          <div class="cluster-dot" style="top:20%;left:40%;background:#1A73E8;color:#1A73E8"></div>
-          <div class="cluster-dot" style="top:32%;left:30%;background:#1A73E8;color:#1A73E8"></div>
-          <div class="cluster-dot" style="top:65%;left:60%;background:#7C4DFF;color:#7C4DFF;width:16px;height:16px"></div>
-          <div class="cluster-dot" style="top:70%;left:68%;background:#7C4DFF;color:#7C4DFF"></div>
-          <div class="cluster-dot" style="top:60%;left:65%;background:#7C4DFF;color:#7C4DFF"></div>
-          <div class="cluster-dot" style="top:45%;left:75%;background:#00BCD4;color:#00BCD4"></div>
-          <div class="cluster-dot" style="top:50%;left:20%;background:#E37400;color:#E37400"></div>
-          <div class="cluster-dot" style="top:80%;left:40%;background:#1E8E3E;color:#1E8E3E"></div>
-        </div>
-      </div>
-      <div class="split-text">
-        <ul class="feature-list">
-          <li><span class="icon filled">hub</span>Clusters grievances by geographic proximity and content similarity</li>
-          <li><span class="icon filled">psychology</span>GPT-5 generates root-cause analysis for each cluster</li>
-          <li><span class="icon filled">trending_up</span>Reveals systemic problems hidden across individual complaints</li>
-          <li><span class="icon filled">assignment_ind</span>Officers are assigned to the systemic issue, not just individual cases</li>
-        </ul>
-      </div>
+
+<!-- slide-07-impact-score.html -->
+<!-- SLIDE 7 — CITIZEN IMPACT SCORE (SVG) -->
+<div class="slide" data-slide="6" data-transition="morph">
+  <div class="slide-inner" style="flex-direction:row;text-align:left;gap:48px">
+    <!-- Left: SVG Score Ring -->
+    <div style="flex:0 0 260px;display:flex;flex-direction:column;align-items:center;gap:16px" class="animate a-d2">
+      <span class="tag tag-cyan" style="align-self:center">Citizen Impact Score</span>
+      <svg class="anim-trigger" width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="ringGlow" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="4" result="blur">
+              <animate attributeName="stdDeviation" values="3;6;3" dur="2.5s" repeatCount="indefinite"/>
+            </feGaussianBlur>
+            <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+          </filter>
+        </defs>
+        <!-- Background circle -->
+        <circle cx="100" cy="100" r="80" fill="none" stroke="#21283b" stroke-width="14"/>
+        <!-- Score arc -->
+        <circle cx="100" cy="100" r="80" fill="none" stroke="#1A73E8" stroke-width="14"
+                stroke-linecap="round"
+                stroke-dasharray="502.65"
+                data-ring-pct="72" data-ring-circ="502.65"
+                style="stroke-dashoffset:502.65;transform:rotate(-90deg);transform-origin:50% 50%"
+                filter="url(#ringGlow)"/>
+        <!-- Center text -->
+        <text x="100" y="92" text-anchor="middle" fill="#4da3ff" font-size="42" font-weight="800" font-family="Inter,sans-serif">72</text>
+        <text x="100" y="115" text-anchor="middle" fill="#6e7681" font-size="12" font-weight="600" letter-spacing="0.06em" text-transform="uppercase" font-family="Inter,sans-serif">IMPACT</text>
+      </svg>
+      <p style="font-size:12px;color:var(--text-muted);text-align:center">Composite score 0&ndash;100<br>replaces simple 4-level priority</p>
+    </div>
+    <!-- Right: Factor bars + explanation -->
+    <div style="flex:1;display:flex;flex-direction:column;gap:16px">
+      <h2 class="animate a-d1" style="font-size:28px">Data-Driven Prioritization</h2>
+      <p class="animate a-d2" style="font-size:14px;color:var(--text-secondary)">Uses Census 2011 data for all 30 Odisha districts</p>
+      <!-- SVG Factor Bars -->
+      <svg class="animate a-d3" width="620" height="210" viewBox="0 0 620 210" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="barGlow" x="-10%" y="-40%" width="120%" height="180%">
+            <feGaussianBlur stdDeviation="3">
+              <animate attributeName="stdDeviation" values="2;4;2" dur="3s" repeatCount="indefinite"/>
+            </feGaussianBlur>
+            <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+          </filter>
+        </defs>
+        <!-- Factor 1: Survival Necessity -->
+        <text x="0" y="20" fill="#8b949e" font-size="13" font-family="Inter,sans-serif">Survival Necessity</text>
+        <rect x="170" y="8" width="380" height="16" rx="4" fill="#21283b"/>
+        <rect x="170" y="8" height="16" rx="4" fill="#1A73E8" filter="url(#barGlow)" data-bar-width="323px" style="width:0"/>
+        <text x="570" y="21" fill="#e6edf3" font-size="14" font-weight="600" font-family="Inter,sans-serif">85</text>
+
+        <!-- Factor 2: District Vulnerability -->
+        <text x="0" y="62" fill="#8b949e" font-size="13" font-family="Inter,sans-serif">District Vulnerability</text>
+        <rect x="170" y="50" width="380" height="16" rx="4" fill="#21283b"/>
+        <rect x="170" y="50" height="16" rx="4" fill="#00BCD4" filter="url(#barGlow)" data-bar-width="266px" style="width:0"/>
+        <text x="570" y="63" fill="#e6edf3" font-size="14" font-weight="600" font-family="Inter,sans-serif">70</text>
+
+        <!-- Factor 3: Duration Pending -->
+        <text x="0" y="104" fill="#8b949e" font-size="13" font-family="Inter,sans-serif">Duration Pending</text>
+        <rect x="170" y="92" width="380" height="16" rx="4" fill="#21283b"/>
+        <rect x="170" y="92" height="16" rx="4" fill="#7C4DFF" filter="url(#barGlow)" data-bar-width="228px" style="width:0"/>
+        <text x="570" y="105" fill="#e6edf3" font-size="14" font-weight="600" font-family="Inter,sans-serif">60</text>
+
+        <!-- Factor 4: Recurrence -->
+        <text x="0" y="146" fill="#8b949e" font-size="13" font-family="Inter,sans-serif">Recurrence</text>
+        <rect x="170" y="134" width="380" height="16" rx="4" fill="#21283b"/>
+        <rect x="170" y="134" height="16" rx="4" fill="#E37400" filter="url(#barGlow)" data-bar-width="285px" style="width:0"/>
+        <text x="570" y="147" fill="#e6edf3" font-size="14" font-weight="600" font-family="Inter,sans-serif">75</text>
+
+        <!-- Factor 5: Seasonal Urgency -->
+        <text x="0" y="188" fill="#8b949e" font-size="13" font-family="Inter,sans-serif">Seasonal Urgency</text>
+        <rect x="170" y="176" width="380" height="16" rx="4" fill="#21283b"/>
+        <rect x="170" y="176" height="16" rx="4" fill="#1E8E3E" filter="url(#barGlow)" data-bar-width="190px" style="width:0"/>
+        <text x="570" y="189" fill="#e6edf3" font-size="14" font-weight="600" font-family="Inter,sans-serif">50</text>
+      </svg>
     </div>
   </div>
 </div>
 
-<!-- ==================== SLIDE 9 — PREDICTIVE FORECASTING ==================== -->
-<div class="slide" data-slide="8">
+
+<!-- slide-08-constellation.html -->
+<!-- SLIDE 8 — CONSTELLATION ENGINE (SVG) -->
+<div class="slide" data-slide="7" data-transition="slide">
+  <div class="slide-inner" style="flex-direction:row;text-align:left;gap:40px">
+    <!-- Left: SVG Cluster Diagram -->
+    <div style="flex:0 0 320px;display:flex;flex-direction:column;align-items:center;gap:12px" class="animate a-d2">
+      <svg class="anim-trigger" width="300" height="300" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="dotGlowB" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="3"><animate attributeName="stdDeviation" values="2;5;2" dur="2.5s" repeatCount="indefinite"/></feGaussianBlur>
+            <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+          </filter>
+          <filter id="dotGlowP" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="3"><animate attributeName="stdDeviation" values="2;5;2" dur="2.5s" repeatCount="indefinite" begin="0.8s"/></feGaussianBlur>
+            <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+          </filter>
+        </defs>
+        <!-- Boundary circle -->
+        <circle cx="150" cy="150" r="140" fill="none" stroke="rgba(26,115,232,0.15)" stroke-width="1" stroke-dasharray="8 4"/>
+        <!-- Cluster 1 (Blue) - Water issues -->
+        <ellipse cx="95" cy="90" rx="55" ry="45" fill="none" stroke="rgba(26,115,232,0.12)" stroke-width="1" stroke-dasharray="4 3"/>
+        <line x1="75" y1="75" x2="110" y2="90" stroke="rgba(26,115,232,0.2)" stroke-width="1"/>
+        <line x1="75" y1="75" x2="90" y2="60" stroke="rgba(26,115,232,0.2)" stroke-width="1"/>
+        <line x1="110" y1="90" x2="120" y2="70" stroke="rgba(26,115,232,0.2)" stroke-width="1"/>
+        <line x1="110" y1="90" x2="95" y2="110" stroke="rgba(26,115,232,0.2)" stroke-width="1"/>
+        <circle cx="75" cy="75" r="8" fill="#1A73E8" filter="url(#dotGlowB)"/>
+        <circle cx="110" cy="90" r="7" fill="#1A73E8" filter="url(#dotGlowB)"/>
+        <circle cx="90" cy="60" r="6" fill="#1A73E8" filter="url(#dotGlowB)"/>
+        <circle cx="120" cy="70" r="6" fill="#1A73E8" filter="url(#dotGlowB)"/>
+        <circle cx="95" cy="110" r="5" fill="#1A73E8" filter="url(#dotGlowB)"/>
+        <!-- Cluster 2 (Purple) - Housing -->
+        <ellipse cx="200" cy="195" rx="50" ry="40" fill="none" stroke="rgba(124,77,255,0.12)" stroke-width="1" stroke-dasharray="4 3"/>
+        <line x1="190" y1="185" x2="215" y2="200" stroke="rgba(124,77,255,0.2)" stroke-width="1"/>
+        <line x1="190" y1="185" x2="180" y2="205" stroke="rgba(124,77,255,0.2)" stroke-width="1"/>
+        <line x1="215" y1="200" x2="210" y2="220" stroke="rgba(124,77,255,0.2)" stroke-width="1"/>
+        <circle cx="190" cy="185" r="8" fill="#7C4DFF" filter="url(#dotGlowP)"/>
+        <circle cx="215" cy="200" r="7" fill="#7C4DFF" filter="url(#dotGlowP)"/>
+        <circle cx="180" cy="205" r="6" fill="#7C4DFF" filter="url(#dotGlowP)"/>
+        <circle cx="210" cy="220" r="5" fill="#7C4DFF" filter="url(#dotGlowP)"/>
+        <!-- Scattered singles -->
+        <circle cx="220" cy="80" r="5" fill="#00BCD4" opacity="0.6"/>
+        <circle cx="60" cy="200" r="5" fill="#E37400" opacity="0.6"/>
+        <circle cx="240" cy="250" r="5" fill="#1E8E3E" opacity="0.6"/>
+        <circle cx="160" cy="150" r="4" fill="#8b949e" opacity="0.3"/>
+      </svg>
+    </div>
+    <!-- Right: Content -->
+    <div style="flex:1;display:flex;flex-direction:column;gap:14px">
+      <span class="tag tag-purple animate">Systemic Issue Detection</span>
+      <h2 class="animate a-d1" style="font-size:28px">The <span class="grad-text">Constellation Engine</span></h2>
+      <p class="animate a-d2" style="font-size:14px;color:var(--text-secondary)">Automatically clusters nearby same-department grievances using geospatial + semantic similarity, then generates a root-cause analysis.</p>
+      <ul class="feature-list animate a-d3">
+        <li><span class="icon filled">hub</span><div><strong style="color:var(--text-primary)">Geographic + Semantic Clustering</strong><br>Groups complaints by proximity and content similarity</div></li>
+        <li><span class="icon filled">psychology</span><div><strong style="color:var(--text-primary)">AI Root-Cause Analysis</strong><br>GPT-5 generates analysis for each cluster</div></li>
+        <li><span class="icon filled">trending_up</span><div><strong style="color:var(--text-primary)">Hidden Pattern Revelation</strong><br>Surfaces systemic problems across individual cases</div></li>
+        <li><span class="icon filled">assignment_ind</span><div><strong style="color:var(--text-primary)">Systemic Assignment</strong><br>Officers assigned to the root issue, not just symptoms</div></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+
+<!-- slide-09-forecasting.html -->
+<!-- SLIDE 9 — PREDICTIVE FORECASTING -->
+<div class="slide" data-slide="8" data-transition="zoom">
   <div class="slide-inner">
     <span class="tag tag-green animate">Predictive Intelligence</span>
     <h2 class="animate a-d1">Forecasting Grievance Spikes</h2>
     <p class="lead animate a-d2">The system generates 2-week predictions per district and department &mdash; so the administration can prepare before problems escalate.</p>
-    <div class="cards cards-3 animate a-d3">
+    <div class="cards cards-3 animate a-d3" style="max-width:1000px">
       <div class="card">
         <div class="card-icon card-icon-blue"><span class="icon filled">history</span></div>
         <h3>Historical Patterns</h3>
@@ -586,324 +1054,883 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:#0d1117;c
       <div class="card">
         <div class="card-icon card-icon-green"><span class="icon filled">summarize</span></div>
         <h3>Actionable Briefings</h3>
-        <p>Generates a concise briefing for admins: which districts, which departments, what to prepare for.</p>
+        <p>Generates a concise briefing: which districts, which departments, what to prepare for.</p>
       </div>
     </div>
-    <p class="animate a-d4" style="font-size:.9rem;color:var(--text-muted)">Admins can trigger forecast generation on-demand from the admin panel</p>
+    <p class="animate a-d4" style="font-size:12px;color:var(--text-muted)">Admins can trigger forecast generation on-demand from the admin panel</p>
   </div>
 </div>
 
-<!-- ==================== SLIDE 10 — COMMUNITY FEED ==================== -->
-<div class="slide" data-slide="9">
+
+<!-- slide-10-community.html -->
+<!-- SLIDE 10 — COMMUNITY FEED + MOCKUP -->
+<div class="slide" data-slide="9" data-transition="slide">
+  <div class="slide-inner" style="flex-direction:row;text-align:left;gap:36px">
+    <!-- Left: Features -->
+    <div style="flex:0 0 380px;display:flex;flex-direction:column;gap:14px">
+      <span class="tag tag-cyan animate">Public Transparency</span>
+      <h2 class="animate a-d1" style="font-size:28px">Community Grievance Feed</h2>
+      <ul class="feature-list animate a-d2">
+        <li><span class="icon filled">public</span><div><strong style="color:var(--text-primary)">Opt-In Public Visibility</strong><br>Citizens choose to make grievances public</div></li>
+        <li><span class="icon filled">thumb_up</span><div><strong style="color:var(--text-primary)">Citizen Vouching</strong><br>Vouch with evidence (up to 3 files), optionally anonymous</div></li>
+        <li><span class="icon filled">near_me</span><div><strong style="color:var(--text-primary)">Proximity Sorting</strong><br>See issues closest to you first via GPS/IP</div></li>
+        <li><span class="icon filled">groups</span><div><strong style="color:var(--text-primary)">Collective Voice</strong><br>Vouch count amplifies urgency for officers</div></li>
+      </ul>
+    </div>
+    <!-- Right: Community Mockup -->
+    <div style="flex:1;min-width:0" class="mockup-animate">
+      <div class="mockup-frame" style="width:100%">
+        <div class="m-navbar">
+          <div class="m-logo"><span class="icon filled">account_balance</span> PR&amp;DW Portal</div>
+          <div class="m-nav-links"><span>Dashboard</span><span class="active">Community</span><span>Schemes</span></div>
+          <div class="m-user-badge">Priya S &middot; citizen</div>
+        </div>
+        <div style="padding:8px 12px 0">
+          <div style="font-size:13px;font-weight:700;color:var(--app-on-surface);display:flex;align-items:center;gap:4px"><span class="icon filled" style="font-size:16px">groups</span> Community Grievance Feed</div>
+          <div style="font-size:9px;color:var(--app-on-surface-variant);margin-bottom:4px">Public grievances near you</div>
+        </div>
+        <!-- Filter bar -->
+        <div class="m-filter-bar" style="margin:4px 12px">
+          <div class="m-filter-item">
+            <label>Location</label>
+            <div class="m-select" style="color:var(--app-success);display:flex;align-items:center;gap:2px"><span class="icon filled" style="font-size:10px">check_circle</span> GPS detected</div>
+          </div>
+          <div class="m-filter-item">
+            <label>Radius</label>
+            <div class="m-select">50 km</div>
+          </div>
+          <div style="align-self:flex-end">
+            <div class="m-btn m-btn-primary" style="font-size:8px"><span class="icon" style="font-size:10px">refresh</span> Refresh</div>
+          </div>
+        </div>
+        <!-- Community cards -->
+        <div style="padding:6px 12px">
+          <div style="background:var(--app-surface);border:1px solid var(--app-outline-variant);border-radius:8px;padding:10px;margin-bottom:6px">
+            <div style="font-size:11px;font-weight:600;color:var(--app-on-surface);margin-bottom:3px">Broken hand pump in Angul village since January</div>
+            <div style="font-size:9px;color:var(--app-on-surface-variant);margin-bottom:6px;line-height:1.4">The main hand pump serving 200+ households has been non-functional. Women walk 3km daily...</div>
+            <div class="m-badges" style="margin-bottom:6px">
+              <span class="m-badge m-badge-pending">Pending</span>
+              <span class="m-badge m-badge-dept">Rural Water Supply</span>
+              <span class="m-badge m-badge-priority-high">High</span>
+              <span class="m-distance-badge"><span class="icon" style="font-size:8px">near_me</span> 2.3 km</span>
+              <span class="m-vouch-count"><span class="icon" style="font-size:8px">thumb_up</span> 4 vouches</span>
+            </div>
+            <div class="m-btn m-btn-primary" style="font-size:8px"><span class="icon" style="font-size:10px">handshake</span> Vouch for this</div>
+          </div>
+          <div style="background:var(--app-surface);border:1px solid var(--app-outline-variant);border-radius:8px;padding:10px">
+            <div style="font-size:11px;font-weight:600;color:var(--app-on-surface);margin-bottom:3px">Incomplete PMAY-G housing construction</div>
+            <div style="font-size:9px;color:var(--app-on-surface-variant);margin-bottom:6px;line-height:1.4">PMAY-G house sanctioned 8 months ago but construction stopped at lintel level...</div>
+            <div class="m-badges" style="margin-bottom:6px">
+              <span class="m-badge m-badge-in_progress">In Progress</span>
+              <span class="m-badge m-badge-dept">Rural Housing</span>
+              <span class="m-badge m-badge-priority-medium">Medium</span>
+              <span class="m-distance-badge"><span class="icon" style="font-size:8px">near_me</span> 8.1 km</span>
+              <span class="m-vouch-count"><span class="icon" style="font-size:8px">thumb_up</span> 2 vouches</span>
+            </div>
+            <div class="m-btn m-btn-primary" style="font-size:8px"><span class="icon" style="font-size:10px">handshake</span> Vouch for this</div>
+          </div>
+        </div>
+        <div style="height:6px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- slide-11-schemes.html -->
+<!-- SLIDE 11 — KNOWLEDGE BASE & SCHEMES + MOCKUP -->
+<div class="slide" data-slide="10" data-transition="morph">
+  <div class="slide-inner" style="flex-direction:row;text-align:left;gap:36px">
+    <!-- Left: Features -->
+    <div style="flex:0 0 400px;display:flex;flex-direction:column;gap:14px">
+      <span class="tag tag-green animate">Knowledge Base &amp; Schemes</span>
+      <h2 class="animate a-d1" style="font-size:26px">Connecting Citizens<br>to Entitlements</h2>
+      <ul class="feature-list animate a-d2">
+        <li><span class="icon filled">auto_awesome</span><div><strong style="color:var(--text-primary)">Smart Extract</strong><br>Upload PDF/DOCX/image &mdash; AI extracts scheme details (GPT-4o vision for scans)</div></li>
+        <li><span class="icon filled">quiz</span><div><strong style="color:var(--text-primary)">Eligibility Questions</strong><br>AI-generated questionnaires + bulk backfill</div></li>
+        <li><span class="icon filled">link</span><div><strong style="color:var(--text-primary)">Auto-Matching</strong><br>Matches open grievances to relevant schemes with eligibility assessment</div></li>
+        <li><span class="icon filled">description</span><div><strong style="color:var(--text-primary)">Reference Documents</strong><br>PDF.js viewer with zoom for scheme docs</div></li>
+        <li><span class="icon filled">library_books</span><div><strong style="color:var(--text-primary)">Documentation &amp; Service Memory</strong><br>Full CRUD for KB articles and past resolutions indexed for AI</div></li>
+      </ul>
+    </div>
+    <!-- Right: Knowledge Page Mockup -->
+    <div style="flex:1;min-width:0" class="mockup-animate">
+      <div class="mockup-frame" style="width:100%">
+        <div class="m-navbar">
+          <div class="m-logo"><span class="icon filled">account_balance</span> PR&amp;DW Portal</div>
+          <div class="m-nav-links"><span>Queue</span><span class="active">Knowledge</span><span>Analytics</span></div>
+          <div class="m-user-badge">Officer BDO &middot; officer</div>
+        </div>
+        <!-- Tabs -->
+        <div class="m-tabs">
+          <span class="m-tab">Documentation</span>
+          <span class="m-tab">Service Memory</span>
+          <span class="m-tab active">Schemes</span>
+        </div>
+        <!-- Upload zone -->
+        <div class="m-upload-zone">
+          <span class="icon">upload_file</span>
+          Drop PDF, DOCX, or image here<br>
+          <span style="font-size:9px;color:var(--app-outline)">or click to browse &middot; Smart Extract powered by GPT-4o</span>
+        </div>
+        <!-- Scheme cards -->
+        <div style="padding:0 12px 6px">
+          <div style="background:var(--app-surface);border:1px solid var(--app-outline-variant);border-radius:8px;padding:10px;margin-bottom:6px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+              <div style="font-size:12px;font-weight:600;color:var(--app-on-surface)">Jal Jeevan Mission</div>
+              <div style="display:flex;gap:3px">
+                <span class="m-btn m-btn-secondary" style="font-size:7px;padding:2px 6px">Edit</span>
+                <span class="m-btn" style="font-size:7px;padding:2px 6px;background:var(--app-error-container);color:var(--app-error)">Delete</span>
+              </div>
+            </div>
+            <div style="font-size:9px;color:var(--app-on-surface-variant);margin-bottom:4px">Piped drinking water to every rural household by 2024</div>
+            <div class="m-badges">
+              <span class="m-badge m-badge-dept">Rural Water Supply</span>
+              <span class="m-badge" style="background:var(--app-primary-container-low);color:var(--app-primary)">3 questions</span>
+              <span class="m-badge" style="background:var(--app-success-container);color:var(--app-success)">2 docs</span>
+            </div>
+          </div>
+          <div style="background:var(--app-surface);border:1px solid var(--app-outline-variant);border-radius:8px;padding:10px;margin-bottom:6px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+              <div style="font-size:12px;font-weight:600;color:var(--app-on-surface)">PMAY-G</div>
+              <div style="display:flex;gap:3px">
+                <span class="m-btn m-btn-secondary" style="font-size:7px;padding:2px 6px">Edit</span>
+                <span class="m-btn" style="font-size:7px;padding:2px 6px;background:var(--app-error-container);color:var(--app-error)">Delete</span>
+              </div>
+            </div>
+            <div style="font-size:9px;color:var(--app-on-surface-variant);margin-bottom:4px">Housing for All &mdash; financial assistance for rural house construction</div>
+            <div class="m-badges">
+              <span class="m-badge m-badge-dept">Rural Housing</span>
+              <span class="m-badge" style="background:var(--app-primary-container-low);color:var(--app-primary)">4 questions</span>
+              <span class="m-badge" style="background:var(--app-success-container);color:var(--app-success)">1 doc</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- slide-12-officer.html -->
+<!-- SLIDE 12 — OFFICER EXPERIENCE + QUEUE MOCKUP -->
+<div class="slide" data-slide="11" data-transition="slide">
+  <div class="slide-inner" style="flex-direction:row;text-align:left;gap:36px">
+    <!-- Left: Features -->
+    <div style="flex:0 0 390px;display:flex;flex-direction:column;gap:14px">
+      <span class="tag tag-blue animate">Officer Experience</span>
+      <h2 class="animate a-d1" style="font-size:26px">A Smarter Officer Dashboard</h2>
+      <ul class="feature-list animate a-d2">
+        <li><span class="icon filled">view_list</span><div><strong style="color:var(--text-primary)">Department-Personalized Queue</strong><br>Auto-filters to officer's department; toggle all depts</div></li>
+        <li><span class="icon filled">auto_fix_high</span><div><strong style="color:var(--text-primary)">AI-Drafted Resolutions</strong><br>GPT-5 drafts from knowledge base + past cases</div></li>
+        <li><span class="icon filled">assignment_ind</span><div><strong style="color:var(--text-primary)">Assignment System</strong><br>Claim or assign grievances; internal notes</div></li>
+        <li><span class="icon filled">account_tree</span><div><strong style="color:var(--text-primary)">Cross-Department Sub-tasks</strong><br>Multi-dept grievances decomposed into linked dependency chain</div></li>
+        <li><span class="icon filled">timer</span><div><strong style="color:var(--text-primary)">SLA Deadlines</strong><br>Service-memory estimated; auto-escalation on breach</div></li>
+        <li><span class="icon filled">route</span><div><strong style="color:var(--text-primary)">Escalation Routing</strong><br>Auto-assigns to matching department officer</div></li>
+      </ul>
+    </div>
+    <!-- Right: Queue Mockup -->
+    <div style="flex:1;min-width:0" class="mockup-animate">
+      <div class="mockup-frame" style="width:100%">
+        <div class="m-navbar">
+          <div class="m-logo"><span class="icon filled">account_balance</span> PR&amp;DW Portal</div>
+          <div class="m-nav-links"><span>Dashboard</span><span class="active">Queue</span><span>Knowledge</span></div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <div style="position:relative;cursor:pointer"><span class="icon" style="font-size:16px;color:var(--app-on-surface-variant)">notifications</span><span style="position:absolute;top:-3px;right:-5px;min-width:12px;height:12px;border-radius:6px;background:var(--app-error);color:#fff;font-size:7px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 2px">3</span></div>
+            <div class="m-user-badge">Officer BDO &middot; officer</div>
+          </div>
+        </div>
+        <!-- Filter bar -->
+        <div class="m-filter-bar" style="margin:6px 12px;gap:4px">
+          <div class="m-filter-item"><label>Status</label><div class="m-select">All</div></div>
+          <div class="m-filter-item"><label>Dept</label><div class="m-select">Rural Water</div></div>
+          <div class="m-filter-item"><label>Priority</label><div class="m-select">All</div></div>
+          <div class="m-filter-item"><label>District</label><div class="m-select">All</div></div>
+          <div class="m-filter-item"><label>Search</label><div class="m-select" style="color:var(--app-outline)">Search...</div></div>
+        </div>
+        <div style="padding:0 12px;font-size:9px;color:var(--app-on-surface-variant);margin-bottom:2px">23 grievances found</div>
+        <!-- Date group -->
+        <div class="m-date-header"><span class="icon">calendar_today</span> 15 February 2026 <span class="count">5</span></div>
+        <!-- Queue cards -->
+        <div style="padding:0 12px">
+          <div style="display:flex;gap:8px;align-items:flex-start;background:var(--app-surface);border:1px solid var(--app-outline-variant);border-radius:8px;padding:10px;margin-bottom:5px;border-left:3px solid var(--app-warning)">
+            <div class="m-impact-circle" style="background:#FF7043">72</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:10px;font-weight:600;color:var(--app-on-surface);margin-bottom:3px">#GRV-2026-000042 &mdash; No drinking water supply for 3 weeks</div>
+              <div style="font-size:9px;color:var(--app-on-surface-variant);margin-bottom:4px;line-height:1.3">Village Patnagarh has had no piped water...</div>
+              <div class="m-badges">
+                <span class="m-badge m-badge-pending">Pending</span>
+                <span class="m-badge m-badge-dept">Rural Water</span>
+                <span class="m-badge m-badge-priority-high">High</span>
+                <span class="m-badge" style="background:var(--app-error-container);color:var(--app-error);animation:pulse 1.5s infinite">SLA BREACH</span>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:flex-start;background:var(--app-surface);border:1px solid var(--app-outline-variant);border-radius:8px;padding:10px;margin-bottom:5px;border-left:3px solid var(--app-primary)">
+            <div class="m-impact-circle" style="background:#66BB6A">28</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:10px;font-weight:600;color:var(--app-on-surface);margin-bottom:3px">#GRV-2026-000051 &mdash; Request for new tube well in Block C</div>
+              <div style="font-size:9px;color:var(--app-on-surface-variant);margin-bottom:4px;line-height:1.3">Requesting installation of new tube well...</div>
+              <div class="m-badges">
+                <span class="m-badge m-badge-in_progress">In Progress</span>
+                <span class="m-badge m-badge-dept">Rural Water</span>
+                <span class="m-badge m-badge-priority-low">Low</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="height:6px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- slide-13-accountability.html -->
+<!-- SLIDE 13 — ACCOUNTABILITY & ANTI-FRAUD + SPAM DETAIL MOCKUP -->
+<div class="slide" data-slide="12" data-transition="reveal">
+  <div class="slide-inner" style="flex-direction:row;text-align:left;gap:36px">
+    <!-- Left: Features -->
+    <div style="flex:0 0 400px;display:flex;flex-direction:column;gap:12px">
+      <span class="tag tag-purple animate">Accountability &amp; Anti-Fraud</span>
+      <h2 class="animate a-d1" style="font-size:24px">Officer Anomaly Detection</h2>
+      <div class="animate a-d2" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <div class="card" style="padding:12px;text-align:center">
+          <div class="card-icon card-icon-red" style="margin:0 auto;width:32px;height:32px"><span class="icon filled" style="font-size:16px">speed</span></div>
+          <h3 style="font-size:12px">Rubber-Stamping</h3>
+          <p style="font-size:10px">Unusually fast closes</p>
+        </div>
+        <div class="card" style="padding:12px;text-align:center">
+          <div class="card-icon card-icon-orange" style="margin:0 auto;width:32px;height:32px"><span class="icon filled" style="font-size:16px">filter_alt</span></div>
+          <h3 style="font-size:12px">Cherry-Picking</h3>
+          <p style="font-size:10px">Only easy cases</p>
+        </div>
+        <div class="card" style="padding:12px;text-align:center">
+          <div class="card-icon card-icon-purple" style="margin:0 auto;width:32px;height:32px"><span class="icon filled" style="font-size:16px">content_copy</span></div>
+          <h3 style="font-size:12px">Generic Text</h3>
+          <p style="font-size:10px">Copy-paste resolutions</p>
+        </div>
+      </div>
+      <h3 class="animate a-d3" style="font-size:16px;color:var(--text-primary);margin-top:4px">Citizen Spam Detection</h3>
+      <ul class="feature-list animate a-d3" style="gap:6px">
+        <li><span class="icon filled" style="font-size:16px">shield</span><span style="font-size:12px">Auto-blocking of repeat/duplicate filers</span></li>
+        <li><span class="icon filled" style="font-size:16px">fingerprint</span><span style="font-size:12px">Content hash + near-duplicate (75%+ similarity)</span></li>
+        <li><span class="icon filled" style="font-size:16px">dns</span><span style="font-size:12px">IP correlation &amp; filing frequency analysis</span></li>
+        <li><span class="icon filled" style="font-size:16px">photo_camera</span><span style="font-size:12px">Photo ID verification to unblock</span></li>
+      </ul>
+    </div>
+    <!-- Right: Spam Detail Mockup -->
+    <div style="flex:1;min-width:0" class="mockup-animate">
+      <div class="mockup-frame" style="width:100%">
+        <div class="m-navbar">
+          <div class="m-logo"><span class="icon filled">account_balance</span> PR&amp;DW Portal</div>
+          <div class="m-nav-links"><span>Admin</span><span class="active">Spam Detail</span></div>
+          <div class="m-user-badge">Admin &middot; admin</div>
+        </div>
+        <div class="m-two-col">
+          <!-- Left panel: Evidence -->
+          <div class="m-col-main">
+            <div style="font-size:11px;font-weight:700;color:var(--app-on-surface);margin-bottom:4px">Pattern Flags</div>
+            <div style="background:var(--app-error-container);border-radius:6px;padding:6px 8px;margin-bottom:4px;display:flex;align-items:center;gap:4px">
+              <span class="icon filled" style="font-size:12px;color:var(--app-error)">error</span>
+              <span style="font-size:9px;color:var(--app-error);font-weight:600">DUPLICATE &mdash; exact hash match with GRV-000041</span>
+            </div>
+            <div style="background:var(--app-warning-container);border-radius:6px;padding:6px 8px;margin-bottom:4px;display:flex;align-items:center;gap:4px">
+              <span class="icon filled" style="font-size:12px;color:var(--app-warning)">warning</span>
+              <span style="font-size:9px;color:#B45309;font-weight:600">SIMILAR 87% &mdash; near-duplicate of GRV-000039</span>
+            </div>
+            <div style="background:var(--app-warning-container);border-radius:6px;padding:6px 8px;margin-bottom:6px;display:flex;align-items:center;gap:4px">
+              <span class="icon filled" style="font-size:12px;color:var(--app-warning)">bolt</span>
+              <span style="font-size:9px;color:#B45309;font-weight:600">RAPID &mdash; 5 filings in 2 hours</span>
+            </div>
+            <div style="font-size:10px;font-weight:600;color:var(--app-on-surface);margin-bottom:3px">User's Grievances</div>
+            <div style="background:var(--app-surface);border:1px solid var(--app-outline-variant);border-radius:6px;padding:6px 8px;margin-bottom:3px">
+              <div style="font-size:9px;font-weight:600;color:var(--app-on-surface)">#GRV-2026-000043</div>
+              <div class="m-badges" style="margin-top:2px">
+                <span class="m-badge" style="background:var(--app-error-container);color:var(--app-error)">DUPLICATE</span>
+              </div>
+            </div>
+            <div style="background:var(--app-surface);border:1px solid var(--app-outline-variant);border-radius:6px;padding:6px 8px">
+              <div style="font-size:9px;font-weight:600;color:var(--app-on-surface)">#GRV-2026-000044</div>
+              <div class="m-badges" style="margin-top:2px">
+                <span class="m-badge" style="background:var(--app-warning-container);color:#B45309">SIMILAR 87%</span>
+              </div>
+            </div>
+          </div>
+          <!-- Right panel: Summary -->
+          <div class="m-col-side">
+            <div style="font-size:11px;font-weight:700;color:var(--app-on-surface);margin-bottom:4px">User Info</div>
+            <div style="font-size:9px;color:var(--app-on-surface-variant);line-height:1.6">
+              <strong>Name:</strong> Suspicious User<br>
+              <strong>Status:</strong> <span style="color:var(--app-error);font-weight:600">Blocked</span><br>
+              <strong>Total Filed:</strong> 12
+            </div>
+            <div style="font-size:10px;font-weight:600;color:var(--app-on-surface);margin:6px 0 3px">Spam Score</div>
+            <div class="m-gauge-track"><div class="m-gauge-fill" style="width:78%;background:linear-gradient(90deg,var(--app-warning),var(--app-error))"></div></div>
+            <div style="font-size:9px;color:var(--app-on-surface-variant);margin-top:2px">78 / 100</div>
+            <div style="font-size:10px;font-weight:600;color:var(--app-on-surface);margin:6px 0 3px">Photo ID</div>
+            <div style="background:var(--app-surface-container);border-radius:6px;padding:8px;text-align:center;font-size:9px;color:var(--app-on-surface-variant)">
+              <span class="icon" style="font-size:20px;display:block;margin-bottom:2px;color:var(--app-primary)">badge</span>
+              Submitted &mdash; pending review
+            </div>
+            <div style="display:flex;gap:3px;margin-top:6px">
+              <span class="m-btn m-btn-success" style="font-size:8px;flex:1;justify-content:center">Approve</span>
+              <span class="m-btn" style="font-size:8px;flex:1;justify-content:center;background:var(--app-error-container);color:var(--app-error)">Reject</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- slide-14-analytics.html -->
+<!-- SLIDE 14 — ANALYTICS DASHBOARD (NEW) -->
+<div class="slide" data-slide="13" data-transition="slide">
   <div class="slide-inner">
-    <span class="tag tag-cyan animate">Public Transparency</span>
-    <h2 class="animate a-d1">Community Grievance Feed</h2>
-    <div class="cards cards-2 animate a-d2" style="max-width:880px">
-      <div class="card">
-        <div class="card-icon card-icon-blue"><span class="icon filled">public</span></div>
-        <h3>Opt-In Public Visibility</h3>
-        <p>Citizens can choose to make their grievance public, letting others in the community see it.</p>
-      </div>
-      <div class="card">
-        <div class="card-icon card-icon-green"><span class="icon filled">thumb_up</span></div>
-        <h3>Citizen Vouching</h3>
-        <p>Other citizens can vouch for public grievances and submit additional evidence or photos.</p>
-      </div>
-      <div class="card">
-        <div class="card-icon card-icon-cyan"><span class="icon filled">near_me</span></div>
-        <h3>Proximity Sorting</h3>
-        <p>Feed is sorted by geographic proximity &mdash; you see the issues closest to where you live first.</p>
-      </div>
-      <div class="card">
-        <div class="card-icon card-icon-purple"><span class="icon filled">groups</span></div>
-        <h3>Collective Voice</h3>
-        <p>Vouches amplify urgency, helping officers understand which complaints affect the most people.</p>
+    <span class="tag tag-blue animate">Analytics Dashboard</span>
+    <h2 class="animate a-d1" style="font-size:28px">System-Wide Intelligence</h2>
+    <!-- Full-width analytics mockup -->
+    <div class="animate a-d2 mockup-animate" style="width:100%;max-width:1100px">
+      <div class="mockup-frame" style="width:100%;transform:none">
+        <div class="m-navbar">
+          <div class="m-logo"><span class="icon filled">account_balance</span> PR&amp;DW Portal</div>
+          <div class="m-nav-links"><span>Dashboard</span><span>Queue</span><span class="active">Analytics</span></div>
+          <div class="m-user-badge">Admin &middot; admin</div>
+        </div>
+        <!-- KPI Metrics -->
+        <div class="m-metrics">
+          <div class="m-metric-card"><div class="m-metric-icon blue"><span class="icon">assignment</span></div><div class="m-metric-val">1,247</div><div class="m-metric-lbl">Total Grievances</div></div>
+          <div class="m-metric-card"><div class="m-metric-icon green"><span class="icon">check_circle</span></div><div class="m-metric-val">68%</div><div class="m-metric-lbl">Resolution Rate</div></div>
+          <div class="m-metric-card"><div class="m-metric-icon amber"><span class="icon">schedule</span></div><div class="m-metric-val">4.2d</div><div class="m-metric-lbl">Avg Response</div></div>
+          <div class="m-metric-card"><div class="m-metric-icon blue"><span class="icon">people</span></div><div class="m-metric-val">12</div><div class="m-metric-lbl">Active Officers</div></div>
+        </div>
+        <!-- Charts row -->
+        <div style="display:flex;gap:10px;padding:10px 12px">
+          <!-- SVG Bar Chart: Department breakdown -->
+          <div style="flex:1;background:var(--app-surface);border:1px solid var(--app-outline-variant);border-radius:8px;padding:10px">
+            <div style="font-size:10px;font-weight:700;color:var(--app-on-surface);margin-bottom:8px">Department Breakdown</div>
+            <svg width="100%" viewBox="0 0 480 150" xmlns="http://www.w3.org/2000/svg">
+              <text x="0" y="14" fill="#44474E" font-size="9" font-family="Inter">Water Supply</text>
+              <rect x="105" y="4" width="0" height="14" rx="2" fill="#1A73E8"><animate attributeName="width" from="0" to="220" dur="1s" begin="0.3s" fill="freeze"/></rect>
+              <text x="335" y="14" fill="#44474E" font-size="9" font-weight="600" font-family="Inter">312</text>
+
+              <text x="0" y="34" fill="#44474E" font-size="9" font-family="Inter">Infrastructure</text>
+              <rect x="105" y="24" width="0" height="14" rx="2" fill="#00BCD4"><animate attributeName="width" from="0" to="173" dur="1s" begin="0.5s" fill="freeze"/></rect>
+              <text x="288" y="34" fill="#44474E" font-size="9" font-weight="600" font-family="Inter">245</text>
+
+              <text x="0" y="54" fill="#44474E" font-size="9" font-family="Inter">MGNREGS</text>
+              <rect x="105" y="44" width="0" height="14" rx="2" fill="#7C4DFF"><animate attributeName="width" from="0" to="140" dur="1s" begin="0.7s" fill="freeze"/></rect>
+              <text x="255" y="54" fill="#44474E" font-size="9" font-weight="600" font-family="Inter">198</text>
+
+              <text x="0" y="74" fill="#44474E" font-size="9" font-family="Inter">Housing</text>
+              <rect x="105" y="64" width="0" height="14" rx="2" fill="#E37400"><animate attributeName="width" from="0" to="118" dur="1s" begin="0.9s" fill="freeze"/></rect>
+              <text x="233" y="74" fill="#44474E" font-size="9" font-weight="600" font-family="Inter">167</text>
+
+              <text x="0" y="94" fill="#44474E" font-size="9" font-family="Inter">Sanitation</text>
+              <rect x="105" y="84" width="0" height="14" rx="2" fill="#1E8E3E"><animate attributeName="width" from="0" to="94" dur="1s" begin="1.1s" fill="freeze"/></rect>
+              <text x="209" y="94" fill="#44474E" font-size="9" font-weight="600" font-family="Inter">134</text>
+
+              <text x="0" y="114" fill="#44474E" font-size="9" font-family="Inter">Panchayati Raj</text>
+              <rect x="105" y="104" width="0" height="14" rx="2" fill="#FF7043"><animate attributeName="width" from="0" to="67" dur="1s" begin="1.3s" fill="freeze"/></rect>
+              <text x="182" y="114" fill="#44474E" font-size="9" font-weight="600" font-family="Inter">95</text>
+
+              <text x="0" y="134" fill="#44474E" font-size="9" font-family="Inter">Livelihoods</text>
+              <rect x="105" y="124" width="0" height="14" rx="2" fill="#EF5350"><animate attributeName="width" from="0" to="44" dur="1s" begin="1.5s" fill="freeze"/></rect>
+              <text x="159" y="134" fill="#44474E" font-size="9" font-weight="600" font-family="Inter">62</text>
+            </svg>
+          </div>
+          <!-- SVG Donut Chart: Status distribution -->
+          <div style="flex:0 0 200px;background:var(--app-surface);border:1px solid var(--app-outline-variant);border-radius:8px;padding:10px;display:flex;flex-direction:column;align-items:center">
+            <div style="font-size:10px;font-weight:700;color:var(--app-on-surface);margin-bottom:8px;align-self:flex-start">Status Distribution</div>
+            <svg class="anim-trigger" width="140" height="140" viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="70" cy="70" r="55" fill="none" stroke="#ECEEF3" stroke-width="16"/>
+              <!-- Resolved 42% -->
+              <circle cx="70" cy="70" r="55" fill="none" stroke="#1E8E3E" stroke-width="16"
+                      stroke-dasharray="345.58" stroke-dashoffset="345.58"
+                      style="transform:rotate(-90deg);transform-origin:50% 50%"
+                      data-ring-pct="42" data-ring-circ="345.58"/>
+              <!-- Pending 28% (offset from resolved) -->
+              <circle cx="70" cy="70" r="55" fill="none" stroke="#E37400" stroke-width="16"
+                      stroke-dasharray="96.76 248.82"
+                      style="transform:rotate(61deg);transform-origin:50% 50%" opacity="0">
+                <animate attributeName="opacity" from="0" to="1" dur="0.3s" begin="1s" fill="freeze"/>
+              </circle>
+              <!-- In Progress 20% -->
+              <circle cx="70" cy="70" r="55" fill="none" stroke="#1A73E8" stroke-width="16"
+                      stroke-dasharray="69.12 276.46"
+                      style="transform:rotate(162deg);transform-origin:50% 50%" opacity="0">
+                <animate attributeName="opacity" from="0" to="1" dur="0.3s" begin="1.3s" fill="freeze"/>
+              </circle>
+              <!-- Escalated 10% -->
+              <circle cx="70" cy="70" r="55" fill="none" stroke="#D93025" stroke-width="16"
+                      stroke-dasharray="34.56 311.02"
+                      style="transform:rotate(234deg);transform-origin:50% 50%" opacity="0">
+                <animate attributeName="opacity" from="0" to="1" dur="0.3s" begin="1.6s" fill="freeze"/>
+              </circle>
+              <text x="70" y="66" text-anchor="middle" fill="#1A1C1E" font-size="18" font-weight="700" font-family="Inter">1,247</text>
+              <text x="70" y="80" text-anchor="middle" fill="#44474E" font-size="8" font-family="Inter">total</text>
+            </svg>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;justify-content:center">
+              <span style="font-size:7px;display:flex;align-items:center;gap:2px"><span style="width:6px;height:6px;border-radius:50%;background:#1E8E3E"></span>Resolved</span>
+              <span style="font-size:7px;display:flex;align-items:center;gap:2px"><span style="width:6px;height:6px;border-radius:50%;background:#E37400"></span>Pending</span>
+              <span style="font-size:7px;display:flex;align-items:center;gap:2px"><span style="width:6px;height:6px;border-radius:50%;background:#1A73E8"></span>In Progress</span>
+              <span style="font-size:7px;display:flex;align-items:center;gap:2px"><span style="width:6px;height:6px;border-radius:50%;background:#D93025"></span>Escalated</span>
+            </div>
+          </div>
+        </div>
+        <div style="padding:0 12px 8px;font-size:8px;color:var(--app-on-surface-variant);text-align:center">Officers see department-filtered view &middot; Admins see system-wide</div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ==================== SLIDE 11 — GOVERNMENT SCHEMES ==================== -->
-<div class="slide" data-slide="10">
-  <div class="slide-inner">
-    <span class="tag tag-green animate">Government Schemes</span>
-    <h2 class="animate a-d1">Connecting Citizens to Entitlements</h2>
-    <p class="lead animate a-d2">The portal maintains a knowledge base of government schemes and can match them to open grievances automatically.</p>
-    <div class="cards cards-3 animate a-d3">
-      <div class="card" style="text-align:center">
-        <div class="card-icon card-icon-blue" style="margin:0 auto"><span class="icon filled">water_drop</span></div>
-        <h3>Jal Jeevan Mission</h3>
-        <p>Piped drinking water to every household</p>
-      </div>
-      <div class="card" style="text-align:center">
-        <div class="card-icon card-icon-orange" style="margin:0 auto"><span class="icon filled">home</span></div>
-        <h3>PMAY-G</h3>
-        <p>Housing for all in rural areas</p>
-      </div>
-      <div class="card" style="text-align:center">
-        <div class="card-icon card-icon-green" style="margin:0 auto"><span class="icon filled">engineering</span></div>
-        <h3>MGNREGS</h3>
-        <p>Guaranteed rural employment</p>
-      </div>
-    </div>
-    <ul class="feature-list animate a-d4" style="max-width:700px;margin-top:8px">
-      <li><span class="icon filled">auto_awesome</span><strong style="color:var(--text-primary)">Smart Extract</strong> &mdash; upload a scheme PDF, DOCX, or image and AI extracts structured details</li>
-      <li><span class="icon filled">quiz</span><strong style="color:var(--text-primary)">Eligibility Check</strong> &mdash; interactive questionnaire to check if a citizen qualifies</li>
-      <li><span class="icon filled">link</span><strong style="color:var(--text-primary)">Auto-Matching</strong> &mdash; matches open grievances to relevant schemes with eligibility assessment</li>
-    </ul>
-  </div>
-</div>
 
-<!-- ==================== SLIDE 12 — FOR OFFICERS ==================== -->
-<div class="slide" data-slide="11">
-  <div class="slide-inner">
-    <span class="tag tag-blue animate">Officer Experience</span>
-    <h2 class="animate a-d1">A Smarter Officer Dashboard</h2>
-    <div class="cards cards-3 animate a-d2">
-      <div class="card">
-        <div class="card-icon card-icon-blue"><span class="icon filled">view_list</span></div>
-        <h3>Date-Grouped Queue</h3>
-        <p>Grievances grouped by date, sorted by impact score within each group. Filter by department, priority, or status.</p>
-      </div>
-      <div class="card">
-        <div class="card-icon card-icon-cyan"><span class="icon filled">auto_fix_high</span></div>
-        <h3>AI-Drafted Resolutions</h3>
-        <p>GPT-5 drafts a resolution using knowledge base and past cases. Officers review and approve or edit.</p>
-      </div>
-      <div class="card">
-        <div class="card-icon card-icon-purple"><span class="icon filled">assignment_ind</span></div>
-        <h3>Assignment System</h3>
-        <p>Officers can claim or be assigned grievances. Internal notes for team collaboration.</p>
-      </div>
-      <div class="card">
-        <div class="card-icon card-icon-green"><span class="icon filled">hub</span></div>
-        <h3>Systemic Issue View</h3>
-        <p>See clustered patterns, root-cause analyses, and forecasts from the officer dashboard.</p>
-      </div>
-      <div class="card">
-        <div class="card-icon card-icon-orange"><span class="icon filled">account_tree</span></div>
-        <h3>Cross-Department Tasks</h3>
-        <p>Multi-department grievances are decomposed into linked sub-tasks with a dependency chain.</p>
-      </div>
-      <div class="card">
-        <div class="card-icon card-icon-red"><span class="icon filled">timer</span></div>
-        <h3>SLA Deadlines</h3>
-        <p>Service-memory based deadlines estimated from similar past cases. Auto-escalation on breach.</p>
+<!-- slide-15-admin.html -->
+<!-- SLIDE 15 — ADMIN PANEL + MOCKUP -->
+<div class="slide" data-slide="14" data-transition="slide">
+  <div class="slide-inner" style="flex-direction:row;text-align:left;gap:36px">
+    <!-- Left: Features -->
+    <div style="flex:0 0 380px;display:flex;flex-direction:column;gap:14px">
+      <span class="tag tag-orange animate">Administration</span>
+      <h2 class="animate a-d1" style="font-size:26px">Complete Admin Control</h2>
+      <ul class="feature-list animate a-d2">
+        <li><span class="icon filled">manage_accounts</span><div><strong style="color:var(--text-primary)">User Management</strong><br>Create, edit, delete, block, unblock accounts</div></li>
+        <li><span class="icon filled">notifications</span><div><strong style="color:var(--text-primary)">SLA Deadline Alerts</strong><br>Notification bell with severity tiers, 60s polling</div></li>
+        <li><span class="icon filled">report</span><div><strong style="color:var(--text-primary)">Spam Review</strong><br>Review flagged users, verify photo IDs</div></li>
+        <li><span class="icon filled">policy</span><div><strong style="color:var(--text-primary)">Officer Anomaly Review</strong><br>Review and dismiss flagged behavior patterns</div></li>
+        <li><span class="icon filled">monitoring</span><div><strong style="color:var(--text-primary)">Predictive Forecasts</strong><br>Trigger forecast generation on demand</div></li>
+        <li><span class="icon filled">summarize</span><div><strong style="color:var(--text-primary)">Reports</strong><br>Daily and weekly statistics</div></li>
+      </ul>
+    </div>
+    <!-- Right: Admin Mockup -->
+    <div style="flex:1;min-width:0" class="mockup-animate">
+      <div class="mockup-frame" style="width:100%">
+        <div class="m-navbar">
+          <div class="m-logo"><span class="icon filled">account_balance</span> PR&amp;DW Portal</div>
+          <div class="m-nav-links"><span class="active">Admin</span><span>Analytics</span><span>Reports</span></div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <div style="position:relative"><span class="icon" style="font-size:16px;color:var(--app-on-surface-variant)">notifications</span><span style="position:absolute;top:-3px;right:-5px;min-width:12px;height:12px;border-radius:6px;background:var(--app-error);color:#fff;font-size:7px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 2px">12</span></div>
+            <div class="m-user-badge">Admin &middot; admin</div>
+          </div>
+        </div>
+        <!-- SLA Alerts -->
+        <div class="m-section-header">
+          <h3><span class="icon" style="color:var(--app-warning)">warning</span> SLA Deadline Alerts</h3>
+          <span class="m-btn m-btn-secondary" style="font-size:7px;padding:2px 6px"><span class="icon" style="font-size:10px">refresh</span> Refresh</span>
+        </div>
+        <div class="m-metrics" style="padding:6px 12px 0">
+          <div class="m-metric-card"><div class="m-metric-icon amber"><span class="icon">notifications</span></div><div class="m-metric-val">12</div><div class="m-metric-lbl">Total Alerts</div></div>
+          <div class="m-metric-card"><div class="m-metric-icon red"><span class="icon">error</span></div><div class="m-metric-val">3</div><div class="m-metric-lbl">SLA Breached</div></div>
+          <div class="m-metric-card"><div class="m-metric-icon amber"><span class="icon">schedule</span></div><div class="m-metric-val">5</div><div class="m-metric-lbl">Critical &lt;24h</div></div>
+          <div class="m-metric-card"><div class="m-metric-icon blue"><span class="icon">bolt</span></div><div class="m-metric-val">4</div><div class="m-metric-lbl">Warning &lt;48h</div></div>
+        </div>
+        <!-- Alert card -->
+        <div style="padding:6px 12px">
+          <div style="background:var(--app-surface);border:1px solid var(--app-outline-variant);border-radius:8px;padding:8px 10px;border-left:3px solid var(--app-error)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
+              <div style="font-size:10px;font-weight:600;color:var(--app-on-surface)">#GRV-2026-000042 &mdash; No water supply</div>
+              <span class="m-badge" style="background:var(--app-error-container);color:var(--app-error)">BREACHED</span>
+            </div>
+            <div style="font-size:9px;color:var(--app-on-surface-variant)">Deadline passed 6h ago &middot; Rural Water Supply &middot; Bolangir</div>
+          </div>
+        </div>
+        <!-- User Management header -->
+        <div class="m-section-header" style="margin-top:4px">
+          <h3><span class="icon">admin_panel_settings</span> User Management</h3>
+          <span class="m-btn m-btn-primary" style="font-size:8px">+ Create User</span>
+        </div>
+        <!-- Role filter tabs -->
+        <div style="padding:4px 12px;display:flex;gap:4px">
+          <span class="m-btn m-btn-primary" style="font-size:8px;padding:2px 8px">All</span>
+          <span class="m-btn m-btn-secondary" style="font-size:8px;padding:2px 8px">Citizens</span>
+          <span class="m-btn m-btn-secondary" style="font-size:8px;padding:2px 8px">Officers</span>
+          <span class="m-btn m-btn-secondary" style="font-size:8px;padding:2px 8px">Admins</span>
+        </div>
+        <div style="height:6px"></div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ==================== SLIDE 13 — ACCOUNTABILITY ==================== -->
-<div class="slide" data-slide="12">
-  <div class="slide-inner">
-    <span class="tag tag-purple animate">Accountability</span>
-    <h2 class="animate a-d1">Officer Anomaly Detection</h2>
-    <p class="lead animate a-d2">The system continuously monitors officer behavior to ensure fair and thorough grievance resolution.</p>
-    <div class="cards cards-3 animate a-d3">
-      <div class="card">
-        <div class="card-icon card-icon-red"><span class="icon filled">speed</span></div>
-        <h3>Rubber-Stamping</h3>
-        <p>Flags officers who resolve grievances unusually fast without meaningful review.</p>
-      </div>
-      <div class="card">
-        <div class="card-icon card-icon-orange"><span class="icon filled">filter_alt</span></div>
-        <h3>Cherry-Picking</h3>
-        <p>Detects if an officer consistently picks only easy, low-impact cases.</p>
-      </div>
-      <div class="card">
-        <div class="card-icon card-icon-purple"><span class="icon filled">content_copy</span></div>
-        <h3>Generic Resolutions</h3>
-        <p>Flags when resolution text is copy-pasted or lacks case-specific detail.</p>
-      </div>
-    </div>
-    <ul class="feature-list animate a-d4" style="max-width:700px;margin-top:12px">
-      <li><span class="icon filled">shield</span>Spam detection blocks repeat/duplicate filers with photo ID verification to unblock</li>
-      <li><span class="icon filled">admin_panel_settings</span>Admin panel provides a dedicated review interface for all flagged anomalies</li>
-    </ul>
-  </div>
-</div>
 
-<!-- ==================== SLIDE 14 — FOR ADMINS ==================== -->
-<div class="slide" data-slide="13">
-  <div class="slide-inner">
-    <span class="tag tag-orange animate" style="background:rgba(227,116,0,.12);color:#ffb74d">Administration</span>
-    <h2 class="animate a-d1">Complete Admin Control</h2>
-    <div class="cards cards-2 animate a-d2" style="max-width:880px">
-      <div class="card">
-        <div class="card-icon card-icon-blue"><span class="icon filled">manage_accounts</span></div>
-        <h3>User Management</h3>
-        <p>Create, update, and delete citizens and officers. Role-based access with JWT authentication.</p>
-      </div>
-      <div class="card">
-        <div class="card-icon card-icon-red"><span class="icon filled">report</span></div>
-        <h3>Spam Review</h3>
-        <p>Review flagged spam users, verify photo IDs, and restore legitimate accounts.</p>
-      </div>
-      <div class="card">
-        <div class="card-icon card-icon-orange"><span class="icon filled">policy</span></div>
-        <h3>Officer Anomaly Review</h3>
-        <p>Review flagged officer behavior patterns and take administrative action or dismiss.</p>
-      </div>
-      <div class="card">
-        <div class="card-icon card-icon-green"><span class="icon filled">monitoring</span></div>
-        <h3>Analytics & Forecasts</h3>
-        <p>District heatmaps, department breakdowns, and trigger predictive briefing generation.</p>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ==================== SLIDE 15 — ARCHITECTURE ==================== -->
-<div class="slide" data-slide="14">
+<!-- slide-16-architecture.html -->
+<!-- SLIDE 16 — ARCHITECTURE -->
+<div class="slide" data-slide="15" data-transition="morph">
   <div class="slide-inner">
     <span class="tag tag-blue animate">Architecture</span>
     <h2 class="animate a-d1">Technology Stack</h2>
-    <div class="animate a-d2" style="width:100%;max-width:750px">
+    <!-- Compact tech table -->
+    <div class="animate a-d2" style="width:100%;max-width:700px;margin-bottom:12px">
       <table class="tech-table">
         <thead><tr><th>Layer</th><th>Technology</th></tr></thead>
         <tbody>
           <tr><td>Backend</td><td>FastAPI (Python)</td></tr>
           <tr><td>Database</td><td>MongoDB + GridFS for file storage</td></tr>
-          <tr><td>Vector Search</td><td>Qdrant &mdash; semantic similarity for knowledge base</td></tr>
-          <tr><td>AI Engine</td><td>OpenAI GPT-5 + text-embedding-3-large</td></tr>
-          <tr><td>Authentication</td><td>JWT tokens + bcrypt password hashing</td></tr>
-          <tr><td>Frontend</td><td>Jinja2 templates + vanilla JavaScript</td></tr>
-          <tr><td>Rate Limiting</td><td>SlowAPI &mdash; prevents abuse</td></tr>
-          <tr><td>External APIs</td><td>OpenWeatherMap (forecasting), IP geolocation</td></tr>
+          <tr><td>Vector Search</td><td>Qdrant &mdash; semantic similarity</td></tr>
+          <tr><td>AI Engine</td><td>OpenAI GPT-5-mini + GPT-4o (vision) + text-embedding-3-large</td></tr>
+          <tr><td>Auth</td><td>JWT + bcrypt + face-api.js biometric login</td></tr>
+          <tr><td>Frontend</td><td>Jinja2 + vanilla JS + Chart.js + PDF.js + face-api.js</td></tr>
+          <tr><td>External</td><td>OpenWeatherMap (forecasting) &middot; IP geolocation</td></tr>
         </tbody>
       </table>
     </div>
-    <div class="flow animate a-d3" style="margin-top:24px">
-      <div class="flow-step" style="padding:18px 24px;min-width:140px">
-        <span class="icon" style="color:var(--primary-light);font-size:28px">person</span>
-        <h3>Citizen</h3>
-      </div>
-      <div class="flow-arrow"><span class="icon">arrow_forward</span></div>
-      <div class="flow-step" style="padding:18px 24px;min-width:140px">
-        <span class="icon" style="color:#4dd0e1;font-size:28px">dns</span>
-        <h3>FastAPI</h3>
-      </div>
-      <div class="flow-arrow"><span class="icon">arrow_forward</span></div>
-      <div class="flow-step" style="padding:18px 24px;min-width:140px">
-        <span class="icon" style="color:#b388ff;font-size:28px">psychology</span>
-        <h3>GPT-5</h3>
-      </div>
-      <div class="flow-arrow"><span class="icon">arrow_forward</span></div>
-      <div class="flow-step" style="padding:18px 24px;min-width:140px">
-        <span class="icon" style="color:#69f0ae;font-size:28px">storage</span>
-        <h3>MongoDB</h3>
-      </div>
+    <!-- SVG Architecture Diagram -->
+    <div class="animate a-d3" style="width:100%;max-width:1000px">
+      <svg class="anim-trigger" viewBox="0 0 900 200" width="900" height="200" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="archGlow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="4"><animate attributeName="stdDeviation" values="3;6;3" dur="3s" repeatCount="indefinite"/></feGaussianBlur>
+            <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+          </filter>
+        </defs>
+        <!-- ===== MAIN ROW (y 30-110) ===== -->
+        <!-- Node: Citizen  [x 20-160, center 90] -->
+        <g filter="url(#archGlow)">
+          <rect x="20" y="30" width="140" height="80" rx="14" fill="#1c2333" stroke="rgba(77,163,255,0.3)" stroke-width="1.5"/>
+          <text x="90" y="63" text-anchor="middle" fill="#4da3ff" font-family="Material Symbols Outlined" font-size="24">&#xe7fd;</text>
+          <text x="90" y="90" text-anchor="middle" fill="#e6edf3" font-size="13" font-weight="600" font-family="Inter">Citizen</text>
+        </g>
+        <!-- Arrow: Citizen -> FastAPI -->
+        <line x1="160" y1="70" x2="226" y2="70" stroke="#4da3ff" stroke-width="2" stroke-dasharray="66" stroke-dashoffset="66">
+          <animate attributeName="stroke-dashoffset" from="66" to="0" dur="0.6s" begin="0.3s" fill="freeze"/>
+        </line>
+        <polygon points="224,64 236,70 224,76" fill="#4da3ff" opacity="0"><animate attributeName="opacity" from="0" to="0.7" dur="0.2s" begin="0.8s" fill="freeze"/></polygon>
+        <!-- Node: FastAPI  [x 240-400, center 320] -->
+        <g filter="url(#archGlow)">
+          <rect x="240" y="30" width="160" height="80" rx="14" fill="#1c2333" stroke="rgba(77,208,225,0.3)" stroke-width="1.5"/>
+          <text x="320" y="63" text-anchor="middle" fill="#4dd0e1" font-family="Material Symbols Outlined" font-size="24">&#xe871;</text>
+          <text x="320" y="90" text-anchor="middle" fill="#e6edf3" font-size="13" font-weight="600" font-family="Inter">FastAPI</text>
+          <text x="320" y="103" text-anchor="middle" fill="#6e7681" font-size="9" font-family="Inter">73 endpoints</text>
+        </g>
+        <!-- Arrow: FastAPI -> GPT-5 -->
+        <line x1="400" y1="70" x2="466" y2="70" stroke="#4dd0e1" stroke-width="2" stroke-dasharray="66" stroke-dashoffset="66">
+          <animate attributeName="stroke-dashoffset" from="66" to="0" dur="0.6s" begin="0.8s" fill="freeze"/>
+        </line>
+        <polygon points="464,64 476,70 464,76" fill="#4dd0e1" opacity="0"><animate attributeName="opacity" from="0" to="0.7" dur="0.2s" begin="1.3s" fill="freeze"/></polygon>
+        <!-- Node: GPT-5  [x 480-620, center 550] -->
+        <g filter="url(#archGlow)">
+          <rect x="480" y="30" width="140" height="80" rx="14" fill="#1c2333" stroke="rgba(179,136,255,0.3)" stroke-width="1.5"/>
+          <text x="550" y="63" text-anchor="middle" fill="#b388ff" font-family="Material Symbols Outlined" font-size="24">&#xe4a2;</text>
+          <text x="550" y="90" text-anchor="middle" fill="#e6edf3" font-size="13" font-weight="600" font-family="Inter">GPT-5</text>
+        </g>
+        <!-- Arrow: GPT-5 -> MongoDB -->
+        <line x1="620" y1="70" x2="696" y2="70" stroke="#b388ff" stroke-width="2" stroke-dasharray="76" stroke-dashoffset="76">
+          <animate attributeName="stroke-dashoffset" from="76" to="0" dur="0.6s" begin="1.3s" fill="freeze"/>
+        </line>
+        <polygon points="694,64 706,70 694,76" fill="#b388ff" opacity="0"><animate attributeName="opacity" from="0" to="0.7" dur="0.2s" begin="1.8s" fill="freeze"/></polygon>
+        <!-- Node: MongoDB  [x 710-860, center 785] -->
+        <g filter="url(#archGlow)">
+          <rect x="710" y="30" width="150" height="80" rx="14" fill="#1c2333" stroke="rgba(105,240,174,0.3)" stroke-width="1.5"/>
+          <text x="785" y="63" text-anchor="middle" fill="#69f0ae" font-family="Material Symbols Outlined" font-size="24">&#xe1db;</text>
+          <text x="785" y="90" text-anchor="middle" fill="#e6edf3" font-size="13" font-weight="600" font-family="Inter">MongoDB</text>
+          <text x="785" y="103" text-anchor="middle" fill="#6e7681" font-size="9" font-family="Inter">+ GridFS</text>
+        </g>
+        <!-- ===== SERVICE ROW (y 150-185) ===== -->
+        <!-- Branch: FastAPI -> Qdrant  [x 240-380, center 310] -->
+        <line x1="310" y1="110" x2="310" y2="148" stroke="rgba(0,188,212,0.4)" stroke-width="1.5" stroke-dasharray="38" stroke-dashoffset="38">
+          <animate attributeName="stroke-dashoffset" from="38" to="0" dur="0.5s" begin="1.5s" fill="freeze"/>
+        </line>
+        <g filter="url(#archGlow)" opacity="0"><animate attributeName="opacity" from="0" to="1" dur="0.3s" begin="1.8s" fill="freeze"/>
+          <rect x="240" y="150" width="140" height="36" rx="10" fill="#1c2333" stroke="rgba(0,188,212,0.3)" stroke-width="1"/>
+          <text x="310" y="173" text-anchor="middle" fill="#4dd0e1" font-size="11" font-weight="600" font-family="Inter">Qdrant (Vectors)</text>
+        </g>
+        <!-- Branch: FastAPI -> OpenWeatherMap  [x 420-580, center 500] -->
+        <line x1="360" y1="110" x2="500" y2="148" stroke="rgba(227,116,0,0.4)" stroke-width="1.5" stroke-dasharray="70" stroke-dashoffset="70">
+          <animate attributeName="stroke-dashoffset" from="70" to="0" dur="0.5s" begin="1.8s" fill="freeze"/>
+        </line>
+        <g filter="url(#archGlow)" opacity="0"><animate attributeName="opacity" from="0" to="1" dur="0.3s" begin="2.1s" fill="freeze"/>
+          <rect x="420" y="150" width="160" height="36" rx="10" fill="#1c2333" stroke="rgba(227,116,0,0.3)" stroke-width="1"/>
+          <text x="500" y="173" text-anchor="middle" fill="#ffb74d" font-size="11" font-weight="600" font-family="Inter">OpenWeatherMap</text>
+        </g>
+        <!-- Branch: GPT-5 -> Embeddings  [x 620-740, center 680] -->
+        <line x1="550" y1="110" x2="680" y2="148" stroke="rgba(179,136,255,0.3)" stroke-width="1.5" stroke-dasharray="60" stroke-dashoffset="60">
+          <animate attributeName="stroke-dashoffset" from="60" to="0" dur="0.5s" begin="2s" fill="freeze"/>
+        </line>
+        <g opacity="0"><animate attributeName="opacity" from="0" to="1" dur="0.3s" begin="2.3s" fill="freeze"/>
+          <rect x="620" y="150" width="120" height="36" rx="10" fill="#1c2333" stroke="rgba(179,136,255,0.2)" stroke-width="1"/>
+          <text x="680" y="173" text-anchor="middle" fill="#b388ff" font-size="11" font-weight="600" font-family="Inter">Embeddings</text>
+        </g>
+      </svg>
     </div>
   </div>
 </div>
 
-<!-- ==================== SLIDE 16 — THANK YOU ==================== -->
-<div class="slide" data-slide="15">
+
+<!-- slide-17-security.html -->
+<!-- SLIDE 17 — SECURITY & RELIABILITY (NEW) -->
+<div class="slide" data-slide="16" data-transition="zoom">
   <div class="slide-inner">
-    <div class="title-emblem animate"><span class="icon filled">favorite</span></div>
+    <span class="tag tag-green animate">Security &amp; Reliability</span>
+    <h2 class="animate a-d1">Built for Production</h2>
+    <div class="cards cards-3 animate a-d2" style="max-width:1050px">
+      <div class="card">
+        <div class="card-icon card-icon-blue"><span class="icon filled">lock</span></div>
+        <h3>JWT Authentication</h3>
+        <p>Role-based access for 3 tiers: citizen, officer, admin. Token expiry and refresh.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon card-icon-green"><span class="icon filled">enhanced_encryption</span></div>
+        <h3>bcrypt Passwords</h3>
+        <p>Industry-standard password hashing. No plaintext storage.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon card-icon-cyan"><span class="icon filled">face</span></div>
+        <h3>Biometric Login</h3>
+        <p>face-api.js descriptors matched with numpy (threshold 0.5). Optional at registration.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon card-icon-orange"><span class="icon filled">speed</span></div>
+        <h3>Rate Limiting</h3>
+        <p>SlowAPI prevents abuse and DDoS on all endpoints.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon card-icon-red"><span class="icon filled">escalator_warning</span></div>
+        <h3>Auto-Escalation</h3>
+        <p>SLA breach triggers auto-escalation with routing to matching department officer.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon card-icon-purple"><span class="icon filled">storage</span></div>
+        <h3>GridFS Storage</h3>
+        <p>50 MB per attachment stored in MongoDB GridFS. DOMPurify sanitizes all markdown.</p>
+      </div>
+    </div>
+    <div class="animate a-d3" style="display:flex;gap:16px;margin-top:8px">
+      <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary)"><span class="icon" style="font-size:18px;color:var(--primary-light)">verified</span> Service-memory based deadline estimation</div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary)"><span class="icon" style="font-size:18px;color:#4dd0e1">sanitizer</span> DOMPurify XSS protection</div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary)"><span class="icon" style="font-size:18px;color:#b388ff">vpn_key</span> python-jose JWT signing</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- slide-18-thankyou.html -->
+<!-- SLIDE 18 — THANK YOU -->
+<div class="slide" data-slide="17" data-transition="zoom">
+  <!-- Particle background -->
+  <div class="particles">
+    <div class="particle" style="width:4px;height:4px;top:15%;left:10%;animation-duration:9s"></div>
+    <div class="particle" style="width:3px;height:3px;top:30%;left:25%;animation-duration:11s;animation-delay:1s;background:#00BCD4"></div>
+    <div class="particle" style="width:5px;height:5px;top:55%;left:18%;animation-duration:10s;animation-delay:2s;background:#7C4DFF"></div>
+    <div class="particle" style="width:3px;height:3px;top:70%;left:82%;animation-duration:8s;animation-delay:0.5s"></div>
+    <div class="particle" style="width:4px;height:4px;top:22%;left:72%;animation-duration:12s;animation-delay:3s;background:#00BCD4"></div>
+    <div class="particle" style="width:3px;height:3px;top:48%;left:88%;animation-duration:7s;animation-delay:1.5s;background:#7C4DFF"></div>
+    <div class="particle" style="width:4px;height:4px;top:82%;left:42%;animation-duration:13s;animation-delay:2.5s"></div>
+    <div class="particle" style="width:3px;height:3px;top:8%;left:58%;animation-duration:9s;animation-delay:4s;background:#00BCD4"></div>
+    <div class="particle" style="width:5px;height:5px;top:45%;left:38%;animation-duration:14s;animation-delay:1s;background:#7C4DFF"></div>
+    <div class="particle" style="width:3px;height:3px;top:65%;left:55%;animation-duration:10s;animation-delay:3.5s"></div>
+  </div>
+  <div class="slide-inner" style="z-index:1">
+    <div class="title-emblem animate" style="animation:pulseEmblem 3s ease-in-out infinite,fadeInUp .55s cubic-bezier(.16,1,.3,1) both">
+      <span class="icon filled">favorite</span>
+    </div>
     <h2 class="animate a-d1">Thank You</h2>
-    <p class="lead animate a-d2">We are ready to demonstrate the live system.<br>Let us show you how it works in practice.</p>
+    <p class="lead animate a-d2" style="font-size:16px">We are ready to demonstrate the live system.<br>Let us show you how it works in practice.</p>
     <div class="cta-box animate a-d3">
-      <span style="font-size:1rem;font-weight:600;color:var(--text-primary)">Live Portal Demo Credentials</span>
+      <span style="font-size:14px;font-weight:600;color:var(--text-primary)">Live Portal Demo Credentials</span>
       <div style="display:flex;gap:24px;flex-wrap:wrap;justify-content:center;margin-top:4px">
         <div style="text-align:center">
-          <div style="font-size:.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">Citizen</div>
-          <div style="font-size:.95rem;color:var(--text-secondary);font-family:monospace">citizen1 / citizen123</div>
+          <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">Citizen</div>
+          <div style="font-size:14px;color:var(--text-secondary);font-family:monospace">citizen1 / citizen123</div>
         </div>
         <div style="text-align:center">
-          <div style="font-size:.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">Officer</div>
-          <div style="font-size:.95rem;color:var(--text-secondary);font-family:monospace">officer1 / officer123</div>
+          <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">Officer</div>
+          <div style="font-size:14px;color:var(--text-secondary);font-family:monospace">officer_bdo / officer123</div>
         </div>
         <div style="text-align:center">
-          <div style="font-size:.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">Admin</div>
-          <div style="font-size:.95rem;color:var(--text-secondary);font-family:monospace">admin / admin123</div>
+          <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">Admin</div>
+          <div style="font-size:14px;color:var(--text-secondary);font-family:monospace">admin / admin123</div>
         </div>
       </div>
     </div>
-    <div class="animate a-d4" style="display:flex;gap:24px;margin-top:12px;color:var(--text-muted);font-size:.95rem">
-      <span style="display:flex;align-items:center;gap:6px"><span class="icon" style="font-size:18px">language</span> http://localhost:8000</span>
+    <div class="animate a-d4" style="display:flex;gap:20px;margin-top:8px;color:var(--text-muted);font-size:14px">
+      <span style="display:flex;align-items:center;gap:5px"><span class="icon" style="font-size:16px">language</span> http://localhost:8000</span>
     </div>
-    <div class="animate a-d5" style="margin-top:20px;display:flex;align-items:center;gap:8px;color:var(--text-muted);font-size:.9rem">
-      <span class="icon filled" style="font-size:16px;color:var(--primary)">account_balance</span>
-      Panchayati Raj & Drinking Water Department &middot; Government of Odisha
+    <div class="animate a-d5" style="margin-top:16px;display:flex;align-items:center;gap:6px;color:var(--text-muted);font-size:12px">
+      <span class="icon filled" style="font-size:14px;color:var(--primary)">account_balance</span>
+      Panchayati Raj &amp; Drinking Water Department &middot; Government of Odisha
     </div>
   </div>
 </div>
 
-</div><!-- /deck -->
 
 <!-- ===== FOOTER BAR ===== -->
 <div class="footer-bar">
   <div class="govt">
     <span class="icon filled">account_balance</span>
-    Panchayati Raj & Drinking Water Department &middot; Government of Odisha
+    Panchayati Raj &amp; Drinking Water Department &middot; Government of Odisha
   </div>
-  <div class="counter" id="counter">1 / 16</div>
+  <div class="counter" id="counter">1 / 18</div>
 </div>
 
-<!-- ===== NAVIGATION ARROWS ===== -->
+<!-- ===== NAVIGATION ===== -->
 <div class="nav-hint">
   <button class="nav-btn" id="btnPrev" title="Previous (Left Arrow)"><span class="icon">chevron_left</span></button>
   <button class="nav-btn" id="btnNext" title="Next (Right Arrow)"><span class="icon">chevron_right</span></button>
 </div>
 
+</div><!-- /deck -->
+
 <!-- ===== PRESENTATION ENGINE ===== -->
 <script>
 (function(){
-  const slides = document.querySelectorAll('.slide');
-  const total = slides.length;
-  const progressFill = document.getElementById('progressFill');
-  const counter = document.getElementById('counter');
-  let current = 0;
+  /* ===== Scaling ===== */
+  var deck = document.getElementById('deck');
+  function scaleDeck(){
+    var sw = window.innerWidth, sh = window.innerHeight;
+    var scale = Math.min(sw / 1280, sh / 720);
+    deck.style.transform = 'scale(' + scale + ')';
+    deck.style.left = ((sw - 1280 * scale) / 2) + 'px';
+    deck.style.top = ((sh - 720 * scale) / 2) + 'px';
+  }
+  scaleDeck();
+  window.addEventListener('resize', scaleDeck);
 
-  function goTo(idx){
-    if(idx < 0 || idx >= total || idx === current) return;
-    const dir = idx > current ? 1 : -1;
-    slides[current].classList.remove('active');
-    slides[current].classList.add(dir > 0 ? 'prev' : '');
-    slides[current].style.transform = dir > 0 ? 'translateX(-60px)' : 'translateX(60px)';
-    slides[current].style.opacity = '0';
-    current = idx;
-    slides[current].classList.remove('prev');
-    slides[current].classList.add('active');
-    slides[current].style.transform = 'translateX(0)';
-    slides[current].style.opacity = '1';
+  /* ===== Slide Engine ===== */
+  var slides = document.querySelectorAll('.slide');
+  var total = slides.length;
+  var progressFill = document.getElementById('progressFill');
+  var counter = document.getElementById('counter');
+  var current = 0;
+  var animating = false;
+
+  function updateUI(){
     progressFill.style.width = ((current + 1) / total * 100) + '%';
     counter.textContent = (current + 1) + ' / ' + total;
+  }
+
+  function goTo(idx){
+    if(idx < 0 || idx >= total || idx === current || animating) return;
+    animating = true;
+    var dir = idx > current ? 1 : -1;
+    var oldSlide = slides[current];
+    var newSlide = slides[idx];
+
+    // Remove any leftover transition classes
+    oldSlide.classList.remove('enter-left','enter-right','exit-left','exit-right');
+    newSlide.classList.remove('enter-left','enter-right','exit-left','exit-right');
+
+    // Position new slide at entry point
+    newSlide.classList.add(dir > 0 ? 'enter-right' : 'enter-left');
+    newSlide.style.opacity = '0';
+    newSlide.offsetHeight; // force reflow
+
+    // Exit old slide
+    oldSlide.classList.remove('active');
+    oldSlide.classList.add(dir > 0 ? 'exit-left' : 'exit-right');
+
+    // Enter new slide
+    newSlide.classList.remove('enter-left','enter-right');
+    newSlide.classList.add('active');
+    newSlide.style.opacity = '';
+
+    current = idx;
+    updateUI();
+
+    // Trigger counter animations on new slide
+    animateCounters(newSlide);
+    triggerSVGAnimations(newSlide);
+
+    setTimeout(function(){
+      oldSlide.classList.remove('exit-left','exit-right');
+      oldSlide.style.opacity = '0';
+      animating = false;
+    }, 550);
   }
 
   function next(){ goTo(current + 1); }
   function prev(){ goTo(current - 1); }
 
+  /* ===== Keyboard ===== */
   document.addEventListener('keydown', function(e){
-    if(e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); next(); }
-    if(e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
-    if(e.key === 'Home') { e.preventDefault(); goTo(0); }
-    if(e.key === 'End') { e.preventDefault(); goTo(total - 1); }
+    if(e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown'){ e.preventDefault(); next(); }
+    if(e.key === 'ArrowLeft' || e.key === 'PageUp'){ e.preventDefault(); prev(); }
+    if(e.key === 'Home'){ e.preventDefault(); goTo(0); }
+    if(e.key === 'End'){ e.preventDefault(); goTo(total - 1); }
+    if(e.key === 'f' || e.key === 'F'){
+      if(!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
   });
 
+  /* ===== Nav Buttons ===== */
   document.getElementById('btnNext').addEventListener('click', next);
   document.getElementById('btnPrev').addEventListener('click', prev);
 
-  /* Touch swipe */
-  let touchStartX = 0;
+  /* ===== Touch Swipe ===== */
+  var touchStartX = 0;
   document.addEventListener('touchstart', function(e){ touchStartX = e.changedTouches[0].screenX; }, {passive:true});
   document.addEventListener('touchend', function(e){
-    const diff = e.changedTouches[0].screenX - touchStartX;
-    if(Math.abs(diff) > 50){
-      diff < 0 ? next() : prev();
-    }
+    var diff = e.changedTouches[0].screenX - touchStartX;
+    if(Math.abs(diff) > 50){ diff < 0 ? next() : prev(); }
   }, {passive:true});
 
-  /* Init */
+  /* ===== Animated Counters ===== */
+  function animateCounters(slide){
+    var counters = slide.querySelectorAll('[data-count-to]');
+    counters.forEach(function(el){
+      var target = parseInt(el.getAttribute('data-count-to'), 10);
+      var duration = 1500;
+      var start = performance.now();
+      el.textContent = '0';
+      function tick(now){
+        var elapsed = now - start;
+        var progress = Math.min(elapsed / duration, 1);
+        var eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+        el.textContent = Math.round(target * eased);
+        if(progress < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    });
+  }
+
+  /* ===== SVG Animation Triggers ===== */
+  function triggerSVGAnimations(slide){
+    // Restart SMIL animations by re-inserting SVGs
+    var svgs = slide.querySelectorAll('svg.anim-trigger');
+    svgs.forEach(function(svg){
+      var animations = svg.querySelectorAll('animate, animateTransform, animateMotion');
+      animations.forEach(function(anim){
+        if(anim.beginElement) anim.beginElement();
+      });
+    });
+
+    // CSS-triggered bars
+    var bars = slide.querySelectorAll('[data-bar-width]');
+    bars.forEach(function(bar){
+      bar.style.width = '0';
+      requestAnimationFrame(function(){
+        bar.style.transition = 'width 1.2s cubic-bezier(.16,1,.3,1)';
+        bar.style.width = bar.getAttribute('data-bar-width');
+      });
+    });
+
+    // Score ring
+    var rings = slide.querySelectorAll('[data-ring-pct]');
+    rings.forEach(function(ring){
+      var pct = parseFloat(ring.getAttribute('data-ring-pct'));
+      var circ = parseFloat(ring.getAttribute('data-ring-circ') || 440);
+      ring.style.strokeDashoffset = circ;
+      requestAnimationFrame(function(){
+        ring.style.transition = 'stroke-dashoffset 1.5s cubic-bezier(.16,1,.3,1)';
+        ring.style.strokeDashoffset = circ - (circ * pct / 100);
+      });
+    });
+  }
+
+  /* ===== Init ===== */
   slides.forEach(function(s, i){
     if(i !== 0){
       s.style.opacity = '0';
-      s.style.transform = 'translateX(60px)';
     }
   });
+  updateUI();
+  // Trigger animations on first slide
+  animateCounters(slides[0]);
+  triggerSVGAnimations(slides[0]);
 })();
+
 </script>
 </body>
 </html>

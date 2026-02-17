@@ -16,31 +16,26 @@
   </div>
 
   <!-- Alert summary counters -->
-  <div class="mb-2 hidden" id="alertSummary" style="display:flex;gap:1rem;overflow-x:auto;padding-bottom:5px;">
-    <div class="metric-card card-animate" id="summaryTotal" style="flex:1;min-width:140px;">
+  <div class="card-grid-4 mb-2 hidden" id="alertSummary">
+    <div class="metric-card card-animate" id="summaryTotal">
       <div class="metric-icon amber"><span class="icon">notifications</span></div>
       <div class="metric-value" id="totalAlertCount">0</div>
       <div class="metric-label">Total Alerts</div>
     </div>
-    <div class="metric-card card-animate" id="summaryBreached" style="flex:1;min-width:140px;">
+    <div class="metric-card card-animate" id="summaryBreached">
       <div class="metric-icon red"><span class="icon">error</span></div>
       <div class="metric-value" id="breachedCount">0</div>
       <div class="metric-label">SLA Breached</div>
     </div>
-    <div class="metric-card card-animate" id="summaryCritical" style="flex:1;min-width:140px;">
+    <div class="metric-card card-animate" id="summaryCritical">
       <div class="metric-icon amber"><span class="icon">schedule</span></div>
       <div class="metric-value" id="criticalCount">0</div>
       <div class="metric-label">Critical (&lt;24h)</div>
     </div>
-    <div class="metric-card card-animate" id="summaryWarning" style="flex:1;min-width:140px;">
+    <div class="metric-card card-animate" id="summaryWarning">
       <div class="metric-icon blue"><span class="icon">bolt</span></div>
       <div class="metric-value" id="warningCount">0</div>
       <div class="metric-label">Warning (&lt;48h)</div>
-    </div>
-    <div class="metric-card card-animate" id="summaryCompleted" style="flex:1;min-width:140px;">
-      <div class="metric-icon green"><span class="icon">check_circle</span></div>
-      <div class="metric-value" id="completedCount">0</div>
-      <div class="metric-label">Completed</div>
     </div>
   </div>
 
@@ -109,6 +104,30 @@
     <span id="userCount" style="margin-left:auto;align-self:center;opacity:0.7;font-size:0.9rem;"></span>
   </div>
 
+  <!-- User table -->
+  <div class="card mb-3" style="padding:1rem;overflow:auto;max-height:520px;">
+    <table style="width:100%;border-collapse:collapse;" id="userTable">
+      <thead style="position:sticky;top:0;background:var(--surface-container-low);z-index:1;">
+        <tr style="text-align:left;border-bottom:2px solid var(--outline-variant);">
+          <th style="padding:0.65rem;">Name</th>
+          <th style="padding:0.65rem;">Username</th>
+          <th style="padding:0.65rem;">Email</th>
+          <th style="padding:0.65rem;">Role</th>
+          <th style="padding:0.65rem;">Department</th>
+          <th style="padding:0.65rem;">Created</th>
+          <th style="padding:0.65rem;text-align:right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="userTableBody">
+        <tr>
+          <td colspan="7" style="padding:2rem;text-align:center;">
+            <div class="spinner"><span></span><span></span><span></span></div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
   <!-- Spam Flagged Users Section -->
   <div class="card mb-3" style="padding:1.25rem;" id="spamSection">
     <h3 style="margin:0 0 0.75rem;"><span class="icon" style="font-size:18px;color:var(--error);">block</span> Spam
@@ -134,31 +153,6 @@
       patterns.</p>
     <button class="btn btn-primary btn-sm" id="genForecastBtn" onclick="generateForecast()">Generate Forecast</button>
     <span id="forecastStatus" class="text-sm" style="margin-left:0.5rem;"></span>
-  </div>
-
-
-  <!-- User table -->
-  <div class="card" style="padding:1rem;overflow-x:auto;">
-    <table style="width:100%;border-collapse:collapse;" id="userTable">
-      <thead>
-        <tr style="text-align:left;border-bottom:2px solid var(--outline-variant);">
-          <th style="padding:0.65rem;">Name</th>
-          <th style="padding:0.65rem;">Username</th>
-          <th style="padding:0.65rem;">Email</th>
-          <th style="padding:0.65rem;">Role</th>
-          <th style="padding:0.65rem;">Department</th>
-          <th style="padding:0.65rem;">Created</th>
-          <th style="padding:0.65rem;text-align:right;">Actions</th>
-        </tr>
-      </thead>
-      <tbody id="userTableBody">
-        <tr>
-          <td colspan="7" style="padding:2rem;text-align:center;">
-            <div class="spinner"><span></span><span></span><span></span></div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
   </div>
 </div>
 {% endblock %}
@@ -216,12 +210,7 @@
       document.getElementById('breachedCount').textContent = data.breached.length;
       document.getElementById('criticalCount').textContent = data.critical.length;
       document.getElementById('warningCount').textContent = data.warning.length;
-      document.getElementById('completedCount').textContent = data.completed;
-
-      summary.classList.remove('hidden');
-      summary.style.display = 'flex';
-      summary.style.flexDirection = 'row';
-      summary.style.flexWrap = 'nowrap';
+      summary.style.display = 'grid';
 
       if (data.total_alerts === 0) {
         container.innerHTML = '<div class="card all-clear"><span class="icon filled" style="font-size:2.5rem;color:var(--success);">check_circle</span><br>All clear — no grievances nearing their SLA deadline.</div>';
@@ -385,6 +374,9 @@
     } catch (e) { showToast(e.message, 'error'); }
   }
 
+  const ADMIN_USER_PAGE_SIZE = 25;
+  let adminShowAll = false;
+
   function renderTable() {
     const tbody = document.getElementById('userTableBody');
     document.getElementById('userCount').textContent = `${allUsers.length} user${allUsers.length !== 1 ? 's' : ''}`;
@@ -392,13 +384,14 @@
       tbody.innerHTML = '<tr><td colspan="7" style="padding:2rem;text-align:center;opacity:0.6;">No users found</td></tr>';
       return;
     }
-    tbody.innerHTML = allUsers.map(u => {
+    const displayUsers = adminShowAll ? allUsers : allUsers.slice(0, ADMIN_USER_PAGE_SIZE);
+    tbody.innerHTML = displayUsers.map(u => {
       const isBlocked = u.role === 'citizen' && spamStatusMap[u.id];
       const blockBtns = u.role === 'citizen' ? (isBlocked
         ? `<a href="/spam-flag-detail?id=${encodeURIComponent(u.id)}" class="action-btn" title="View Flag Details" style="color:var(--error);"><span class="icon sm">gpp_bad</span> Flag</a>`
-        + `<button class="action-btn user-unblock-btn" data-id="${escapeHtml(u.id)}" title="Unblock" style="color:var(--success);"><span class="icon sm">lock_open</span> Unblock</button>`
+          + `<button class="action-btn user-unblock-btn" data-id="${escapeHtml(u.id)}" title="Unblock" style="color:var(--success);"><span class="icon sm">lock_open</span> Unblock</button>`
         : `<button class="action-btn user-block-btn" data-id="${escapeHtml(u.id)}" data-username="${escapeHtml(u.username)}" title="Block"><span class="icon sm">block</span> Block</button>`
-        + `<button class="action-btn user-flag-btn" data-id="${escapeHtml(u.id)}" data-username="${escapeHtml(u.username)}" title="Require Photo ID" style="color:var(--warning);"><span class="icon sm">flag</span> Flag</button>`
+          + `<button class="action-btn user-flag-btn" data-id="${escapeHtml(u.id)}" data-username="${escapeHtml(u.username)}" title="Require Photo ID" style="color:var(--warning);"><span class="icon sm">flag</span> Flag</button>`
       ) : '';
       const blockedBadge = isBlocked ? ` <a href="/spam-flag-detail?id=${encodeURIComponent(u.id)}" class="badge badge-escalated" style="font-size:0.65rem;text-decoration:none;cursor:pointer;" title="View flag details">Blocked</a>` : '';
       return `
@@ -411,8 +404,8 @@
       <td style="padding:0.65rem;font-size:0.9rem;">${formatDate(u.created_at)}</td>
       <td style="padding:0.65rem;text-align:right;white-space:nowrap;">
         ${blockBtns}
-        <button class="action-btn user-edit-btn" data-id="${escapeHtml(u.id)}" title="Edit"><span class="icon sm">edit</span> Edit</button>
-        <button class="action-btn danger user-del-btn" data-id="${escapeHtml(u.id)}" data-username="${escapeHtml(u.username)}" title="Delete"><span class="icon sm">delete</span> Delete</button>
+        <button class="action-btn user-edit-btn" data-id="${escapeHtml(u.id)}" title="Edit" aria-label="Edit user ${escapeHtml(u.username)}"><span class="icon sm">edit</span> Edit</button>
+        <button class="action-btn danger user-del-btn" data-id="${escapeHtml(u.id)}" data-username="${escapeHtml(u.username)}" title="Delete" aria-label="Delete user ${escapeHtml(u.username)}"><span class="icon sm">delete</span> Delete</button>
       </td>
     </tr>`;
     }).join('');
@@ -431,6 +424,18 @@
     document.querySelectorAll('.user-flag-btn').forEach(btn => {
       btn.addEventListener('click', () => adminBlockUser(btn.dataset.id, btn.dataset.username, 'flag_spam'));
     });
+    // Show All / Show Less toggle if there are more users than the page size
+    const oldToggle = document.getElementById('adminUserToggle');
+    if (oldToggle) oldToggle.remove();
+    if (allUsers.length > ADMIN_USER_PAGE_SIZE) {
+      const wrap = document.createElement('div');
+      wrap.id = 'adminUserToggle';
+      wrap.className = 'load-more-wrap';
+      wrap.innerHTML = adminShowAll
+        ? `<button class="btn btn-secondary btn-sm" onclick="adminShowAll=false;renderTable()"><span class="icon sm">expand_less</span> Show Less</button>`
+        : `<button class="btn btn-secondary btn-sm" onclick="adminShowAll=true;renderTable()"><span class="icon sm">expand_more</span> Show All ${allUsers.length} Users</button>`;
+      tbody.parentElement.parentElement.appendChild(wrap);
+    }
   }
 
   function filterRole(btn, role) {

@@ -21,6 +21,18 @@
 .sub-task-card { background:var(--primary-container-low);border-radius:10px;padding:0.75rem;margin-bottom:0.5rem;border-left:4px solid var(--primary); }
 .sub-task-card.resolved { border-left-color:#66BB6A;opacity:0.7; }
 .scheme-match-card { background:var(--success-container);border:1px solid rgba(76,175,80,0.25);border-radius:12px;padding:1rem;margin-top:1rem; }
+.vouch-section { margin-top:1.5rem; }
+.vouch-item { display:flex;gap:0.6rem;padding:0.6rem 0;border-bottom:1px solid var(--surface-container); }
+.vouch-item:last-child { border-bottom:none; }
+.vouch-avatar { width:36px;height:36px;border-radius:50%;background:var(--primary-container-low);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:0.8rem;font-weight:700;color:var(--primary); }
+.vouch-item-body { flex:1;min-width:0; }
+.vouch-item-name { font-weight:600;font-size:0.85rem; }
+.vouch-item-date { font-size:0.75rem;color:var(--on-surface-variant);margin-left:0.5rem; }
+.vouch-item-comment { font-size:0.88rem;color:var(--on-surface-variant);margin-top:0.2rem;line-height:1.5; }
+.vouch-evidence-grid { display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:0.4rem; }
+.vouch-evidence-grid img { width:80px;height:80px;object-fit:cover;border-radius:8px;cursor:pointer;border:1px solid var(--outline-variant);transition:transform 0.15s; }
+.vouch-evidence-grid img:hover { transform:scale(1.05); }
+.vouch-evidence-grid video, .vouch-evidence-grid audio { max-width:160px;border-radius:8px; }
 </style>
 <script>
 let officersList = [];
@@ -135,6 +147,9 @@ async function loadDetail() {
             <!-- Attachments -->
             <div id="attachmentsSection"></div>
 
+            <!-- Community Vouches -->
+            <div id="vouchesSection" class="vouch-section"></div>
+
             ${schemeHtml}
 
 
@@ -206,8 +221,9 @@ async function loadDetail() {
         </div>`}
       </div>`;
 
-    // Load attachments
+    // Load attachments and vouches
     loadAttachments(g.id);
+    loadVouches(g.id);
 
     // Bind action buttons
     const gid = g.id;
@@ -251,6 +267,34 @@ async function loadAttachments(gid) {
         }
         return `<div class="attachment-item"><a href="/attachments/${a.id}" target="_blank"><span class="icon sm">description</span> ${escapeHtml(a.filename)}</a></div>`;
       }).join('') + '</div>';
+  } catch {}
+}
+
+async function loadVouches(gid) {
+  try {
+    const res = await fetch(`/public/grievances/${gid}/vouches`);
+    if (!res.ok) return;
+    const vouches = await res.json();
+    const section = document.getElementById('vouchesSection');
+    if (!vouches.length) return;
+    section.innerHTML = `<h3><span class="icon sm">handshake</span> Community Vouches (${vouches.length})</h3>` +
+      vouches.map(v => {
+        const name = v.is_anonymous ? 'Anonymous' : escapeHtml(v.user_name || 'Citizen');
+        const initials = v.is_anonymous ? '?' : name.split(' ').map(w => w[0]).join('').substring(0, 2);
+        const evidenceHtml = (v.evidence_file_ids || []).length
+          ? '<div class="vouch-evidence-grid">' + v.evidence_file_ids.map(fid => {
+              return `<img src="/attachments/${escapeHtml(fid)}" alt="Evidence" onclick="window.open('/attachments/${escapeHtml(fid)}','_blank')">`;
+            }).join('') + '</div>'
+          : '';
+        return `<div class="vouch-item">
+          <div class="vouch-avatar">${initials}</div>
+          <div class="vouch-item-body">
+            <span class="vouch-item-name">${name}</span><span class="vouch-item-date">${formatDate(v.created_at)}</span>
+            ${v.comment ? `<div class="vouch-item-comment">${escapeHtml(v.comment)}</div>` : '<div class="vouch-item-comment" style="font-style:italic;opacity:0.6;">Vouched without comment</div>'}
+            ${evidenceHtml}
+          </div>
+        </div>`;
+      }).join('');
   } catch {}
 }
 

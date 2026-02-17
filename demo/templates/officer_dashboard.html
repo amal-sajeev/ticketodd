@@ -31,19 +31,19 @@
   <!-- Main two-column: Recent Grievances (left) + District Map (right) -->
   <div class="dash-columns mb-3">
     <!-- Recent Grievances -->
-    <div class="card" style="padding:1.25rem;overflow:hidden;display:flex;flex-direction:column;min-height:0;">
+    <div id="recentCard" class="card" style="padding:1.25rem;overflow:hidden;display:flex;flex-direction:column;min-height:0;">
       <h3 style="margin:0 0 0.75rem;">Recent Grievances</h3>
       <div id="recentList" style="flex:1;overflow-y:auto;min-height:0;"></div>
     </div>
 
     <!-- District Map -->
-    <div class="card" style="padding:1.25rem;display:flex;flex-direction:column;">
+    <div id="mapCard" class="card" style="padding:1.25rem;display:flex;flex-direction:column;min-height:0;overflow:hidden;">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.5rem;">
         <h3 style="margin:0;">District Map</h3>
         <div id="mapLegend" style="display:flex;align-items:center;gap:0.4rem;font-size:0.75rem;"></div>
       </div>
       <p class="text-sm text-muted" style="margin:0 0 0.5rem;">Click a district to view its queue</p>
-      <div id="mapContainer" style="position:relative;flex:1;">
+      <div id="mapContainer" style="position:relative;flex:1;min-height:0;overflow:hidden;">
         <svg id="odishaMap" viewBox="0 0 800 650" preserveAspectRatio="xMidYMid meet"
              style="width:100%;height:100%;border-radius:10px;"></svg>
         <div id="mapTooltip" style="position:absolute;display:none;pointer-events:none;background:rgba(26,26,46,0.92);

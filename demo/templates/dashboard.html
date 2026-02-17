@@ -24,10 +24,14 @@ else {
 
 function impactColor(s) { return s<=30?'#66BB6A':s<=60?'#FFB74D':s<=80?'#FF7043':'#EF5350'; }
 
-async function loadDashboard() {
-  showLoading('metrics');
+const DASH_PAGE_SIZE = 30;
+let dashOffset = 0;
+let dashAllGrievances = [];
+
+async function loadDashboard(append = false) {
+  if (!append) showLoading('metrics');
   try {
-    const grievances = await api('GET', '/grievances?limit=30&group_by_date=true');
+    const grievances = await api('GET', `/grievances?limit=${DASH_PAGE_SIZE}&skip=${append ? dashOffset : 0}&group_by_date=true`);
     const total = grievances.length;
     const resolved = grievances.filter(g => g.status === 'resolved').length;
     const pending = grievances.filter(g => ['pending','escalated'].includes(g.status)).length;
@@ -79,8 +83,22 @@ async function loadDashboard() {
           </div>`;
       }).join('');
     }
-    list.innerHTML = html;
+    const dashHasMore = grievances.length >= DASH_PAGE_SIZE;
+    const oldBtn = document.getElementById('dashLoadMore');
+    if (oldBtn) oldBtn.remove();
 
+    if (append) {
+      list.insertAdjacentHTML('beforeend', html);
+      dashOffset += grievances.length;
+    } else {
+      list.innerHTML = html;
+      dashOffset = grievances.length;
+    }
+
+    if (dashHasMore) {
+      list.insertAdjacentHTML('beforeend',
+        '<div id="dashLoadMore" class="load-more-wrap"><button class="btn btn-secondary" onclick="loadDashboard(true)"><span class="icon sm">expand_more</span> Load More</button></div>');
+    }
 
     document.querySelectorAll('.confirm-yes-btn').forEach(btn => {
       btn.addEventListener('click', (e) => { e.stopPropagation(); confirmRes(btn.dataset.tracking, true); });

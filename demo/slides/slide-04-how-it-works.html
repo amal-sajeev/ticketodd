@@ -1,0 +1,105 @@
+<!-- SLIDE 4 — HOW IT WORKS -->
+<div class="slide" data-slide="3" data-transition="morph">
+  <div class="slide-inner">
+    <span class="tag tag-blue animate">How It Works</span>
+    <h2 class="animate a-d1">From Complaint to Resolution</h2>
+    <div class="animate a-d2" style="width:1050px;margin:0 auto">
+      <svg class="anim-trigger" viewBox="0 0 1050 220" width="1050" height="220" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="glowBlue" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="6" result="blur"/>
+            <animate attributeName="stdDeviation" values="4;8;4" dur="3s" repeatCount="indefinite" begin="0s"/>
+            <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+          </filter>
+          <filter id="glowCyan" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="6" result="blur"/>
+            <animate attributeName="stdDeviation" values="4;8;4" dur="3s" repeatCount="indefinite" begin="0.5s"/>
+            <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+          </filter>
+          <filter id="glowPurple" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="6" result="blur"/>
+            <animate attributeName="stdDeviation" values="4;8;4" dur="3s" repeatCount="indefinite" begin="1s"/>
+            <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+          </filter>
+          <filter id="glowGreen" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="6" result="blur"/>
+            <animate attributeName="stdDeviation" values="4;8;4" dur="3s" repeatCount="indefinite" begin="1.5s"/>
+            <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+          </filter>
+          <linearGradient id="heroGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#1A73E8"/>
+            <stop offset="50%" stop-color="#00BCD4"/>
+            <stop offset="100%" stop-color="#7C4DFF"/>
+          </linearGradient>
+        </defs>
+
+        <!-- Connecting arrows -->
+        <line x1="230" y1="110" x2="280" y2="110" stroke="#4da3ff" stroke-width="2" stroke-dasharray="50" stroke-dashoffset="50" opacity="0.6">
+          <animate attributeName="stroke-dashoffset" from="50" to="0" dur="0.6s" begin="0.5s" fill="freeze"/>
+        </line>
+        <polygon points="278,104 290,110 278,116" fill="#4da3ff" opacity="0">
+          <animate attributeName="opacity" from="0" to="0.6" dur="0.2s" begin="1s" fill="freeze"/>
+        </polygon>
+
+        <line x1="500" y1="110" x2="550" y2="110" stroke="#4dd0e1" stroke-width="2" stroke-dasharray="50" stroke-dashoffset="50" opacity="0.6">
+          <animate attributeName="stroke-dashoffset" from="50" to="0" dur="0.6s" begin="1s" fill="freeze"/>
+        </line>
+        <polygon points="548,104 560,110 548,116" fill="#4dd0e1" opacity="0">
+          <animate attributeName="opacity" from="0" to="0.6" dur="0.2s" begin="1.5s" fill="freeze"/>
+        </polygon>
+
+        <line x1="770" y1="110" x2="820" y2="110" stroke="#b388ff" stroke-width="2" stroke-dasharray="50" stroke-dashoffset="50" opacity="0.6">
+          <animate attributeName="stroke-dashoffset" from="50" to="0" dur="0.6s" begin="1.5s" fill="freeze"/>
+        </line>
+        <polygon points="818,104 830,110 818,116" fill="#b388ff" opacity="0">
+          <animate attributeName="opacity" from="0" to="0.6" dur="0.2s" begin="2s" fill="freeze"/>
+        </polygon>
+
+        <!-- Node 1: Citizen Files -->
+        <g filter="url(#glowBlue)">
+          <rect x="20" y="40" width="210" height="140" rx="16" fill="#1c2333" stroke="rgba(77,163,255,0.3)" stroke-width="1.5"/>
+          <circle cx="125" cy="28" r="14" fill="url(#heroGrad)"/>
+          <text x="125" y="33" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">1</text>
+          <text x="125" y="85" text-anchor="middle" fill="#4da3ff" font-family="Material Symbols Outlined" font-size="32">&#xe745;</text>
+          <text x="125" y="120" text-anchor="middle" fill="#e6edf3" font-size="14" font-weight="600">Citizen Files</text>
+          <text x="125" y="140" text-anchor="middle" fill="#8b949e" font-size="11">Multilingual form with</text>
+          <text x="125" y="155" text-anchor="middle" fill="#8b949e" font-size="11">photo, audio &amp; video</text>
+        </g>
+
+        <!-- Node 2: AI Classifies -->
+        <g filter="url(#glowCyan)">
+          <rect x="290" y="40" width="210" height="140" rx="16" fill="#1c2333" stroke="rgba(77,208,225,0.3)" stroke-width="1.5"/>
+          <circle cx="395" cy="28" r="14" fill="url(#heroGrad)"/>
+          <text x="395" y="33" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">2</text>
+          <text x="395" y="85" text-anchor="middle" fill="#4dd0e1" font-family="Material Symbols Outlined" font-size="32">&#xe4a2;</text>
+          <text x="395" y="120" text-anchor="middle" fill="#e6edf3" font-size="14" font-weight="600">AI Classifies</text>
+          <text x="395" y="140" text-anchor="middle" fill="#8b949e" font-size="11">Routes to department,</text>
+          <text x="395" y="155" text-anchor="middle" fill="#8b949e" font-size="11">sets priority &amp; impact</text>
+        </g>
+
+        <!-- Node 3: Officer Resolves -->
+        <g filter="url(#glowPurple)">
+          <rect x="560" y="40" width="210" height="140" rx="16" fill="#1c2333" stroke="rgba(179,136,255,0.3)" stroke-width="1.5"/>
+          <circle cx="665" cy="28" r="14" fill="url(#heroGrad)"/>
+          <text x="665" y="33" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">3</text>
+          <text x="665" y="85" text-anchor="middle" fill="#b388ff" font-family="Material Symbols Outlined" font-size="32">&#xf0e1;</text>
+          <text x="665" y="120" text-anchor="middle" fill="#e6edf3" font-size="14" font-weight="600">Officer Resolves</text>
+          <text x="665" y="140" text-anchor="middle" fill="#8b949e" font-size="11">AI-drafted response</text>
+          <text x="665" y="155" text-anchor="middle" fill="#8b949e" font-size="11">reviewed by officer</text>
+        </g>
+
+        <!-- Node 4: Citizen Confirms -->
+        <g filter="url(#glowGreen)">
+          <rect x="830" y="40" width="210" height="140" rx="16" fill="#1c2333" stroke="rgba(105,240,174,0.3)" stroke-width="1.5"/>
+          <circle cx="935" cy="28" r="14" fill="url(#heroGrad)"/>
+          <text x="935" y="33" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">4</text>
+          <text x="935" y="85" text-anchor="middle" fill="#69f0ae" font-family="Material Symbols Outlined" font-size="32">&#xef76;</text>
+          <text x="935" y="120" text-anchor="middle" fill="#e6edf3" font-size="14" font-weight="600">Citizen Confirms</text>
+          <text x="935" y="140" text-anchor="middle" fill="#8b949e" font-size="11">Tracks status and</text>
+          <text x="935" y="155" text-anchor="middle" fill="#8b949e" font-size="11">confirms resolution</text>
+        </g>
+      </svg>
+    </div>
+    <p class="animate a-d3" style="font-size:14px;color:var(--text-muted);margin-top:6px">Three resolution tiers: <strong style="color:var(--text-secondary)">Self-resolvable</strong> (AI guidance) &rarr; <strong style="color:var(--text-secondary)">Officer Action</strong> (AI draft + review) &rarr; <strong style="color:var(--text-secondary)">Escalation</strong></p>
+  </div>
+</div>

@@ -1,0 +1,71 @@
+<!-- SLIDE 12 — OFFICER EXPERIENCE + QUEUE MOCKUP -->
+<div class="slide" data-slide="11" data-transition="slide">
+  <div class="slide-inner" style="flex-direction:row;text-align:left;gap:36px">
+    <!-- Left: Features -->
+    <div style="flex:0 0 390px;display:flex;flex-direction:column;gap:14px">
+      <span class="tag tag-blue animate">Officer Experience</span>
+      <h2 class="animate a-d1" style="font-size:26px">A Smarter Officer Dashboard</h2>
+      <ul class="feature-list animate a-d2">
+        <li><span class="icon filled">view_list</span><div><strong style="color:var(--text-primary)">Department-Personalized Queue</strong><br>Auto-filters to officer's department; toggle all depts</div></li>
+        <li><span class="icon filled">auto_fix_high</span><div><strong style="color:var(--text-primary)">AI-Drafted Resolutions</strong><br>GPT-5 drafts from knowledge base + past cases</div></li>
+        <li><span class="icon filled">assignment_ind</span><div><strong style="color:var(--text-primary)">Assignment System</strong><br>Claim or assign grievances; internal notes</div></li>
+        <li><span class="icon filled">account_tree</span><div><strong style="color:var(--text-primary)">Cross-Department Sub-tasks</strong><br>Multi-dept grievances decomposed into linked dependency chain</div></li>
+        <li><span class="icon filled">timer</span><div><strong style="color:var(--text-primary)">SLA Deadlines</strong><br>Service-memory estimated; auto-escalation on breach</div></li>
+        <li><span class="icon filled">route</span><div><strong style="color:var(--text-primary)">Escalation Routing</strong><br>Auto-assigns to matching department officer</div></li>
+      </ul>
+    </div>
+    <!-- Right: Queue Mockup -->
+    <div style="flex:1;min-width:0" class="mockup-animate">
+      <div class="mockup-frame" style="width:100%">
+        <div class="m-navbar">
+          <div class="m-logo"><span class="icon filled">account_balance</span> PR&amp;DW Portal</div>
+          <div class="m-nav-links"><span>Dashboard</span><span class="active">Queue</span><span>Knowledge</span></div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <div style="position:relative;cursor:pointer"><span class="icon" style="font-size:16px;color:var(--app-on-surface-variant)">notifications</span><span style="position:absolute;top:-3px;right:-5px;min-width:12px;height:12px;border-radius:6px;background:var(--app-error);color:#fff;font-size:7px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 2px">3</span></div>
+            <div class="m-user-badge">Officer BDO &middot; officer</div>
+          </div>
+        </div>
+        <!-- Filter bar -->
+        <div class="m-filter-bar" style="margin:6px 12px;gap:4px">
+          <div class="m-filter-item"><label>Status</label><div class="m-select">All</div></div>
+          <div class="m-filter-item"><label>Dept</label><div class="m-select">Rural Water</div></div>
+          <div class="m-filter-item"><label>Priority</label><div class="m-select">All</div></div>
+          <div class="m-filter-item"><label>District</label><div class="m-select">All</div></div>
+          <div class="m-filter-item"><label>Search</label><div class="m-select" style="color:var(--app-outline)">Search...</div></div>
+        </div>
+        <div style="padding:0 12px;font-size:9px;color:var(--app-on-surface-variant);margin-bottom:2px">23 grievances found</div>
+        <!-- Date group -->
+        <div class="m-date-header"><span class="icon">calendar_today</span> 15 February 2026 <span class="count">5</span></div>
+        <!-- Queue cards -->
+        <div style="padding:0 12px">
+          <div style="display:flex;gap:8px;align-items:flex-start;background:var(--app-surface);border:1px solid var(--app-outline-variant);border-radius:8px;padding:10px;margin-bottom:5px;border-left:3px solid var(--app-warning)">
+            <div class="m-impact-circle" style="background:#FF7043">72</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:10px;font-weight:600;color:var(--app-on-surface);margin-bottom:3px">#GRV-2026-000042 &mdash; No drinking water supply for 3 weeks</div>
+              <div style="font-size:9px;color:var(--app-on-surface-variant);margin-bottom:4px;line-height:1.3">Village Patnagarh has had no piped water...</div>
+              <div class="m-badges">
+                <span class="m-badge m-badge-pending">Pending</span>
+                <span class="m-badge m-badge-dept">Rural Water</span>
+                <span class="m-badge m-badge-priority-high">High</span>
+                <span class="m-badge" style="background:var(--app-error-container);color:var(--app-error);animation:pulse 1.5s infinite">SLA BREACH</span>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:flex-start;background:var(--app-surface);border:1px solid var(--app-outline-variant);border-radius:8px;padding:10px;margin-bottom:5px;border-left:3px solid var(--app-primary)">
+            <div class="m-impact-circle" style="background:#66BB6A">28</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:10px;font-weight:600;color:var(--app-on-surface);margin-bottom:3px">#GRV-2026-000051 &mdash; Request for new tube well in Block C</div>
+              <div style="font-size:9px;color:var(--app-on-surface-variant);margin-bottom:4px;line-height:1.3">Requesting installation of new tube well...</div>
+              <div class="m-badges">
+                <span class="m-badge m-badge-in_progress">In Progress</span>
+                <span class="m-badge m-badge-dept">Rural Water</span>
+                <span class="m-badge m-badge-priority-low">Low</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="height:6px"></div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,529 @@
+/* ==========================================================================
+   PR&DW Grievance Portal — Presentation Base Styles
+   1280x720 fixed-frame design
+   ========================================================================== */
+
+/* --- Reset --- */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+/* --- Design Tokens (dark presentation theme) --- */
+:root{
+  --primary:#1A73E8;
+  --primary-light:#4da3ff;
+  --primary-dark:#1557B0;
+  --primary-glow:rgba(26,115,232,.25);
+  --accent:#00BCD4;
+  --accent2:#7C4DFF;
+  --surface:#161b22;
+  --surface-raised:#1c2333;
+  --surface-bright:#21283b;
+  --text-primary:#e6edf3;
+  --text-secondary:#8b949e;
+  --text-muted:#6e7681;
+  --border:rgba(255,255,255,.08);
+  --gradient-hero:linear-gradient(135deg,#1A73E8 0%,#00BCD4 50%,#7C4DFF 100%);
+  --gradient-subtle:linear-gradient(135deg,rgba(26,115,232,.12),rgba(0,188,212,.08),rgba(124,77,255,.12));
+  --radius:12px;
+  --radius-lg:20px;
+  --shadow:0 8px 32px rgba(0,0,0,.4);
+  --shadow-glow:0 0 40px rgba(26,115,232,.15);
+  /* App M3 tokens (for mockups) */
+  --app-primary:#1A73E8;
+  --app-surface:#FFFFFF;
+  --app-surface-dim:#F0F2F5;
+  --app-surface-container:#ECEEF3;
+  --app-on-surface:#1A1C1E;
+  --app-on-surface-variant:#44474E;
+  --app-outline-variant:#C4C6D0;
+  --app-error:#D93025;
+  --app-success:#1E8E3E;
+  --app-warning:#E37400;
+  --app-primary-container:#D3E3FD;
+  --app-primary-container-low:#ECF2FE;
+  --app-error-container:#FCE8E6;
+  --app-success-container:#E6F4EA;
+  --app-warning-container:#FEF7E0;
+}
+
+/* --- Body & Centering --- */
+html{font-size:16px;overflow:hidden}
+body{
+  font-family:'Inter',system-ui,-apple-system,sans-serif;
+  background:#0a0e14;color:var(--text-primary);
+  margin:0;padding:0;overflow:hidden;
+  width:100vw;height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* --- Material Symbols --- */
+.icon{font-family:'Material Symbols Outlined';font-weight:normal;font-style:normal;font-size:24px;line-height:1;letter-spacing:normal;text-transform:none;display:inline-block;white-space:nowrap;word-wrap:normal;direction:ltr;-webkit-font-smoothing:antialiased;font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;vertical-align:middle}
+.icon.filled{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
+
+/* ==========================================================================
+   Deck & Slides — 1280x720 fixed frame
+   ========================================================================== */
+.deck{
+  position:absolute;
+  top:0;left:0;
+  width:1280px;height:720px;
+  overflow:hidden;
+  background:var(--surface);
+  border-radius:8px;
+  box-shadow:0 0 80px rgba(0,0,0,.6);
+  transform-origin:0 0;
+}
+.slide{
+  position:absolute;
+  width:1280px;height:720px;
+  overflow:hidden;
+  padding:48px 64px 56px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;z-index:0;
+  will-change:transform,opacity;
+}
+.slide.active{opacity:1;pointer-events:auto;z-index:2}
+.slide-inner{
+  width:100%;max-width:1152px;height:100%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;gap:20px;
+  position:relative;
+  overflow:hidden;
+}
+
+/* ==========================================================================
+   Progress Bar
+   ========================================================================== */
+.progress-track{
+  position:absolute;top:0;left:0;right:0;height:3px;z-index:100;
+  background:rgba(255,255,255,.06);
+}
+.progress-fill{
+  height:100%;background:var(--gradient-hero);
+  transition:width .4s cubic-bezier(.4,0,.2,1);
+  box-shadow:0 0 12px var(--primary-glow);
+}
+
+/* ==========================================================================
+   Footer Bar
+   ========================================================================== */
+.footer-bar{
+  position:absolute;bottom:0;left:0;right:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 28px;
+  background:rgba(13,17,23,.92);backdrop-filter:blur(12px);
+  border-top:1px solid var(--border);
+  font-size:12px;color:var(--text-muted);
+}
+.footer-bar .govt{display:flex;align-items:center;gap:5px}
+.footer-bar .govt .icon{font-size:14px;color:var(--primary)}
+.footer-bar .counter{font-weight:600;color:var(--text-secondary);font-variant-numeric:tabular-nums}
+
+/* ==========================================================================
+   Navigation
+   ========================================================================== */
+.nav-hint{
+  position:absolute;bottom:38px;right:24px;z-index:100;
+  display:flex;gap:5px;
+}
+.nav-btn{
+  width:32px;height:32px;border-radius:8px;border:1px solid var(--border);
+  background:rgba(255,255,255,.04);color:var(--text-secondary);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  transition:all .2s;font-size:0;
+}
+.nav-btn:hover{background:rgba(26,115,232,.15);color:var(--primary-light);border-color:rgba(26,115,232,.3)}
+.nav-btn .icon{font-size:18px}
+
+/* ==========================================================================
+   Typography (px-based for 1280x720)
+   ========================================================================== */
+.slide h1{font-size:44px;font-weight:800;line-height:1.12;letter-spacing:-.5px}
+.slide h2{font-size:32px;font-weight:700;line-height:1.2;letter-spacing:-.3px}
+.slide h3{font-size:18px;font-weight:600;line-height:1.3}
+.slide p,.slide li{font-size:15px;line-height:1.6;color:var(--text-secondary)}
+.slide .lead{font-size:17px;color:var(--text-secondary);max-width:700px}
+
+/* --- Tags --- */
+.tag{display:inline-block;padding:4px 14px;border-radius:100px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.tag-blue{background:rgba(26,115,232,.15);color:var(--primary-light)}
+.tag-cyan{background:rgba(0,188,212,.12);color:#4dd0e1}
+.tag-purple{background:rgba(124,77,255,.12);color:#b388ff}
+.tag-green{background:rgba(30,142,62,.15);color:#69f0ae}
+.tag-orange{background:rgba(227,116,0,.12);color:#ffb74d}
+
+/* --- Gradient Text --- */
+.grad-text{background:var(--gradient-hero);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+
+/* ==========================================================================
+   Card Grid
+   ========================================================================== */
+.cards{display:grid;gap:16px;width:100%;text-align:left}
+.cards-2{grid-template-columns:1fr 1fr}
+.cards-3{grid-template-columns:1fr 1fr 1fr}
+.cards-4{grid-template-columns:1fr 1fr 1fr 1fr}
+.card{
+  background:var(--surface-raised);border:1px solid var(--border);
+  border-radius:var(--radius);padding:20px;
+  display:flex;flex-direction:column;gap:8px;
+  transition:border-color .25s,box-shadow .25s;
+}
+.card:hover{border-color:rgba(26,115,232,.25);box-shadow:var(--shadow-glow)}
+.card .card-icon{
+  width:40px;height:40px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:2px;
+}
+.card .card-icon .icon{font-size:22px}
+.card-icon-blue{background:rgba(26,115,232,.12);color:var(--primary-light)}
+.card-icon-cyan{background:rgba(0,188,212,.10);color:#4dd0e1}
+.card-icon-purple{background:rgba(124,77,255,.10);color:#b388ff}
+.card-icon-green{background:rgba(30,142,62,.12);color:#69f0ae}
+.card-icon-orange{background:rgba(227,116,0,.12);color:#ffb74d}
+.card-icon-red{background:rgba(217,48,37,.12);color:#ef9a9a}
+.card h3{font-size:15px;color:var(--text-primary)}
+.card p{font-size:13px;line-height:1.55;color:var(--text-secondary)}
+
+/* ==========================================================================
+   Split Layout
+   ========================================================================== */
+.split{display:flex;gap:40px;align-items:center;width:100%;text-align:left}
+.split-text{flex:1;display:flex;flex-direction:column;gap:14px}
+.split-visual{flex:0 0 auto;display:flex;align-items:center;justify-content:center}
+
+/* ==========================================================================
+   Feature List
+   ========================================================================== */
+.feature-list{list-style:none;text-align:left;display:flex;flex-direction:column;gap:10px}
+.feature-list li{display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--text-secondary)}
+.feature-list .icon{color:var(--primary-light);font-size:20px;flex-shrink:0;margin-top:1px}
+
+/* ==========================================================================
+   Stats
+   ========================================================================== */
+.stats{display:flex;gap:40px;justify-content:center;flex-wrap:wrap}
+.stat{display:flex;flex-direction:column;align-items:center;gap:2px}
+.stat .num{font-size:42px;font-weight:800}
+.stat .lbl{font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
+
+/* ==========================================================================
+   Department Badges
+   ========================================================================== */
+.dept-badges{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:900px}
+.dept-badge{padding:5px 12px;border-radius:100px;font-size:12px;font-weight:500;background:var(--surface-raised);border:1px solid var(--border);color:var(--text-secondary)}
+
+/* ==========================================================================
+   Flow Diagram (non-SVG fallback elements)
+   ========================================================================== */
+.flow{display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:nowrap}
+.flow-step{
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+  padding:20px 24px;min-width:170px;
+  background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius-lg);
+  position:relative;
+}
+.flow-step .step-num{
+  position:absolute;top:-12px;left:50%;transform:translateX(-50%);
+  width:24px;height:24px;border-radius:50%;
+  background:var(--gradient-hero);color:#fff;
+  font-size:11px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+}
+.flow-step .icon{font-size:30px}
+.flow-step h3{font-size:14px}
+.flow-step p{font-size:12px;color:var(--text-muted);text-align:center}
+.flow-arrow{font-size:24px;color:var(--text-muted);padding:0 6px}
+.flow-arrow .icon{font-size:28px}
+
+/* ==========================================================================
+   Tech Table
+   ========================================================================== */
+.tech-table{
+  width:100%;border-collapse:collapse;text-align:left;
+  background:var(--surface-raised);border-radius:var(--radius);overflow:hidden;
+  border:1px solid var(--border);font-size:13px;
+}
+.tech-table th{
+  padding:10px 20px;font-size:11px;font-weight:600;
+  color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;
+  background:var(--surface-bright);border-bottom:1px solid var(--border);
+}
+.tech-table td{
+  padding:10px 20px;color:var(--text-secondary);
+  border-bottom:1px solid var(--border);
+}
+.tech-table tr:last-child td{border-bottom:none}
+.tech-table td:first-child{color:var(--text-primary);font-weight:500}
+
+/* ==========================================================================
+   Title Slide Specials
+   ========================================================================== */
+.title-emblem{
+  width:72px;height:72px;border-radius:50%;
+  background:var(--gradient-hero);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 40px var(--primary-glow);
+}
+.title-emblem .icon{font-size:38px;color:#fff}
+.title-dept{font-size:13px;font-weight:500;color:var(--text-muted);letter-spacing:.06em;text-transform:uppercase}
+.title-version{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:5px 14px;border-radius:100px;
+  background:rgba(30,142,62,.12);color:#69f0ae;
+  font-size:12px;font-weight:600;
+}
+
+/* ==========================================================================
+   CTA Box (Thank You slide)
+   ========================================================================== */
+.cta-box{
+  display:inline-flex;flex-direction:column;align-items:center;gap:8px;
+  padding:24px 40px;border-radius:var(--radius-lg);
+  background:var(--gradient-subtle);border:1px solid rgba(26,115,232,.2);
+}
+
+/* ==========================================================================
+   Mockup Frame
+   ========================================================================== */
+.mockup-frame{
+  border-radius:10px;overflow:hidden;
+  box-shadow:0 8px 40px rgba(0,0,0,.35),0 0 0 1px rgba(255,255,255,.06);
+  background:var(--app-surface-dim);
+  font-family:'Inter',system-ui,sans-serif;
+  color:var(--app-on-surface);
+  font-size:12px;
+  transform:perspective(1200px) rotateY(-2deg);
+  transition:transform .6s cubic-bezier(.16,1,.3,1);
+}
+.slide.active .mockup-frame{transform:perspective(1200px) rotateY(0deg)}
+
+/* --- Mockup Navbar --- */
+.m-navbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 12px;height:36px;
+  background:var(--app-surface);
+  border-bottom:1px solid var(--app-outline-variant);
+  box-shadow:0 1px 3px rgba(0,0,0,.06);
+}
+.m-navbar .m-logo{display:flex;align-items:center;gap:4px;font-weight:700;font-size:11px;color:var(--app-primary)}
+.m-navbar .m-logo .icon{font-size:16px;font-variation-settings:'FILL' 1,'wght' 500}
+.m-nav-links{display:flex;gap:2px}
+.m-nav-links span{padding:3px 8px;border-radius:14px;font-size:10px;font-weight:500;color:var(--app-on-surface-variant)}
+.m-nav-links span.active{background:var(--app-primary-container);color:#0842A0;font-weight:600}
+.m-user-badge{padding:2px 8px;border-radius:14px;font-size:9px;font-weight:500;background:var(--app-primary-container-low);color:#0842A0}
+
+/* --- Mockup Metric Card --- */
+.m-metrics{display:flex;gap:6px;padding:10px 12px 0}
+.m-metric-card{
+  flex:1;text-align:center;padding:8px 4px;
+  background:var(--app-surface);border:1px solid var(--app-outline-variant);
+  border-radius:8px;box-shadow:0 1px 2px rgba(0,0,0,.04);
+}
+.m-metric-card .m-metric-icon{
+  width:24px;height:24px;border-radius:6px;
+  display:inline-flex;align-items:center;justify-content:center;
+  margin:0 auto 3px;
+}
+.m-metric-card .m-metric-icon .icon{font-size:14px}
+.m-metric-card .m-metric-icon.blue{background:var(--app-primary-container-low);color:var(--app-primary)}
+.m-metric-card .m-metric-icon.green{background:var(--app-success-container);color:var(--app-success)}
+.m-metric-card .m-metric-icon.amber{background:var(--app-warning-container);color:var(--app-warning)}
+.m-metric-card .m-metric-icon.red{background:var(--app-error-container);color:var(--app-error)}
+.m-metric-card .m-metric-val{font-size:16px;font-weight:700;color:var(--app-on-surface)}
+.m-metric-card .m-metric-lbl{font-size:8px;color:var(--app-on-surface-variant);font-weight:500;margin-top:1px}
+
+/* --- Mockup Date Group Header --- */
+.m-date-header{
+  display:flex;align-items:center;gap:4px;
+  padding:6px 12px 2px;font-size:9px;font-weight:600;
+  color:var(--app-on-surface-variant);
+}
+.m-date-header .icon{font-size:12px}
+.m-date-header .count{
+  font-size:8px;background:var(--app-surface-container);
+  padding:1px 5px;border-radius:4px;margin-left:auto;
+}
+
+/* --- Mockup Grievance Card --- */
+.m-grievance-card{
+  margin:4px 12px;padding:10px 12px;
+  background:var(--app-surface);border:1px solid var(--app-outline-variant);
+  border-radius:8px;box-shadow:0 1px 2px rgba(0,0,0,.04);
+}
+.m-grievance-card.status-pending{border-left:3px solid var(--app-warning)}
+.m-grievance-card.status-in_progress{border-left:3px solid var(--app-primary)}
+.m-grievance-card.status-resolved{border-left:3px solid var(--app-success)}
+.m-grievance-card.status-escalated{border-left:3px solid var(--app-error)}
+.m-grievance-card h4{font-size:11px;font-weight:600;color:var(--app-on-surface);margin-bottom:4px}
+.m-grievance-card p{font-size:10px;color:var(--app-on-surface-variant);margin-bottom:5px;line-height:1.4}
+.m-badges{display:flex;flex-wrap:wrap;gap:3px;align-items:center}
+
+/* --- Mockup Badges --- */
+.m-badge{display:inline-flex;align-items:center;gap:2px;padding:1px 6px;border-radius:4px;font-size:8px;font-weight:600;white-space:nowrap}
+.m-badge-pending{background:var(--app-warning-container);color:#B45309}
+.m-badge-in_progress{background:var(--app-primary-container-low);color:#0842A0}
+.m-badge-resolved{background:var(--app-success-container);color:#15803D}
+.m-badge-escalated{background:var(--app-error-container);color:#B91C1C}
+.m-badge-dept{background:var(--app-surface-container);color:var(--app-on-surface-variant)}
+.m-badge-priority-low{background:var(--app-success-container);color:#15803D}
+.m-badge-priority-medium{background:var(--app-warning-container);color:#B45309}
+.m-badge-priority-high{background:var(--app-error-container);color:#B91C1C}
+.m-badge-priority-urgent{background:#F3E8FD;color:#6D28D9}
+.m-badge-impact{display:inline-flex;align-items:center;justify-content:center;padding:1px 5px;border-radius:3px;font-size:8px;font-weight:700;color:#fff}
+
+/* --- Mockup Filter Bar --- */
+.m-filter-bar{
+  display:flex;gap:6px;padding:8px 12px;margin:8px 12px 0;
+  background:var(--app-surface);border:1px solid var(--app-outline-variant);
+  border-radius:8px;
+}
+.m-filter-item{
+  flex:1;display:flex;flex-direction:column;gap:2px;
+}
+.m-filter-item label{font-size:8px;font-weight:600;color:var(--app-on-surface-variant)}
+.m-filter-item .m-select{
+  padding:3px 6px;border-radius:4px;
+  background:var(--app-surface-dim);border:1px solid var(--app-outline-variant);
+  font-size:9px;color:var(--app-on-surface);
+}
+
+/* --- Mockup Button --- */
+.m-btn{
+  display:inline-flex;align-items:center;gap:3px;
+  padding:4px 10px;border-radius:14px;
+  font-size:9px;font-weight:600;border:none;
+}
+.m-btn-primary{background:var(--app-primary);color:#fff}
+.m-btn-secondary{background:var(--app-surface-container);color:var(--app-on-surface-variant);border:1px solid var(--app-outline-variant)}
+.m-btn-success{background:var(--app-success);color:#fff}
+
+/* --- Mockup Impact Circle --- */
+.m-impact-circle{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:28px;height:28px;border-radius:50%;
+  font-weight:700;font-size:10px;color:#fff;flex-shrink:0;
+}
+
+/* --- Mockup Detail Rows --- */
+.m-detail-row{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:10px}
+.m-detail-row .m-label{width:100px;color:var(--app-on-surface-variant);font-weight:500;flex-shrink:0}
+.m-detail-row .m-value{color:var(--app-on-surface);font-weight:500}
+
+/* --- Mockup AI Resolution Box --- */
+.m-ai-box{
+  margin:8px 0;padding:10px;border-radius:8px;
+  background:linear-gradient(135deg,rgba(26,115,232,.06),rgba(0,188,212,.04),rgba(124,77,255,.06));
+  border:1px solid rgba(26,115,232,.15);
+}
+.m-ai-box .m-ai-header{display:flex;align-items:center;gap:4px;font-size:10px;font-weight:600;color:var(--app-primary);margin-bottom:4px}
+.m-ai-box .m-ai-header .icon{font-size:14px}
+.m-ai-box p{font-size:9px;color:var(--app-on-surface-variant);line-height:1.5}
+
+/* --- Mockup Tabs --- */
+.m-tabs{display:flex;gap:0;border-bottom:1px solid var(--app-outline-variant);padding:0 12px}
+.m-tab{padding:6px 12px;font-size:10px;font-weight:500;color:var(--app-on-surface-variant);border-bottom:2px solid transparent;margin-bottom:-1px}
+.m-tab.active{color:var(--app-primary);border-bottom-color:var(--app-primary);font-weight:600}
+
+/* --- Mockup Upload Zone --- */
+.m-upload-zone{
+  margin:8px 12px;padding:14px;border-radius:8px;
+  border:2px dashed var(--app-outline-variant);
+  text-align:center;font-size:10px;color:var(--app-on-surface-variant);
+}
+.m-upload-zone .icon{font-size:20px;color:var(--app-primary);display:block;margin:0 auto 4px}
+
+/* --- Mockup Two Column --- */
+.m-two-col{display:flex;gap:10px;padding:8px 12px}
+.m-two-col .m-col-main{flex:2;display:flex;flex-direction:column;gap:6px}
+.m-two-col .m-col-side{flex:1;display:flex;flex-direction:column;gap:6px}
+
+/* --- Mockup Vouch --- */
+.m-vouch-count{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:10px;background:var(--app-success-container);color:var(--app-success);font-weight:600;font-size:9px}
+.m-distance-badge{display:inline-flex;align-items:center;gap:2px;padding:1px 6px;border-radius:8px;background:var(--app-primary-container-low);color:var(--app-primary);font-size:9px}
+
+/* --- Mockup Spam Score Gauge --- */
+.m-gauge-track{width:100%;height:6px;background:var(--app-surface-container);border-radius:3px;overflow:hidden}
+.m-gauge-fill{height:100%;border-radius:3px}
+
+/* --- Mockup Section Header --- */
+.m-section-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 12px 0;
+}
+.m-section-header h3{font-size:12px;font-weight:700;color:var(--app-on-surface);display:flex;align-items:center;gap:4px}
+.m-section-header h3 .icon{font-size:16px}
+
+/* ==========================================================================
+   Animations
+   ========================================================================== */
+@keyframes fadeInUp{
+  from{opacity:0;transform:translateY(24px) scale(.98);filter:blur(2px)}
+  to{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}
+}
+@keyframes shimmer{
+  0%{background-position:200% center}
+  100%{background-position:-200% center}
+}
+@keyframes particleFloat{
+  0%,100%{transform:translate(0,0);opacity:.3}
+  25%{transform:translate(10px,-20px);opacity:.6}
+  50%{transform:translate(-5px,-40px);opacity:.4}
+  75%{transform:translate(15px,-20px);opacity:.5}
+}
+@keyframes pulseEmblem{
+  0%,100%{box-shadow:0 0 40px var(--primary-glow)}
+  50%{box-shadow:0 0 60px rgba(26,115,232,.4)}
+}
+@keyframes slideInRight{
+  from{opacity:0;transform:perspective(1200px) rotateY(-4deg) translateX(40px)}
+  to{opacity:1;transform:perspective(1200px) rotateY(-2deg) translateX(0)}
+}
+
+/* --- Stagger delays --- */
+.slide.active .animate{animation:fadeInUp .55s cubic-bezier(.16,1,.3,1) both}
+.slide.active .a-d1{animation-delay:.08s}
+.slide.active .a-d2{animation-delay:.16s}
+.slide.active .a-d3{animation-delay:.24s}
+.slide.active .a-d4{animation-delay:.32s}
+.slide.active .a-d5{animation-delay:.4s}
+.slide.active .a-d6{animation-delay:.48s}
+.slide.active .a-d7{animation-delay:.56s}
+.slide.active .a-d8{animation-delay:.64s}
+
+/* Mockup frame slide-in */
+.slide.active .mockup-animate{animation:slideInRight .7s cubic-bezier(.16,1,.3,1) both;animation-delay:.2s}
+
+/* ==========================================================================
+   Slide Transitions
+   ========================================================================== */
+/* Default: slide horizontal */
+.slide{transition:opacity .5s cubic-bezier(.16,1,.3,1),transform .5s cubic-bezier(.16,1,.3,1)}
+.slide.exit-left{opacity:0;transform:translateX(-80px) scale(.97)}
+.slide.exit-right{opacity:0;transform:translateX(80px) scale(.97)}
+.slide.enter-left{transform:translateX(-80px) scale(.97)}
+.slide.enter-right{transform:translateX(80px) scale(.97)}
+
+/* Zoom */
+.slide[data-transition="zoom"].exit-left,.slide[data-transition="zoom"].exit-right{opacity:0;transform:scale(1.08)}
+.slide[data-transition="zoom"].enter-left,.slide[data-transition="zoom"].enter-right{transform:scale(.88)}
+
+/* Morph */
+.slide[data-transition="morph"].exit-left,.slide[data-transition="morph"].exit-right{opacity:0;transform:translateY(-30px)}
+.slide[data-transition="morph"].enter-left,.slide[data-transition="morph"].enter-right{transform:translateY(30px)}
+
+/* Reveal */
+.slide[data-transition="reveal"]{transition:opacity .5s,clip-path .6s cubic-bezier(.16,1,.3,1)}
+.slide[data-transition="reveal"].enter-left,.slide[data-transition="reveal"].enter-right{clip-path:circle(0% at 50% 50%);opacity:1}
+.slide[data-transition="reveal"].active{clip-path:circle(75% at 50% 50%)}
+
+/* ==========================================================================
+   Particles (used on title & thank-you slides)
+   ========================================================================== */
+.particles{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+.particle{
+  position:absolute;border-radius:50%;
+  background:var(--primary);opacity:.2;
+  animation:particleFloat linear infinite;
+}
+
+/* Pulse animation (used for SLA breach badges etc.) */
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}

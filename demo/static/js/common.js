@@ -84,7 +84,7 @@ async function api(method, endpoint, body = null) {
     return await res.json();
   } catch (e) {
     if (e.message?.includes('Request failed') || e.message === 'Session expired'
-      || e.message?.includes('Authentication') || e.message?.includes('Too many')) throw e;
+        || e.message?.includes('Authentication') || e.message?.includes('Too many')) throw e;
     console.error('API Error:', e);
     throw e;
   }
@@ -117,7 +117,7 @@ async function apiFormData(method, endpoint, formData) {
     return await res.json();
   } catch (e) {
     if (e.message?.includes('Request failed') || e.message === 'Session expired'
-      || e.message?.includes('Authentication') || e.message?.includes('Too many')) throw e;
+        || e.message?.includes('Authentication') || e.message?.includes('Too many')) throw e;
     console.error('API Error:', e);
     throw e;
   }
@@ -186,8 +186,10 @@ function renderMarkdown(text) {
 function showToast(message, type = 'success') {
   const el = document.createElement('div');
   el.className = `toast toast-${type}`;
+  el.setAttribute('role', 'alert');
+  el.setAttribute('aria-live', 'assertive');
   const iconName = type === 'success' ? 'check_circle' : 'error';
-  el.innerHTML = `<span class="icon filled" style="font-size:18px;">${iconName}</span> ${escapeHtml(message)}`;
+  el.innerHTML = `<span class="icon filled" style="font-size:18px;" aria-hidden="true">${iconName}</span> ${escapeHtml(message)}`;
   document.body.appendChild(el);
   setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 3000);
 }
@@ -207,8 +209,7 @@ function renderNav() {
       <a href="/track">Track</a>
       <a href="/chatbot">Chatbot</a>
       <a href="/schemes">Schemes</a>
-      <a href="/community">Community</a>
-      <a href="/profile">Profile</a>`;
+      <a href="/community">Community</a>`;
   } else if (user.role === 'admin') {
     links = `
       <a href="/officer-dashboard">Dashboard</a>
@@ -229,36 +230,96 @@ function renderNav() {
       <a href="/profile">Profile</a>`;
   }
 
-  const bellHtml = (user.role === 'admin') ? `
+  const bellHtml = (user.role === 'admin' || user.role === 'officer') ? `
     <div class="notif-bell-wrap" id="notifBellWrap">
-      <button class="notif-bell" id="notifBell" onclick="toggleNotifDropdown()" title="SLA Alerts">
-        <span class="icon">notifications</span><span class="notif-badge" id="notifBadge" style="display:none;">0</span>
+      <button class="notif-bell" id="notifBell" onclick="toggleNotifDropdown()" title="SLA Alerts" aria-label="SLA deadline alerts">
+        <span class="icon" aria-hidden="true">notifications</span><span class="notif-badge" id="notifBadge" style="display:none;">0</span>
       </button>
       <div class="notif-dropdown" id="notifDropdown">
-        <div class="notif-dropdown-header"><span class="icon" style="font-size:18px;color:var(--warning);">warning</span> SLA Deadline Alerts</div>
+        <div class="notif-dropdown-header"><span class="icon" style="font-size:18px;color:var(--warning);" aria-hidden="true">warning</span> SLA Deadline Alerts</div>
         <div class="notif-dropdown-body" id="notifDropdownBody">
           <div style="padding:1rem;text-align:center;opacity:0.6;">Loading…</div>
         </div>
-        <a href="/admin" class="notif-dropdown-footer">View All in Admin Panel</a>
+        <a href="${user.role === 'admin' ? '/admin' : '/queue'}" class="notif-dropdown-footer">View All</a>
       </div>
     </div>` : '';
 
   nav.innerHTML = `
     <a class="logo" href="${user.role === 'citizen' ? '/dashboard' : '/officer-dashboard'}">
-      <span class="icon filled">account_balance</span> PR&DW Portal
+      <span class="icon filled" aria-hidden="true">account_balance</span> PR&DW Portal
     </a>
     <div class="nav-links">${links}</div>
     <div class="nav-user">
       ${bellHtml}
       <span class="user-badge">${escapeHtml(user.full_name)} (${user.role})</span>
-      <button class="btn-logout" onclick="logout()">Logout</button>
+      <button class="btn-logout" onclick="logout()" aria-label="Log out">Logout</button>
+      <button class="hamburger-btn" onclick="openMobileNav()" aria-label="Open navigation menu">
+        <span class="icon" aria-hidden="true">menu</span>
+      </button>
     </div>`;
 
-  // Highlight active
+  // Mobile nav drawer
+  if (!document.getElementById('mobileNavDrawer')) {
+    const overlay = document.createElement('div');
+    overlay.className = 'mobile-nav-overlay';
+    overlay.id = 'mobileNavOverlay';
+    overlay.onclick = closeMobileNav;
+    document.body.appendChild(overlay);
+
+    const drawer = document.createElement('div');
+    drawer.className = 'mobile-nav-drawer';
+    drawer.id = 'mobileNavDrawer';
+    drawer.setAttribute('role', 'dialog');
+    drawer.setAttribute('aria-label', 'Navigation menu');
+    const homeHref = user.role === 'citizen' ? '/dashboard' : '/officer-dashboard';
+    drawer.innerHTML = `
+      <div class="mobile-nav-header">
+        <a class="logo" href="${homeHref}">
+          <span class="icon filled" aria-hidden="true">account_balance</span> PR&DW Portal
+        </a>
+        <button class="mobile-nav-close" onclick="closeMobileNav()" aria-label="Close navigation menu">
+          <span class="icon" aria-hidden="true">close</span>
+        </button>
+      </div>
+      <div class="mobile-nav-links">${links}</div>
+      <div class="mobile-nav-footer">
+        <span class="user-badge">${escapeHtml(user.full_name)} (${user.role})</span>
+        <button class="btn btn-secondary btn-block btn-sm" onclick="logout()">Logout</button>
+      </div>`;
+    document.body.appendChild(drawer);
+
+    // Highlight active in mobile nav
+    const path = window.location.pathname;
+    drawer.querySelectorAll('.mobile-nav-links a').forEach(a => {
+      if (a.getAttribute('href') === path) a.classList.add('active');
+    });
+  }
+
+  // Highlight active in desktop nav
   const path = window.location.pathname;
   nav.querySelectorAll('.nav-links a').forEach(a => {
     if (a.getAttribute('href') === path) a.classList.add('active');
   });
+}
+
+function openMobileNav() {
+  const overlay = document.getElementById('mobileNavOverlay');
+  const drawer = document.getElementById('mobileNavDrawer');
+  if (overlay) { overlay.style.display = 'block'; requestAnimationFrame(() => overlay.classList.add('open')); }
+  if (drawer) { drawer.style.display = 'flex'; requestAnimationFrame(() => drawer.classList.add('open')); }
+  document.body.style.overflow = 'hidden';
+}
+
+function closeMobileNav() {
+  const overlay = document.getElementById('mobileNavOverlay');
+  const drawer = document.getElementById('mobileNavDrawer');
+  if (overlay) overlay.classList.remove('open');
+  if (drawer) drawer.classList.remove('open');
+  document.body.style.overflow = '';
+  setTimeout(() => {
+    if (overlay) overlay.style.display = 'none';
+    if (drawer) drawer.style.display = 'none';
+  }, 300);
 }
 
 function logout() {
@@ -367,11 +428,35 @@ function _notifCountdown(iso, sev) {
 
 function startNotifPolling() {
   const user = getUser();
-  if (!user || user.role !== 'admin') return;
-  // Initial fetch (silent, just badge count)
+  if (!user || (user.role !== 'admin' && user.role !== 'officer')) return;
   fetchNotifAlerts();
-  // Poll every 60 seconds
   _notifPollTimer = setInterval(fetchNotifAlerts, 60000);
+}
+
+// --- Focus trap for modals (a11y) ---
+function trapFocus(modalEl) {
+  const focusable = modalEl.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+  if (!focusable.length) return;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  first.focus();
+  function handler(e) {
+    if (e.key !== 'Tab') return;
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+    } else {
+      if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  }
+  modalEl._focusTrapHandler = handler;
+  modalEl.addEventListener('keydown', handler);
+}
+
+function releaseFocusTrap(modalEl) {
+  if (modalEl._focusTrapHandler) {
+    modalEl.removeEventListener('keydown', modalEl._focusTrapHandler);
+    delete modalEl._focusTrapHandler;
+  }
 }
 
 // --- Init nav on load ---
