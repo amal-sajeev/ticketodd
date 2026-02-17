@@ -48,9 +48,11 @@
 
       <!-- Mode Toggle -->
       <div class="scheme-mode-toggle">
-        <button class="scheme-mode-btn active" onclick="setSchemeMode('upload')" id="modeUploadBtn"><span class="icon sm">description</span> Smart
+        <button class="scheme-mode-btn active" onclick="setSchemeMode('upload')" id="modeUploadBtn"><span
+            class="icon sm">description</span> Smart
           Extract</button>
-        <button class="scheme-mode-btn" onclick="setSchemeMode('manual')" id="modeManualBtn"><span class="icon sm">edit</span> Custom Entry</button>
+        <button class="scheme-mode-btn" onclick="setSchemeMode('manual')" id="modeManualBtn"><span
+            class="icon sm">edit</span> Custom Entry</button>
       </div>
       <p class="text-sm text-muted" style="margin-top:0.5rem;margin-bottom:1rem;" id="modeHint">Upload scheme PDFs,
         images, or documents — we'll read and auto-fill the form for you.</p>
@@ -84,7 +86,8 @@
         </div>
 
         <!-- Reference Documents Section -->
-        <div style="border-top:1px solid var(--outline-variant, rgba(255,255,255,0.2)); margin-top:1rem; padding-top:1rem;">
+        <div
+          style="border-top:1px solid var(--outline-variant, rgba(255,255,255,0.2)); margin-top:1rem; padding-top:1rem;">
           <h3 style="margin-bottom:0.25rem;"><span class="icon sm">attach_file</span> Reference Documents</h3>
           <p class="text-sm text-muted mb-1">Attach the original scheme PDF, circular, or gazette notification for
             record-keeping.</p>
@@ -104,10 +107,12 @@
         <div id="processedDocsInfo" class="hidden mt-1"></div>
 
         <!-- Eligibility Questions Editor -->
-        <div style="border-top:1px solid var(--outline-variant, rgba(255,255,255,0.2)); margin-top:1rem; padding-top:1rem;">
+        <div
+          style="border-top:1px solid var(--outline-variant, rgba(255,255,255,0.2)); margin-top:1rem; padding-top:1rem;">
           <div class="flex-between mb-1">
             <h3 style="margin-bottom:0;">Eligibility Questions</h3>
-            <button class="btn btn-secondary btn-sm" id="genQBtn" onclick="generateQuestions()"><span class="icon sm">smart_toy</span> Generate from
+            <button class="btn btn-secondary btn-sm" id="genQBtn" onclick="generateQuestions()"><span
+                class="icon sm">smart_toy</span> Generate from
               Eligibility</button>
           </div>
           <p class="text-sm text-muted mb-1">These yes/no questions help citizens check if they're eligible. You can
@@ -122,7 +127,8 @@
 
     <div class="flex-between mt-3 mb-1">
       <h3 style="margin-bottom:0;">Existing Schemes</h3>
-      <button class="btn btn-secondary btn-sm" onclick="backfillAll()"><span class="icon sm">smart_toy</span> Backfill All Missing Questions</button>
+      <button class="btn btn-secondary btn-sm" onclick="backfillAll()"><span class="icon sm">smart_toy</span> Backfill
+        All Missing Questions</button>
     </div>
     <div id="schemeList"></div>
   </div>
@@ -574,10 +580,10 @@
         const eElig = escapeHtml(s.eligibility);
         const eHow = escapeHtml(s.how_to_apply);
         return `
-      <div class="scheme-card card card-animate" id="scheme-${s.id}">
+      <div class="scheme-card scheme-card-auto card card-animate" id="scheme-${s.id}">
         <h4>${eName}</h4>
-        <p>${eDesc}</p>
-        <p><strong>Eligibility:</strong> ${eElig}</p>
+        <p class="line-clamp-3" title="${eDesc}">${eDesc}</p>
+        <p class="line-clamp-3" title="${eElig}"><strong>Eligibility:</strong> ${eElig}</p>
         <div class="badges mb-1">${deptBadge(s.department)}
           <span class="badge ${qCount ? 'badge-resolved' : 'badge-pending'}">${qCount ? qCount + ' questions' : 'No questions'}</span>
           ${docCount ? `<span class="doc-badge">${docCount} doc${docCount > 1 ? 's' : ''}</span>` : ''}
