@@ -84,7 +84,7 @@ async function api(method, endpoint, body = null) {
     return await res.json();
   } catch (e) {
     if (e.message?.includes('Request failed') || e.message === 'Session expired'
-        || e.message?.includes('Authentication') || e.message?.includes('Too many')) throw e;
+      || e.message?.includes('Authentication') || e.message?.includes('Too many')) throw e;
     console.error('API Error:', e);
     throw e;
   }
@@ -117,7 +117,7 @@ async function apiFormData(method, endpoint, formData) {
     return await res.json();
   } catch (e) {
     if (e.message?.includes('Request failed') || e.message === 'Session expired'
-        || e.message?.includes('Authentication') || e.message?.includes('Too many')) throw e;
+      || e.message?.includes('Authentication') || e.message?.includes('Too many')) throw e;
     console.error('API Error:', e);
     throw e;
   }
@@ -209,7 +209,8 @@ function renderNav() {
       <a href="/track">Track</a>
       <a href="/chatbot">Chatbot</a>
       <a href="/schemes">Schemes</a>
-      <a href="/community">Community</a>`;
+      <a href="/community">Community</a>
+      <a href="/profile">Profile</a>`;
   } else if (user.role === 'admin') {
     links = `
       <a href="/officer-dashboard">Dashboard</a>

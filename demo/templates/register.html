@@ -304,6 +304,11 @@
 
       console.log("✅ Face descriptor captured:", faceDescriptor.length, "dimensions");
 
+      // Hide video and show canvas with captured frame
+      video.style.display = 'none';
+      canvas.style.position = 'relative';
+      canvas.style.display = 'block';
+
       // Stop camera to save resources
       stopCamera();
     }
