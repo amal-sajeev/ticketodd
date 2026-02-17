@@ -11,9 +11,45 @@
     <div style="padding-bottom:2px;"><button class="btn btn-primary" onclick="searchSchemes()">Search</button></div>
   </div>
   <div id="schemeList"></div>
+
+  <!-- Document Viewer Modal -->
+  <div id="docViewerOverlay" class="doc-overlay hidden" onclick="closeDocViewer()">
+    <div class="glass-strong doc-modal" onclick="event.stopPropagation()"
+      style="display:flex;flex-direction:column;height:95vh;padding:0;">
+      <div class="flex-between mb-1" style="padding:0.5rem 1rem;flex-shrink:0;">
+        <h3 id="docViewerTitle" style="margin:0;"></h3>
+        <button class="btn btn-sm" onclick="closeDocViewer()" style="padding:0.3rem 0.7rem;"
+          aria-label="Close document viewer"><span class="icon sm">close</span></button>
+      </div>
+      <div id="loadingSpinner" class="hidden" style="text-align:center;padding:2rem;">
+        <div class="spinner"><span></span><span></span><span></span></div>
+        <p>Loading preview...</p>
+      </div>
+      <div id="docViewerContent"></div>
+      <div id="pdfControls" class="hidden"
+        style="display:flex;gap:0.5rem;align-items:center;justify-content:center;background:var(--surface-container);padding:0.5rem;border-radius:8px;flex-shrink:0;">
+        <button class="btn btn-sm btn-secondary" onclick="changeZoom(-0.1)" aria-label="Zoom out"><span
+            class="icon sm">remove</span></button>
+        <span id="zoomLevel" style="font-size:0.9rem;font-weight:600;min-width:60px;text-align:center;">100%</span>
+        <button class="btn btn-sm btn-secondary" onclick="changeZoom(0.1)" aria-label="Zoom in"><span
+            class="icon sm">add</span></button>
+        <button class="btn btn-sm btn-secondary" onclick="resetZoom()" style="margin-left:0.5rem;"
+          aria-label="Reset zoom">Reset</button>
+      </div>
+      <div id="pdfContainer" class="hidden"
+        style="flex:1;overflow:auto;background:#525659;border-radius:4px;min-height:0;"></div>
+      <div id="imageContainer" class="hidden" style="text-align:center;flex:1;overflow:auto;min-height:0;">
+        <img id="viewerImage" src="" style="max-width:100%;height:auto;border-radius:4px;">
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
 {% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+</script>
 <script>
   document.getElementById('deptFilter').innerHTML = deptOptions('', true);
   loadSchemes();
@@ -61,5 +97,141 @@
 
   document.getElementById('deptFilter').addEventListener('change', loadSchemes);
   document.getElementById('searchQ').addEventListener('keydown', e => { if (e.key === 'Enter') searchSchemes(); });
+
+  // ===================================================================
+  // DOCUMENT VIEWER (PDF.js + Image)
+  // ===================================================================
+  let pdfDoc = null, scale = 1.0;
+
+  async function openDocViewer(docId, filename, contentType) {
+    const overlay = document.getElementById('docViewerOverlay');
+    const title = document.getElementById('docViewerTitle');
+    const content = document.getElementById('docViewerContent');
+    const pdfControls = document.getElementById('pdfControls');
+    const pdfContainer = document.getElementById('pdfContainer');
+    const imgContainer = document.getElementById('imageContainer');
+    const viewerImg = document.getElementById('viewerImage');
+    const loader = document.getElementById('loadingSpinner');
+
+    title.textContent = filename;
+    title.title = filename;
+    const url = `/attachments/${docId}`;
+
+    // Reset state
+    pdfDoc = null;
+    pdfControls.classList.add('hidden');
+    pdfContainer.classList.add('hidden');
+    pdfContainer.innerHTML = '';
+    imgContainer.classList.add('hidden');
+    content.innerHTML = '';
+    loader.classList.remove('hidden');
+    overlay.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+
+    if (contentType === 'application/pdf') {
+      if (typeof pdfjsLib !== 'undefined') {
+        try {
+          const loadingTask = pdfjsLib.getDocument(url);
+          pdfDoc = await loadingTask.promise;
+
+          pdfControls.classList.remove('hidden');
+          pdfContainer.classList.remove('hidden');
+          loader.classList.add('hidden');
+
+          // Initial seamless fit
+          fitToWidth();
+        } catch (e) {
+          loader.classList.add('hidden');
+          console.error(e);
+          // Fallback to iframe if pdf.js fails
+          pdfContainer.classList.remove('hidden');
+          pdfContainer.innerHTML = `<iframe src="${url}" style="width:100%;height:100%;min-height:70vh;border:none;border-radius:8px;"></iframe>`;
+        }
+      } else {
+        // Fallback: use browser's built-in PDF viewer via iframe
+        loader.classList.add('hidden');
+        pdfContainer.classList.remove('hidden');
+        pdfContainer.innerHTML = `<iframe src="${url}" style="width:100%;height:100%;min-height:70vh;border:none;border-radius:8px;"></iframe>`;
+      }
+    } else if (contentType && contentType.startsWith('image/')) {
+      viewerImg.src = url;
+      loader.classList.add('hidden');
+      imgContainer.classList.remove('hidden');
+    } else {
+      loader.classList.add('hidden');
+      content.innerHTML = `<div style="padding:2rem;text-align:center;color:#37474F;"><p>Preview not available for this file type.</p><a href="${url}" target="_blank" class="btn btn-primary btn-sm mt-1">Download</a></div>`;
+    }
+  }
+
+  async function fitToWidth() {
+    if (!pdfDoc) return;
+    const container = document.getElementById('docViewerContent');
+    const page = await pdfDoc.getPage(1);
+    const viewport = page.getViewport({ scale: 1 });
+
+    // Exact fit to container width (no margins)
+    // Subtract scrollbar width approximation (approx 16px if needed, or use clientWidth)
+    const availableWidth = container.clientWidth - 30; // 30px safety margin for scrollbar + padding
+
+    scale = availableWidth / viewport.width;
+    renderAllPages();
+  }
+
+  async function renderAllPages() {
+    const container = document.getElementById('pdfContainer');
+    container.innerHTML = '';
+
+    // Update Zoom Label
+    const pct = Math.round(scale * 100);
+    document.getElementById('zoomLevel').textContent = pct + '%';
+
+    for (let num = 1; num <= pdfDoc.numPages; num++) {
+      const page = await pdfDoc.getPage(num);
+      const viewport = page.getViewport({ scale: scale });
+
+      const canvas = document.createElement('canvas');
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
+      canvas.style.display = 'block';
+
+      // Styling for seamless look
+      canvas.style.marginBottom = '20px'; // Slight gap between pages
+      canvas.style.background = '#FFFFFF';
+      canvas.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)'; // Subtle shadow
+
+      container.appendChild(canvas);
+
+      const ctx = canvas.getContext('2d');
+      const renderContext = { canvasContext: ctx, viewport: viewport };
+      page.render(renderContext);
+    }
+  }
+
+  function changeZoom(delta) {
+    if (!pdfDoc) return;
+    const newScale = scale + delta;
+    if (newScale >= 0.2 && newScale <= 5.0) {
+      scale = newScale;
+      renderAllPages();
+    }
+  }
+
+  function resetZoom() {
+    fitToWidth();
+  }
+
+  function closeDocViewer() {
+    document.getElementById('docViewerOverlay').classList.add('hidden');
+    document.getElementById('docViewerContent').innerHTML = '';
+    document.getElementById('pdfContainer').innerHTML = '';
+    document.body.style.overflow = '';
+  }
+
+  // Close on Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !document.getElementById('docViewerOverlay').classList.contains('hidden')) {
+      closeDocViewer();
+    }
+  });
 </script>
 {% endblock %}
