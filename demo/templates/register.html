@@ -1,52 +1,314 @@
 {% extends "base.html" %}
 {% block title %}Register — PR&DW Portal{% endblock %}
+
+{% block head %}
+<!-- Allow camera access in this page -->
+<meta http-equiv="Permissions-Policy" content="camera=*">
+{% endblock %}
+
 {% block content %}
 <div class="auth-container">
   <div class="auth-card glass-strong" style="max-width:480px;">
     <h1>🏛️ Create Account</h1>
     <p class="auth-subtitle">Register as a citizen to file and track grievances</p>
-    <form id="regForm" onsubmit="return handleRegister(event)">
-      <div class="form-group"><label>Full Name</label><input type="text" class="form-control" id="fullName" required></div>
-      <div class="form-row">
-        <div class="form-group"><label>Email</label><input type="email" class="form-control" id="email" required></div>
-        <div class="form-group"><label>Phone</label><input type="text" class="form-control" id="phone" placeholder="Optional"></div>
+    <div id="step1" class="step-container active">
+      <form onsubmit="event.preventDefault(); nextStep();">
+        <div class="form-group"><label>Full Name</label><input type="text" class="form-control" id="fullName" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Email</label><input type="email" class="form-control" id="email" required>
+          </div>
+          <div class="form-group"><label>Phone</label><input type="text" class="form-control" id="phone"
+              placeholder="Optional"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Username</label><input type="text" class="form-control" id="username" required
+              minlength="3"></div>
+          <div class="form-group"><label>Password</label><input type="password" class="form-control" id="password"
+              required minlength="6"></div>
+        </div>
+        <div id="regError" class="text-sm" style="color:#C62828;margin-bottom:1rem;display:none;"></div>
+        <button type="submit" class="btn btn-primary btn-block">Next: Face Setup</button>
+      </form>
+    </div>
+
+    <div id="step2" class="step-container">
+      <h3 class="text-center mb-3">👤 Face Enrollment</h3>
+      <div class="video-contain">
+        <video id="video" autoplay muted playsinline></video>
+        <canvas id="canvas"></canvas>
       </div>
-      <div class="form-row">
-        <div class="form-group"><label>Username</label><input type="text" class="form-control" id="username" required minlength="3"></div>
-        <div class="form-group"><label>Password</label><input type="password" class="form-control" id="password" required minlength="6"></div>
-      </div>
-      <div id="regError" class="text-sm" style="color:#C62828;margin-bottom:1rem;display:none;"></div>
-      <button type="submit" class="btn btn-primary btn-block" id="regBtn">Create Account</button>
-    </form>
+      <p class="text-center text-sm mb-3" id="faceStatus">Initializing...</p>
+
+      <button class="btn btn-secondary btn-block mb-2" id="captureBtn" onclick="captureFace()" disabled>Capture
+        Face</button>
+      <button class="btn btn-primary btn-block" id="finishBtn" onclick="handleRegister()" style="display:none;">Finish &
+        Register</button>
+      <button class="btn btn-link btn-block btn-sm" onclick="location.reload()">Back</button>
+    </div>
     <p class="mt-2 text-sm">Already have an account? <a href="/login" class="auth-link">Sign in</a></p>
   </div>
 </div>
 {% endblock %}
+
 {% block scripts %}
-<script>
-async function handleRegister(e) {
-  e.preventDefault();
-  const btn = document.getElementById('regBtn');
-  const errEl = document.getElementById('regError');
-  errEl.style.display = 'none';
-  btn.textContent = 'Creating...'; btn.disabled = true;
-  const body = {
-    full_name: document.getElementById('fullName').value,
-    email: document.getElementById('email').value,
-    phone: document.getElementById('phone').value || null,
-    username: document.getElementById('username').value,
-    password: document.getElementById('password').value,
-    role: 'citizen',
-  };
-  try {
-    const data = await api('POST', '/auth/register', body);
-    setAuth(data.access_token, data.user);
-    window.location.href = '/dashboard';
-  } catch (err) {
-    errEl.textContent = err.message || 'Registration failed';
-    errEl.style.display = 'block';
-    btn.textContent = 'Create Account'; btn.disabled = false;
+<style>
+  .step-container {
+    display: none;
   }
-}
+
+  .step-container.active {
+    display: block;
+  }
+
+  .video-contain {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4/3;
+    background: #000;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+  }
+
+  video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1);
+  }
+
+  canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transform: scaleX(-1);
+  }
+</style>
+
+<script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+
+<script>
+  let stream = null;
+  let currentStep = 1;
+  let faceDescriptor = null;
+  let faceModelsLoaded = false;
+
+  async function nextStep() {
+    // Validate Step 1
+    if (!document.getElementById('fullName').value || !document.getElementById('email').value ||
+      !document.getElementById('username').value || !document.getElementById('password').value) {
+      showError("Please fill all required fields");
+      return;
+    }
+
+    hideError();
+    document.getElementById('step1').classList.remove('active');
+    document.getElementById('step2').classList.add('active');
+    currentStep = 2;
+
+    await startCamera();
+  }
+
+  async function startCamera() {
+    const statusEl = document.getElementById('faceStatus');
+
+    // Check if running on secure context
+    if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+      showError("Camera requires HTTPS. Please access via https:// or use localhost.");
+      return;
+    }
+
+    // Check permissions policy
+    if (document.featurePolicy && !document.featurePolicy.allowsFeature('camera')) {
+      console.error("❌ Camera blocked by permissions policy");
+      showError("Camera is blocked by page security policy. Please check server configuration.");
+      return;
+    }
+
+    statusEl.textContent = "Loading models...";
+    console.log("📦 Loading face detection models...");
+
+    if (!faceModelsLoaded) {
+      try {
+        const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
+        await Promise.all([
+          faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+          faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+          faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+        ]);
+        faceModelsLoaded = true;
+        console.log("✅ Face detection models loaded");
+      } catch (e) {
+        console.error("❌ Model loading error:", e);
+        showError("Failed to load AI models");
+        return;
+      }
+    }
+
+    statusEl.textContent = "Starting camera...";
+    console.log("📷 Requesting camera access...");
+    console.log("Protocol:", location.protocol, "Hostname:", location.hostname);
+
+    try {
+      // Check if camera API is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera not supported in this browser');
+      }
+
+      const video = document.getElementById('video');
+
+      // Request camera permission with better error handling
+      try {
+        console.log("Attempting camera access with ideal constraints...");
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            width: { ideal: 640 },
+            height: { ideal: 480 },
+            facingMode: 'user'
+          }
+        });
+        console.log("✅ Camera access granted!");
+      } catch (err) {
+        // Fallback to simpler constraints
+        console.warn("⚠️ Ideal constraints failed, trying fallback...");
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user' }
+        });
+        console.log("✅ Camera access granted (fallback)!");
+      }
+
+      video.srcObject = stream;
+
+      video.addEventListener('play', () => {
+        const canvas = document.getElementById('canvas');
+        const displaySize = { width: video.clientWidth, height: video.clientHeight };
+        faceapi.matchDimensions(canvas, displaySize);
+
+        statusEl.textContent = "Position your face...";
+        console.log("👁️ Starting face detection...");
+
+        setInterval(async () => {
+          if (currentStep !== 2 || faceDescriptor) return;
+
+          const detections = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+            .withFaceLandmarks()
+            .withFaceDescriptor();
+
+          const ctx = canvas.getContext('2d');
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+          if (detections) {
+            const resizedDetections = faceapi.resizeResults(detections, displaySize);
+            faceapi.draw.drawDetections(canvas, resizedDetections);
+            statusEl.textContent = "Face detected! Click 'Capture' to save.";
+            statusEl.style.color = "#2E7D32";
+            document.getElementById('captureBtn').disabled = false;
+            // Store temporarily
+            window.lastDescriptor = detections.descriptor;
+          } else {
+            statusEl.textContent = "Looking for face...";
+            statusEl.style.color = "#666";
+            document.getElementById('captureBtn').disabled = true;
+          }
+        }, 500);
+      });
+    } catch (err) {
+      console.error("❌ Camera error:", err);
+      stopCamera();
+
+      // More specific error messages
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        showError("Camera permission denied. Please:\n1. Click the camera icon in your browser's address bar\n2. Allow camera access\n3. Refresh and try again");
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        showError("No camera found. Please connect a camera and try again.");
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        showError("Camera is in use by another application. Please close other apps and try again.");
+      } else if (err.name === 'OverconstrainedError') {
+        showError("Camera doesn't support the required settings. Try a different camera.");
+      } else if (err.name === 'SecurityError') {
+        showError("Camera access blocked due to security settings. Please use HTTPS or localhost.");
+      } else {
+        showError("Camera error: " + (err.message || 'Unable to access camera. Please check your browser settings.'));
+      }
+    }
+  }
+
+  function captureFace() {
+    if (window.lastDescriptor) {
+      faceDescriptor = Array.from(window.lastDescriptor);
+      const statusEl = document.getElementById('faceStatus');
+      statusEl.textContent = "✅ Face captured successfully!";
+      statusEl.style.color = "#2E7D32";
+
+      document.getElementById('captureBtn').style.display = 'none';
+      document.getElementById('finishBtn').style.display = 'block';
+
+      console.log("✅ Face descriptor captured:", faceDescriptor.length, "dimensions");
+
+      // Stop camera to save resources
+      stopCamera();
+    }
+  }
+
+  function stopCamera() {
+    if (stream) {
+      stream.getTracks().forEach(t => t.stop());
+      stream = null;
+      console.log("🔴 Camera stopped");
+    }
+    // Also clear video srcObject
+    const video = document.getElementById('video');
+    if (video) {
+      video.srcObject = null;
+    }
+  }
+
+  async function handleRegister() {
+    const btn = document.getElementById('finishBtn');
+    btn.disabled = true;
+    btn.textContent = "Creating Account...";
+
+    const body = {
+      full_name: document.getElementById('fullName').value,
+      email: document.getElementById('email').value,
+      phone: document.getElementById('phone').value || null,
+      username: document.getElementById('username').value,
+      password: document.getElementById('password').value,
+      role: 'citizen',
+      face_descriptor: faceDescriptor
+    };
+
+    console.log("📤 Sending registration request...");
+
+    try {
+      const data = await api('POST', '/auth/register', body);
+      console.log("✅ Registration successful!");
+      setAuth(data.access_token, data.user);
+      window.location.href = '/dashboard';
+    } catch (err) {
+      console.error("❌ Registration failed:", err);
+      showError(err.message || 'Registration failed');
+      btn.disabled = false;
+      btn.textContent = "Finish & Register";
+    }
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('regError');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  function hideError() {
+    document.getElementById('regError').style.display = 'none';
+  }
+
+  // Cleanup on page unload
+  window.addEventListener('beforeunload', () => {
+    stopCamera();
+  });
 </script>
 {% endblock %}

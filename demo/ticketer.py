@@ -17,6 +17,9 @@ from typing import List, Optional, Dict, Any
 from enum import Enum
 from contextlib import asynccontextmanager
 from concurrent.futures import ThreadPoolExecutor
+import numpy as np
+
+FACE_MATCH_THRESHOLD = 0.5  # Strict threshold for high security
 
 import httpx
 import openai as openai_mod
@@ -188,12 +191,14 @@ class Geolocation(BaseModel):
     longitude: Optional[float] = Field(None, ge=-180, le=180)
     type: Optional[str] = None
     coordinates: Optional[List[float]] = None
+
     @field_validator('coordinates')
     @classmethod
     def validate_coordinates(cls, v):
         if v is not None and len(v) != 2:
             raise ValueError("Coordinates must be [longitude, latitude]")
         return v
+
     @model_validator(mode='before')
     @classmethod
     def check_location_format(cls, values):
@@ -216,6 +221,7 @@ class UserCreate(BaseModel):
     phone: Optional[str] = Field(None, max_length=20)
     role: UserRole = UserRole.CITIZEN
     department: Optional[Department] = None
+    face_descriptor: Optional[List[float]] = None
 
 class UserUpdate(BaseModel):
     full_name: Optional[str] = Field(None, max_length=200)
@@ -224,10 +230,12 @@ class UserUpdate(BaseModel):
     role: Optional[UserRole] = None
     department: Optional[Department] = None
     password: Optional[str] = Field(None, min_length=6, max_length=72)
+    face_descriptor: Optional[List[float]] = None
 
 class UserLogin(BaseModel):
-    username: str
-    password: str
+    username: Optional[str] = None
+    password: Optional[str] = None
+    face_descriptor: Optional[List[float]] = None
 
 class UserResponse(BaseModel):
     id: str
@@ -238,6 +246,7 @@ class UserResponse(BaseModel):
     role: UserRole
     department: Optional[str] = None
     created_at: datetime
+    has_face_id: bool = False
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -620,7 +629,8 @@ def user_to_response(user: dict) -> UserResponse:
     return UserResponse(
         id=str(user["_id"]), username=user["username"], full_name=user["full_name"],
         email=user["email"], phone=user.get("phone"), role=user["role"],
-        department=user.get("department"), created_at=user["created_at"])
+        department=user.get("department"), created_at=user["created_at"],
+        has_face_id=bool(user.get("face_descriptor")))
 
 # ---------------------------------------------------------------------------
 # AI Helpers: Cache, Retry, Truncation
@@ -718,6 +728,41 @@ def validate_uuid(value: str, param_name: str = "id") -> str:
     except (ValueError, AttributeError):
         raise HTTPException(status_code=400, detail=f"Invalid {param_name} format")
     return value
+
+
+# ---------------------------------------------------------------------------
+# Face Recognition Helpers
+# ---------------------------------------------------------------------------
+def face_distance(face1: List[float], face2: List[float]) -> float:
+    """Calculate Euclidean distance between two face descriptors"""
+    if not face1 or not face2:
+        return float('inf')
+    return float(np.linalg.norm(np.array(face1) - np.array(face2)))
+
+async def find_user_by_face(descriptor: List[float], db) -> Optional[dict]:
+    """Find a user with a matching face descriptor."""
+    if not descriptor:
+        return None
+    loop = asyncio.get_event_loop()
+    # Fetch all users with face descriptors (optimize in prod with vector DB if needed)
+    users_with_faces = await loop.run_in_executor(
+        executor, lambda: list(db.users.find({"face_descriptor": {"$exists": True}})))
+    
+    best_match = None
+    best_distance = float('inf')
+    
+    for user in users_with_faces:
+        stored_face = user.get("face_descriptor")
+        if not stored_face:
+            continue
+        dist = face_distance(descriptor, stored_face)
+        if dist < best_distance:
+            best_distance = dist
+            best_match = user
+            
+    if best_match and best_distance < FACE_MATCH_THRESHOLD:
+        return best_match
+    return None
 
 # ---------------------------------------------------------------------------
 # AI Service Classes
@@ -1640,15 +1685,38 @@ async def register(request: Request, user_data: UserCreate, db=Depends(get_db)):
         "phone": user_data.phone, "role": user_data.role.value,
         "department": user_data.department.value if user_data.department else None,
         "created_at": datetime.now(timezone.utc),
+        "face_descriptor": user_data.face_descriptor,
     }
+    
+    # Check if face is already registered
+    if user_data.face_descriptor:
+        existing_face_user = await find_user_by_face(user_data.face_descriptor, db)
+        if existing_face_user:
+            raise HTTPException(status_code=400, detail="This face is already registered with another account.")
+            
     await loop.run_in_executor(executor, db.users.insert_one, user_doc)
     token = create_access_token({"sub": user_data.username, "role": user_data.role.value})
     return TokenResponse(access_token=token, user=user_to_response(user_doc))
 
 @app.post("/auth/login", response_model=TokenResponse)
-@limiter.limit("5/minute")
+@limiter.limit("10/minute")
 async def login(request: Request, form: UserLogin, db=Depends(get_db)):
     loop = asyncio.get_event_loop()
+
+    # Face Login
+    # Face Login
+    if form.face_descriptor:
+        best_match = await find_user_by_face(form.face_descriptor, db)
+        if best_match:
+            token = create_access_token({"sub": best_match["username"], "role": best_match["role"]})
+            return TokenResponse(access_token=token, user=user_to_response(best_match))
+        
+        raise HTTPException(status_code=401, detail="Face not recognized or match confidence too low")
+
+    # Password Login
+    if not form.username or not form.password:
+        raise HTTPException(status_code=400, detail="Username and password required")
+
     user = await loop.run_in_executor(executor, db.users.find_one, {"username": form.username})
     if not user or not verify_password(form.password, user["hashed_password"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -1659,6 +1727,13 @@ async def login(request: Request, form: UserLogin, db=Depends(get_db)):
 async def get_me(user=Depends(get_current_user)):
     return user_to_response(user)
 
+@app.middleware("http")
+async def add_permissions_policy(request, call_next):
+    response = await call_next(request)
+    response.headers["Permissions-Policy"] = "camera=*, microphone=*"
+    response.headers["Feature-Policy"] = "camera *; microphone *"
+    return response
+    
 @app.post("/auth/logout")
 async def logout(token: Optional[str] = Depends(oauth2_scheme)):
     if token:
@@ -1705,7 +1780,15 @@ async def admin_create_user(user_data: UserCreate,
         "phone": user_data.phone, "role": user_data.role.value,
         "department": user_data.department.value if user_data.department else None,
         "created_at": datetime.now(timezone.utc),
+        "face_descriptor": user_data.face_descriptor,
     }
+
+    # Check if face is already registered
+    if user_data.face_descriptor:
+        existing_face_user = await find_user_by_face(user_data.face_descriptor, db)
+        if existing_face_user:
+            raise HTTPException(status_code=400, detail="This face is already registered with another account.")
+
     await loop.run_in_executor(executor, db.users.insert_one, user_doc)
     logger.info("Admin %s created user %s (%s)", user["username"], user_data.username, user_data.role.value)
     return user_to_response(user_doc)
@@ -1732,6 +1815,15 @@ async def admin_update_user(user_id: str, update: UserUpdate,
         set_fields["department"] = update.department.value
     if update.password is not None:
         set_fields["hashed_password"] = hash_password(update.password)
+    
+    if update.face_descriptor is not None:
+        # If setting a new face, check uniqueness
+        if update.face_descriptor: # if not empty list or None
+             existing_face_user = await find_user_by_face(update.face_descriptor, db)
+             if existing_face_user and str(existing_face_user["_id"]) != user_id:
+                 raise HTTPException(status_code=400, detail="This face is already registered with another account.")
+        set_fields["face_descriptor"] = update.face_descriptor
+
     if not set_fields:
         raise HTTPException(status_code=400, detail="No fields to update")
     result = await loop.run_in_executor(
