@@ -141,6 +141,22 @@
       <h3 id="docViewerTitle" style="margin:0;"></h3>
       <button class="btn btn-sm" onclick="closeDocViewer()" style="font-size:1.1rem;padding:0.3rem 0.7rem;">✕</button>
     </div>
+    <div id="loadingSpinner" class="hidden" style="text-align:center;padding:2rem;">
+      <div class="spinner"><span></span><span></span><span></span></div>
+      <p>Loading preview...</p>
+    </div>
+    <div id="docViewerContent"></div>
+    <div id="pdfControls" class="hidden"
+      style="display:flex;gap:0.5rem;align-items:center;justify-content:center;margin-bottom:0.5rem;background:var(--surface-container);padding:0.5rem;border-radius:8px;">
+      <button class="btn btn-sm btn-secondary" onclick="changeZoom(-0.1)"><span class="icon sm">remove</span></button>
+      <span id="zoomLevel" style="font-size:0.9rem;font-weight:600;min-width:60px;text-align:center;">100%</span>
+      <button class="btn btn-sm btn-secondary" onclick="changeZoom(0.1)"><span class="icon sm">add</span></button>
+      <button class="btn btn-sm btn-secondary" onclick="resetZoom()" style="margin-left:0.5rem;">Reset</button>
+    </div>
+    <div id="pdfContainer" class="hidden" style="height:60vh;overflow:auto;background:#525659;border-radius:4px;"></div>
+    <div id="imageContainer" class="hidden" style="text-align:center;max-height:60vh;overflow:auto;">
+      <img id="viewerImage" src="" style="max-width:100%;height:auto;border-radius:4px;">
+    </div>
   </div>
 </div>
 </div>
@@ -806,7 +822,7 @@
 
     // Exact fit to container width (no margins)
     // Subtract scrollbar width approximation (approx 16px if needed, or use clientWidth)
-    const availableWidth = container.clientWidth; // clientWidth excludes scrollbar
+    const availableWidth = container.clientWidth - 30; // 30px safety margin for scrollbar + padding
 
     scale = availableWidth / viewport.width;
     renderAllPages();
@@ -842,13 +858,17 @@
     }
   }
 
-  function zoomPdf(delta) {
+  function changeZoom(delta) {
     if (!pdfDoc) return;
     const newScale = scale + delta;
     if (newScale >= 0.2 && newScale <= 5.0) {
       scale = newScale;
       renderAllPages();
     }
+  }
+
+  function resetZoom() {
+    fitToWidth();
   }
 
   function closeDocViewer() {
