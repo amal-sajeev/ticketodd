@@ -3170,6 +3170,22 @@ async def get_attachment(attachment_id: str,
         oid = ObjectId(attachment_id)
         grievance = await loop.run_in_executor(executor, lambda: db.grievances.find_one(
             {"attachments": attachment_id}, {"citizen_user_id": 1, "is_public": 1}))
+        # Check if it's a scheme document (publicly accessible)
+        grid_file = await loop.run_in_executor(executor, lambda: gfs.exists(oid))
+        if grid_file:
+            file_meta = await loop.run_in_executor(executor, lambda: db.fs.files.find_one(
+                {"_id": oid}, {"metadata": 1}))
+            if file_meta and file_meta.get("metadata", {}).get("type") == "scheme_document":
+                # Scheme documents are public — skip access control
+                fobj = await loop.run_in_executor(executor, lambda: gfs.get(oid))
+                def iterfile_scheme():
+                    while True:
+                        chunk = fobj.read(8192)
+                        if not chunk:
+                            break
+                        yield chunk
+                return StreamingResponse(iterfile_scheme(), media_type=fobj.content_type or "application/octet-stream",
+                                         headers={"Content-Disposition": f'inline; filename="{fobj.filename}"'})
         # Also check if it's vouch evidence
         vouch = None
         if not grievance:

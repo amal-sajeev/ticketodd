@@ -153,8 +153,8 @@
       <button class="btn btn-sm btn-secondary" onclick="changeZoom(0.1)" aria-label="Zoom in"><span class="icon sm">add</span></button>
       <button class="btn btn-sm btn-secondary" onclick="resetZoom()" style="margin-left:0.5rem;" aria-label="Reset zoom">Reset</button>
     </div>
-    <div id="pdfContainer" class="hidden" style="height:60vh;overflow:auto;background:#525659;border-radius:4px;"></div>
-    <div id="imageContainer" class="hidden" style="text-align:center;max-height:60vh;overflow:auto;">
+    <div id="pdfContainer" class="hidden" style="flex:1;min-height:0;overflow:auto;background:#525659;border-radius:4px;"></div>
+    <div id="imageContainer" class="hidden" style="flex:1;min-height:0;text-align:center;overflow:auto;">
       <img id="viewerImage" src="" style="max-width:100%;height:auto;border-radius:4px;">
     </div>
   </div>
@@ -789,20 +789,27 @@
     document.body.style.overflow = 'hidden';
 
     if (contentType === 'application/pdf') {
-      try {
-        const loadingTask = pdfjsLib.getDocument(url);
-        pdfDoc = await loadingTask.promise;
+      if (typeof pdfjsLib !== 'undefined') {
+        try {
+          const loadingTask = pdfjsLib.getDocument(url);
+          pdfDoc = await loadingTask.promise;
 
-        pdfControls.classList.remove('hidden');
+          pdfControls.classList.remove('hidden');
+          pdfContainer.classList.remove('hidden');
+          loader.classList.add('hidden');
+
+          // Initial seamless fit
+          fitToWidth();
+        } catch (e) {
+          loader.classList.add('hidden');
+          showToast('Error loading PDF: ' + e.message, 'error');
+          console.error(e);
+        }
+      } else {
+        // Fallback: use browser's built-in PDF viewer via iframe
+        loader.classList.add('hidden');
         pdfContainer.classList.remove('hidden');
-        loader.classList.add('hidden');
-
-        // Initial seamless fit
-        fitToWidth();
-      } catch (e) {
-        loader.classList.add('hidden');
-        showToast('Error loading PDF: ' + e.message, 'error');
-        console.error(e);
+        pdfContainer.innerHTML = `<iframe src="${url}" style="width:100%;height:100%;min-height:70vh;border:none;border-radius:8px;"></iframe>`;
       }
     } else if (contentType && contentType.startsWith('image/')) {
       viewerImg.src = url;
