@@ -381,7 +381,7 @@ def launch_server():
 """)
     import uvicorn
     os.chdir(str(SCRIPT_DIR))
-    uvicorn.run("ticketer:app", host="0.0.0.0", port=8000, reload=False)
+    uvicorn.run("ticketer:app", host="0.0.0.0", port=8000, reload=True)
 
 
 # ── Main ─────────────────────────────────────────────────────────────────────
