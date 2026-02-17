@@ -83,7 +83,7 @@ if not JWT_SECRET or len(JWT_SECRET) < 32:
         "Generate one with: python -c \"import secrets; print(secrets.token_urlsafe(48))\""
     )
 JWT_ALGORITHM = "HS256"
-JWT_EXPIRE_HOURS = 2
+JWT_EXPIRE_HOURS = 24
 EMBEDDING_DIM = 3072  # text-embedding-3-large
 
 OPENWEATHERMAP_API_KEY = os.getenv("OPENWEATHERMAP_API_KEY", "")
@@ -1749,39 +1749,6 @@ async def login(request: Request, form: UserLogin, db=Depends(get_db)):
 @app.get("/auth/me", response_model=UserResponse)
 async def get_me(user=Depends(get_current_user)):
     return user_to_response(user)
-
-@app.put("/auth/me", response_model=UserResponse)
-async def update_me(update: UserUpdate, user=Depends(get_current_user), db=Depends(get_db)):
-    """Allow user to update their own profile (including adding face)"""
-    loop = asyncio.get_event_loop()
-    user_id = str(user["_id"])
-    
-    set_fields: Dict[str, Any] = {}
-    if update.full_name is not None:
-        set_fields["full_name"] = update.full_name
-    if update.email is not None:
-        set_fields["email"] = update.email
-    if update.phone is not None:
-        set_fields["phone"] = update.phone
-    if update.password is not None:
-        set_fields["hashed_password"] = hash_password(update.password)
-        
-    if update.face_descriptor is not None:
-        # If setting a new face, check uniqueness
-        if update.face_descriptor: # if not empty list or None
-             existing_face_user = await find_user_by_face(update.face_descriptor, db)
-             if existing_face_user and str(existing_face_user["_id"]) != user_id:
-                 raise HTTPException(status_code=400, detail="This face is already registered with another account.")
-        set_fields["face_descriptor"] = update.face_descriptor
-
-    if not set_fields:
-        raise HTTPException(status_code=400, detail="No fields to update")
-        
-    result = await loop.run_in_executor(
-        executor, lambda: db.users.update_one({"_id": user_id}, {"$set": set_fields}))
-        
-    updated = await loop.run_in_executor(executor, db.users.find_one, {"_id": user_id})
-    return user_to_response(updated)
 
 @app.middleware("http")
 async def add_permissions_policy(request, call_next):
@@ -3574,7 +3541,6 @@ PAGES = [
     ("admin", "admin.html"),
     ("community", "community.html"),
     ("systemic-issue-detail", "systemic_issue_detail.html"),
-    ("profile", "profile.html"),
 ]
 
 for _path, _template in PAGES:

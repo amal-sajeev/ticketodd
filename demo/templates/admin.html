@@ -11,8 +11,7 @@
       <h1><span class="icon" style="font-size:28px;color:var(--warning);">warning</span> SLA Deadline Alerts</h1>
       <p class="subtitle">Unresolved grievances nearing or past their deadlines</p>
     </div>
-    <button class="btn btn-secondary" onclick="loadAlerts()" id="refreshAlertsBtn"><span class="icon sm">refresh</span>
-      Refresh</button>
+    <button class="btn btn-secondary" onclick="loadAlerts()" id="refreshAlertsBtn"><span class="icon sm">refresh</span> Refresh</button>
   </div>
 
   <!-- Alert summary counters -->
@@ -106,8 +105,7 @@
 
   <!-- Spam Flagged Users Section -->
   <div class="card mb-3" style="padding:1.25rem;" id="spamSection">
-    <h3 style="margin:0 0 0.75rem;"><span class="icon" style="font-size:18px;color:var(--error);">block</span> Spam
-      Flagged Users</h3>
+    <h3 style="margin:0 0 0.75rem;"><span class="icon" style="font-size:18px;color:var(--error);">block</span> Spam Flagged Users</h3>
     <div id="spamList">
       <div class="text-sm text-muted">Loading...</div>
     </div>
@@ -115,8 +113,7 @@
 
   <!-- Officer Anomalies Section -->
   <div class="card mb-3" style="padding:1.25rem;" id="anomalySection">
-    <h3 style="margin:0 0 0.75rem;"><span class="icon" style="font-size:18px;">policy</span> Officer Accountability
-      Flags</h3>
+    <h3 style="margin:0 0 0.75rem;"><span class="icon" style="font-size:18px;">policy</span> Officer Accountability Flags</h3>
     <div id="anomalyList">
       <div class="text-sm text-muted">Loading...</div>
     </div>
@@ -165,41 +162,15 @@
     border-bottom: 1px solid var(--surface-container);
     transition: background 0.15s;
   }
-
   #userTable tbody tr:hover {
     background: var(--surface-container-low);
   }
-
-  .alert-countdown.overdue {
-    color: var(--error);
-  }
-
-  .alert-countdown.critical {
-    color: var(--warning);
-  }
-
-  .alert-countdown.warning {
-    color: #F9A825;
-  }
-
-  .alert-section-label.breached {
-    color: var(--error);
-  }
-
-  .alert-section-label.critical {
-    color: var(--warning);
-  }
-
-  .alert-section-label.warning {
-    color: #F9A825;
-  }
-
-  /* Force summary cards to be in a single line (4 columns) */
-  #alertSummary {
-    display: grid !important;
-    grid-template-columns: repeat(4, 1fr) !important;
-    gap: 1rem;
-  }
+  .alert-countdown.overdue { color: var(--error); }
+  .alert-countdown.critical { color: var(--warning); }
+  .alert-countdown.warning { color: #F9A825; }
+  .alert-section-label.breached { color: var(--error); }
+  .alert-section-label.critical { color: var(--warning); }
+  .alert-section-label.warning { color: #F9A825; }
 </style>
 <script>
   /* ═══════════════════════════════════════════════════════════════════════════
