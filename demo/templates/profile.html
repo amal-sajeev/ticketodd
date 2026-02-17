@@ -188,37 +188,19 @@
 
             video.addEventListener('play', () => {
                 const canvas = document.getElementById('canvas');
-                const displaySize = { width: video.clientWidth, height: video.clientHeight };
-                faceapi.matchDimensions(canvas, displaySize);
 
-                statusEl.textContent = "Position your face...";
+                // Wait for video dimensions
+                const checkVideo = setInterval(() => {
+                    if (video.videoWidth > 0 && video.videoHeight > 0) {
+                        clearInterval(checkVideo);
+                        const displaySize = { width: video.clientWidth, height: video.clientHeight };
+                        faceapi.matchDimensions(canvas, displaySize);
 
-                const intervalId = setInterval(async () => {
-                    if (document.getElementById('cameraContainer').style.display === 'none') {
-                        clearInterval(intervalId);
-                        return;
+                        statusEl.textContent = "Position your face...";
+
+                        startDetectionLoop(video, canvas, displaySize, statusEl);
                     }
-                    if (faceDescriptor && document.getElementById('saveBtn').style.display === 'block') return;
-
-                    const detections = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
-                        .withFaceLandmarks().withFaceDescriptor();
-
-                    const ctx = canvas.getContext('2d');
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-                    if (detections) {
-                        const resized = faceapi.resizeResults(detections, displaySize);
-                        faceapi.draw.drawDetections(canvas, resized);
-                        statusEl.textContent = "Face detected!";
-                        statusEl.style.color = "#2E7D32";
-                        document.getElementById('captureBtn').disabled = false;
-                        window.lastDescriptor = detections.descriptor;
-                    } else {
-                        statusEl.textContent = "Looking for face...";
-                        statusEl.style.color = "#666";
-                        document.getElementById('captureBtn').disabled = true;
-                    }
-                }, 500);
+                }, 100);
             });
         } catch (err) {
             showError("Camera error: " + err.message);
@@ -226,10 +208,51 @@
         }
     }
 
+    function startDetectionLoop(video, canvas, displaySize, statusEl) {
+        const intervalId = setInterval(async () => {
+            if (document.getElementById('cameraContainer').style.display === 'none') {
+                clearInterval(intervalId);
+                return;
+            }
+            if (faceDescriptor && document.getElementById('saveBtn').style.display === 'block') return;
+
+            const detections = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+                .withFaceLandmarks().withFaceDescriptor();
+
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (detections) {
+                const resized = faceapi.resizeResults(detections, displaySize);
+                faceapi.draw.drawDetections(canvas, resized);
+                statusEl.textContent = "Face detected!";
+                statusEl.style.color = "#2E7D32";
+                document.getElementById('captureBtn').disabled = false;
+                window.lastDescriptor = detections.descriptor;
+            } else {
+                statusEl.textContent = "Looking for face...";
+                statusEl.style.color = "#666";
+                document.getElementById('captureBtn').disabled = true;
+            }
+        }, 500);
+    }
+
     function captureFace() {
         if (window.lastDescriptor) {
             faceDescriptor = Array.from(window.lastDescriptor);
             document.getElementById('camStatus').textContent = "✅ Face captured!";
+
+            // Freeze the image
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.save();
+            ctx.scale(-1, 1);
+            ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+            ctx.restore();
+
             document.getElementById('captureBtn').style.display = 'none';
             document.getElementById('saveBtn').style.display = 'block';
             stopCamera();
