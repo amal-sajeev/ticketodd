@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+{% block title %}Flagged User Detail — PR&DW Portal{% endblock %}
+{% block content %}
+<div class="main-content wide">
+  <a href="/admin" class="btn btn-secondary btn-sm mb-2">&larr; Back to Admin</a>
+  <div id="flagContent"><div class="spinner"><span></span><span></span><span></span></div></div>
+</div>
+{% endblock %}
+{% block scripts %}
+<style>
+.flag-header { padding:1.5rem;border-left:6px solid var(--error); }
+.score-bar { height:10px;border-radius:5px;background:var(--surface-container);overflow:hidden;margin-top:0.3rem; }
+.score-fill { height:100%;border-radius:5px;transition:width 0.5s ease; }
+.flag-card { padding:0.65rem 0.85rem;margin-bottom:0.4rem;border-left:3px solid var(--outline-variant); }
+.flag-card.severity-high { border-left-color:var(--error); }
+.flag-card.severity-medium { border-left-color:var(--warning); }
+.flag-card.severity-low { border-left-color:var(--outline-variant); }
+.grv-card { padding:0.65rem 0.85rem;margin-bottom:0.4rem;cursor:pointer;transition:background 0.2s; }
+.grv-card:hover { background:var(--primary-container-low); }
+.grv-card.duplicate { border-left:3px solid var(--error); }
+.grv-card.similar { border-left:3px solid var(--warning); }
+.grv-card.rapid { border-left:3px solid #FF7043; }
+.flag-tag-dup { background:var(--error);color:#fff;font-size:0.65rem;white-space:nowrap; }
+.flag-tag-similar { background:var(--warning);color:#000;font-size:0.65rem;white-space:nowrap; }
+.flag-tag-rapid { background:#FF7043;color:#fff;font-size:0.65rem;white-space:nowrap; }
+.timeline-item { display:flex;align-items:center;gap:0.5rem;padding:0.25rem 0; }
+.timeline-dot { width:8px;height:8px;border-radius:50%;background:var(--primary);flex-shrink:0; }
+.ip-chip { display:inline-block;padding:0.2rem 0.6rem;border-radius:8px;background:var(--surface-container);font-family:monospace;font-size:0.85rem;margin:0.15rem; }
+.info-row { display:flex;justify-content:space-between;padding:0.4rem 0;border-bottom:1px solid var(--outline-variant); }
+.info-row:last-child { border-bottom:none; }
+.info-label { font-size:0.85rem;color:var(--on-surface-variant); }
+.info-value { font-weight:500; }
+</style>
+<script>
+if (requireAuth()) {
+  const u = getUser();
+  if (u && u.role !== 'officer' && u.role !== 'admin') {
+    window.location.href = '/dashboard';
+  } else {
+    loadFlagDetail();
+  }
+}
+
+async function loadFlagDetail() {
+  const id = new URLSearchParams(window.location.search).get('id');
+  if (!id) { document.getElementById('flagContent').innerHTML = '<p>No user ID provided.</p>'; return; }
+  try {
+    const d = await api('GET', `/admin/spam-flagged/${id}`);
+    const isAdmin = getUser()?.role === 'admin';
+    const scorePct = (d.spam_score * 100).toFixed(0);
+    const scoreColor = d.spam_score >= 0.7 ? 'var(--error)' : d.spam_score >= 0.4 ? 'var(--warning)' : 'var(--success)';
+    const dupHashes = new Set((d.duplicate_hashes || []).map(h => h.hash));
+    const rapidWindow = 3600000; // 1 hour in ms
+    const filingTimes = (d.filing_timestamps || []).map(t => new Date(t).getTime()).sort((a,b) => a - b);
+    // Find bursts: timestamps where 3+ filings happen within 1 hour
+    const rapidTimes = new Set();
+    for (let i = 0; i < filingTimes.length; i++) {
+      const windowEnd = filingTimes[i] + rapidWindow;
+      const inWindow = filingTimes.filter(t => t >= filingTimes[i] && t <= windowEnd);
+      if (inWindow.length >= 3) inWindow.forEach(t => rapidTimes.add(t));
+    }
+
+    document.getElementById('flagContent').innerHTML = `
+      <div class="card flag-header mb-3">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;">
+          <div>
+            <h1 style="margin:0 0 0.5rem;"><span class="icon sm filled" style="color:var(--error);">gpp_bad</span> ${escapeHtml(d.full_name)}</h1>
+            <div class="badges mb-1">
+              <span class="badge" style="font-family:monospace;">@${escapeHtml(d.username)}</span>
+              ${d.is_blocked
+                ? '<span class="badge badge-escalated">Blocked</span>'
+                : '<span class="badge badge-resolved">Active</span>'}
+              <span class="badge" style="background:${scoreColor};color:#fff;">Spam Score: ${scorePct}%</span>
+            </div>
+            <p class="text-sm text-muted">${d.blocked_at ? 'Blocked: ' + formatDate(d.blocked_at) + ' · ' : ''}${d.grievances.length} grievance${d.grievances.length !== 1 ? 's' : ''} on file · ${d.filing_timestamps.length} recent filings · ${d.ip_addresses.length} IP${d.ip_addresses.length !== 1 ? 's' : ''}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <!-- Pattern Flags -->
+          <div class="card" style="padding:1.5rem;">
+            <h3><span class="icon sm" style="color:var(--error);">flag</span> Pattern Flags (${d.pattern_flags.length})</h3>
+            ${d.pattern_flags.length
+              ? d.pattern_flags.slice().reverse().map(f => `
+                <div class="card flag-card severity-${escapeHtml(f.severity || 'low')}">
+                  <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <strong style="font-size:0.9rem;">${escapeHtml(flagIcon(f.type))} ${escapeHtml(flagLabel(f.type))}</strong>
+                    ${f.severity ? '<span class="badge badge-priority-' + escapeHtml(f.severity) + '" style="font-size:0.7rem;">' + escapeHtml(f.severity) + '</span>' : ''}
+                  </div>
+                  <p class="text-sm" style="margin:0.25rem 0 0;">${escapeHtml(f.detail)}</p>
+                  ${f.timestamp ? '<p class="text-sm text-muted" style="margin:0.15rem 0 0;">' + formatDate(f.timestamp) + (f.by ? ' by ' + escapeHtml(f.by) : '') + '</p>' : ''}
+                </div>`).join('')
+              : '<div class="text-sm text-muted">No pattern flags recorded.</div>'}
+          </div>
+
+          <!-- User's Grievances -->
+          <div class="card mt-2" style="padding:1.5rem;">
+            <h3><span class="icon sm">description</span> User's Grievances (${d.grievances.length})</h3>
+            <div style="max-height:500px;overflow-y:auto;">
+            ${d.grievances.length
+              ? d.grievances.map(g => {
+                  const dup = isDuplicate(g, dupHashes);
+                  const rapid = isRapidFiling(g, rapidTimes);
+                  const similar = (g.similar_to || []).length > 0;
+                  const flagClass = dup ? ' duplicate' : similar ? ' similar' : rapid ? ' rapid' : '';
+                  const tags = (dup ? '<span class="badge flag-tag-dup">DUPLICATE</span>' : '')
+                             + (similar ? '<span class="badge flag-tag-similar">SIMILAR</span>' : '')
+                             + (rapid ? '<span class="badge flag-tag-rapid">RAPID</span>' : '');
+                  const simInfo = similar
+                    ? '<div class="text-sm" style="margin:0.2rem 0 0;color:var(--warning);"><span class="icon sm">compare_arrows</span> Similar to: '
+                      + g.similar_to.map(s => '#' + escapeHtml(s.tracking_number) + ' (' + s.similarity + '%)').join(', ') + '</div>'
+                    : '';
+                  return `
+                <div class="card grv-card${flagClass}" onclick="window.location.href='/grievance-detail?id=${encodeURIComponent(g.id)}'">
+                  <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;">
+                    <strong style="font-size:0.9rem;">#${escapeHtml(g.tracking_number || '—')} — ${escapeHtml(g.title)}</strong>
+                    <div style="display:flex;gap:0.3rem;flex-shrink:0;">${tags}</div>
+                  </div>
+                  <p class="text-sm" style="margin:0.25rem 0;">${escapeHtml(g.description || '')}</p>
+                  ${simInfo}
+                  <div class="badges">
+                    ${statusBadge(g.status)} ${priorityBadge(g.priority)} ${deptBadge(g.department)}
+                    <span class="text-sm text-muted">${formatDate(g.created_at)}</span>
+                  </div>
+                </div>`}).join('')
+              : '<div class="text-sm text-muted">No grievances on record.</div>'}
+            </div>
+          </div>
+
+          <!-- Filing Timeline -->
+          <div class="card mt-2" style="padding:1.5rem;">
+            <h3><span class="icon sm">timeline</span> Filing Timeline</h3>
+            ${d.filing_timestamps.length
+              ? (() => {
+                  const sorted = d.filing_timestamps.slice().sort((a,b) => new Date(b) - new Date(a));
+                  return sorted.map(ts => '<div class="timeline-item"><span class="timeline-dot"></span><span class="text-sm">' + formatDate(ts) + '</span></div>').join('');
+                })()
+              : '<div class="text-sm text-muted">No recent filing timestamps.</div>'}
+          </div>
+        </div>
+
+        <div>
+          <!-- User Info -->
+          <div class="card" style="padding:1.5rem;">
+            <h3><span class="icon sm">person</span> User Information</h3>
+            <div class="info-row"><span class="info-label">Full Name</span><span class="info-value">${escapeHtml(d.full_name)}</span></div>
+            <div class="info-row"><span class="info-label">Username</span><span class="info-value" style="font-family:monospace;">@${escapeHtml(d.username)}</span></div>
+            <div class="info-row"><span class="info-label">Email</span><span class="info-value">${escapeHtml(d.email || '—')}</span></div>
+            <div class="info-row"><span class="info-label">Phone</span><span class="info-value">${escapeHtml(d.phone || '—')}</span></div>
+          </div>
+
+          <!-- Spam Score -->
+          <div class="card mt-2" style="padding:1.5rem;">
+            <h3><span class="icon sm">speed</span> Spam Score</h3>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;">
+              <span style="font-size:2rem;font-weight:700;color:${scoreColor};">${scorePct}%</span>
+              <span class="text-sm text-muted">${d.spam_score >= 0.7 ? 'Blocked threshold (70%)' : d.spam_score >= 0.4 ? 'Warning level' : 'Low risk'}</span>
+            </div>
+            <div class="score-bar"><div class="score-fill" style="width:${scorePct}%;background:${scoreColor};"></div></div>
+          </div>
+
+          <!-- Block Status -->
+          <div class="card mt-2" style="padding:1.5rem;">
+            <h3><span class="icon sm">shield</span> Block Status</h3>
+            <div class="info-row">
+              <span class="info-label">Status</span>
+              <span>${d.is_blocked
+                ? '<span class="badge badge-escalated">Blocked</span>'
+                : '<span class="badge badge-resolved">Not Blocked</span>'}</span>
+            </div>
+            ${d.blocked_at ? '<div class="info-row"><span class="info-label">Blocked At</span><span class="info-value">' + formatDate(d.blocked_at) + '</span></div>' : ''}
+          </div>
+
+          <!-- Photo ID -->
+          <div class="card mt-2" style="padding:1.5rem;">
+            <h3><span class="icon sm">badge</span> Photo ID Verification</h3>
+            <div class="info-row" style="margin-bottom:0.75rem;">
+              <span class="info-label">Status</span>
+              <span class="badge ${d.photo_id_status === 'approved' ? 'badge-resolved' : d.photo_id_status === 'rejected' ? 'badge-escalated' : d.photo_id_status === 'pending_review' ? 'badge-in_progress' : 'badge-pending'}" style="font-size:0.75rem;">${escapeHtml(photoIdLabel(d.photo_id_status))}</span>
+            </div>
+            ${d.photo_id_file_id
+              ? '<div style="border-radius:10px;overflow:hidden;border:1px solid var(--outline-variant);margin-bottom:0.5rem;">'
+                + '<img src="/attachments/' + encodeURIComponent(d.photo_id_file_id) + '" alt="Photo ID" style="width:100%;display:block;cursor:pointer;" onclick="window.open(this.src, \'_blank\')" title="Click to open full size">'
+                + '</div>'
+                + '<a href="/attachments/' + encodeURIComponent(d.photo_id_file_id) + '" target="_blank" class="btn btn-secondary btn-sm btn-block"><span class="icon sm">open_in_new</span> Open Full Size</a>'
+              : '<div class="text-sm text-muted" style="padding:1.5rem 0;text-align:center;border:2px dashed var(--outline-variant);border-radius:10px;"><span class="icon" style="font-size:2rem;display:block;margin-bottom:0.3rem;opacity:0.4;">no_photography</span>No photo ID uploaded</div>'}
+          </div>
+
+          <!-- IP Addresses -->
+          <div class="card mt-2" style="padding:1.5rem;">
+            <h3><span class="icon sm">lan</span> IP Addresses (${d.ip_addresses.length})</h3>
+            ${d.ip_addresses.length
+              ? '<div>' + d.ip_addresses.map(ip => '<span class="ip-chip">' + escapeHtml(ip) + '</span>').join('') + '</div>'
+              : '<div class="text-sm text-muted">No IPs recorded.</div>'}
+          </div>
+
+          <!-- Actions (admin only) -->
+          ${isAdmin ? `
+          <div class="card mt-2" style="padding:1.5rem;">
+            <h3><span class="icon sm">gavel</span> Actions</h3>
+            ${d.is_blocked ? `
+              <button class="btn btn-success btn-block btn-sm mb-1" id="approveBtn"><span class="icon sm">check</span> Approve &amp; Unblock</button>
+              <button class="btn btn-secondary btn-block btn-sm mb-1" id="rejectBtn"><span class="icon sm">close</span> Reject Photo ID</button>
+            ` : `
+              <button class="btn btn-error btn-block btn-sm mb-1" id="blockBtn"><span class="icon sm">block</span> Block User</button>
+            `}
+          </div>` : ''}
+        </div>
+      </div>`;
+
+    // Wire action buttons
+    const approveBtn = document.getElementById('approveBtn');
+    const rejectBtn = document.getElementById('rejectBtn');
+    const blockBtn = document.getElementById('blockBtn');
+    if (approveBtn) approveBtn.addEventListener('click', async () => {
+      try { await api('PUT', '/admin/spam-flagged/' + id + '/review?approved=true'); showToast('User unblocked and verified'); loadFlagDetail(); }
+      catch (e) { showToast(e.message, 'error'); }
+    });
+    if (rejectBtn) rejectBtn.addEventListener('click', async () => {
+      try { await api('PUT', '/admin/spam-flagged/' + id + '/review?approved=false'); showToast('Photo ID rejected'); loadFlagDetail(); }
+      catch (e) { showToast(e.message, 'error'); }
+    });
+    if (blockBtn) blockBtn.addEventListener('click', async () => {
+      try { await api('PUT', '/admin/users/' + id + '/block?action=block&reason=Manually%20blocked%20from%20flag%20detail'); showToast('User blocked'); loadFlagDetail(); }
+      catch (e) { showToast(e.message, 'error'); }
+    });
+
+  } catch (e) {
+    document.getElementById('flagContent').innerHTML = '<div class="card" style="padding:2rem;text-align:center;"><p>Failed to load flag details.</p><p class="text-sm text-muted">' + escapeHtml(e.message) + '</p></div>';
+  }
+}
+
+function flagIcon(type) {
+  const icons = {
+    rapid_filing: 'speed', duplicate_content: 'content_copy', content_similarity: 'compare',
+    keyword_stuffing: 'text_fields', cross_user_duplicate: 'group', ip_correlation: 'lan',
+    manual_block: 'gavel', admin_flag_spam: 'flag', short_description: 'short_text'
+  };
+  return icons[type] || 'warning';
+}
+
+function flagLabel(type) {
+  const labels = {
+    rapid_filing: 'Rapid Filing', duplicate_content: 'Duplicate Content',
+    content_similarity: 'Content Similarity', keyword_stuffing: 'Keyword Stuffing',
+    cross_user_duplicate: 'Cross-User Duplicate', ip_correlation: 'IP Correlation',
+    manual_block: 'Manual Block', admin_flag_spam: 'Admin Flag', short_description: 'Short Description'
+  };
+  return labels[type] || type;
+}
+
+function photoIdLabel(status) {
+  const labels = { none: 'Not Submitted', pending_review: 'Pending Review', approved: 'Approved', rejected: 'Rejected' };
+  return labels[status] || status;
+}
+
+function isDuplicate(grievance, dupHashSet) {
+  if (!dupHashSet.size || !grievance.content_hash) return false;
+  return dupHashSet.has(grievance.content_hash);
+}
+
+function isRapidFiling(grievance, rapidTimesSet) {
+  if (!rapidTimesSet.size || !grievance.created_at) return false;
+  const gTime = new Date(grievance.created_at).getTime();
+  for (const t of rapidTimesSet) {
+    if (Math.abs(gTime - t) < 60000) return true; // within 1 minute
+  }
+  return false;
+}
+</script>
+{% endblock %}

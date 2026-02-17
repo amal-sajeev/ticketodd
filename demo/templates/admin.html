@@ -15,7 +15,7 @@
   </div>
 
   <!-- Alert summary counters -->
-  <div class="card-grid-4 mb-2" id="alertSummary" style="display:none;">
+  <div class="card-grid-4 mb-2 hidden" id="alertSummary">
     <div class="metric-card card-animate" id="summaryTotal">
       <div class="metric-icon amber"><span class="icon">notifications</span></div>
       <div class="metric-value" id="totalAlertCount">0</div>
@@ -180,7 +180,7 @@
     const container = document.getElementById('alertCards');
     const summary = document.getElementById('alertSummary');
     container.innerHTML = '<div class="card" style="padding:2rem;text-align:center;"><div class="spinner"><span></span><span></span><span></span></div><p class="text-muted" style="margin-top:0.5rem;">Loading deadline alerts…</p></div>';
-    summary.style.display = 'none';
+    summary.classList.add('hidden');
 
     try {
       const data = await api('GET', '/admin/deadline-alerts');
@@ -189,7 +189,7 @@
       document.getElementById('breachedCount').textContent = data.breached.length;
       document.getElementById('criticalCount').textContent = data.critical.length;
       document.getElementById('warningCount').textContent = data.warning.length;
-      summary.style.display = 'grid';
+      summary.classList.remove('hidden');
 
       if (data.total_alerts === 0) {
         container.innerHTML = '<div class="card all-clear"><span class="icon filled" style="font-size:2.5rem;color:var(--success);">check_circle</span><br>All clear — no grievances nearing their SLA deadline.</div>';
@@ -265,6 +265,7 @@
      USER MANAGEMENT (existing code preserved)
      ═══════════════════════════════════════════════════════════════════════════ */
   let allUsers = [];
+  let spamStatusMap = {};
   let currentFilter = '';
 
   if (requireAuth()) {
@@ -282,6 +283,9 @@
     try {
       const records = await api('GET', '/admin/spam-flagged');
       const el = document.getElementById('spamList');
+      spamStatusMap = {};
+      records.forEach(r => { spamStatusMap[r.user_id] = r; });
+      if (allUsers.length) renderTable();
       if (!records.length) { el.innerHTML = '<div class="text-sm text-muted">No spam-flagged users.</div>'; return; }
       el.innerHTML = records.map(r => `
       <div class="card" style="padding:0.75rem;margin-bottom:0.5rem;border-left:4px solid var(--error);">
@@ -294,9 +298,10 @@
           ${r.photo_id_file_id ? ` · <a href="/attachments/${r.photo_id_file_id}" target="_blank">View Photo ID</a>` : ''}
         </div>
         ${r.pattern_flags.length ? '<div class="text-sm text-muted">Flags: ' + r.pattern_flags.map(f => escapeHtml(f.type + ': ' + f.detail)).join(', ') + '</div>' : ''}
-        <div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
+        <div style="display:flex;gap:0.5rem;margin-top:0.5rem;align-items:center;">
           <button class="btn btn-success btn-sm spam-approve-btn" data-uid="${escapeHtml(r.user_id)}"><span class="icon sm">check</span> Approve & Unblock</button>
           <button class="btn btn-secondary btn-sm spam-reject-btn" data-uid="${escapeHtml(r.user_id)}"><span class="icon sm">close</span> Reject ID</button>
+          <a href="/spam-flag-detail?id=${encodeURIComponent(r.user_id)}" class="btn btn-sm" style="margin-left:auto;"><span class="icon sm">open_in_new</span> View Details</a>
         </div>
       </div>`).join('');
       document.querySelectorAll('.spam-approve-btn').forEach(b => b.addEventListener('click', () => reviewSpam(b.dataset.uid, true)));
@@ -355,25 +360,44 @@
       tbody.innerHTML = '<tr><td colspan="7" style="padding:2rem;text-align:center;opacity:0.6;">No users found</td></tr>';
       return;
     }
-    tbody.innerHTML = allUsers.map(u => `
-    <tr>
-      <td style="padding:0.65rem;font-weight:500;">${escapeHtml(u.full_name)}</td>
+    tbody.innerHTML = allUsers.map(u => {
+      const isBlocked = u.role === 'citizen' && spamStatusMap[u.id];
+      const blockBtns = u.role === 'citizen' ? (isBlocked
+        ? `<a href="/spam-flag-detail?id=${encodeURIComponent(u.id)}" class="action-btn" title="View Flag Details" style="color:var(--error);"><span class="icon sm">gpp_bad</span> Flag</a>`
+          + `<button class="action-btn user-unblock-btn" data-id="${escapeHtml(u.id)}" title="Unblock" style="color:var(--success);"><span class="icon sm">lock_open</span> Unblock</button>`
+        : `<button class="action-btn user-block-btn" data-id="${escapeHtml(u.id)}" data-username="${escapeHtml(u.username)}" title="Block"><span class="icon sm">block</span> Block</button>`
+          + `<button class="action-btn user-flag-btn" data-id="${escapeHtml(u.id)}" data-username="${escapeHtml(u.username)}" title="Require Photo ID" style="color:var(--warning);"><span class="icon sm">flag</span> Flag</button>`
+      ) : '';
+      const blockedBadge = isBlocked ? ` <a href="/spam-flag-detail?id=${encodeURIComponent(u.id)}" class="badge badge-escalated" style="font-size:0.65rem;text-decoration:none;cursor:pointer;" title="View flag details">Blocked</a>` : '';
+      return `
+    <tr${isBlocked ? ' style="background:var(--error-container);"' : ''}>
+      <td style="padding:0.65rem;font-weight:500;">${escapeHtml(u.full_name)}${blockedBadge}</td>
       <td style="padding:0.65rem;font-family:monospace;font-size:0.9rem;">${escapeHtml(u.username)}</td>
       <td style="padding:0.65rem;">${escapeHtml(u.email)}</td>
       <td style="padding:0.65rem;"><span class="role-badge role-${escapeHtml(u.role)}">${escapeHtml(u.role)}</span></td>
       <td style="padding:0.65rem;">${u.department ? deptLabel(u.department) : '<span style="opacity:0.4;">—</span>'}</td>
       <td style="padding:0.65rem;font-size:0.9rem;">${formatDate(u.created_at)}</td>
       <td style="padding:0.65rem;text-align:right;white-space:nowrap;">
+        ${blockBtns}
         <button class="action-btn user-edit-btn" data-id="${escapeHtml(u.id)}" title="Edit"><span class="icon sm">edit</span> Edit</button>
         <button class="action-btn danger user-del-btn" data-id="${escapeHtml(u.id)}" data-username="${escapeHtml(u.username)}" title="Delete"><span class="icon sm">delete</span> Delete</button>
       </td>
-    </tr>`).join('');
-    // Bind event handlers safely (no inline onclick)
+    </tr>`;
+    }).join('');
     document.querySelectorAll('.user-edit-btn').forEach(btn => {
       btn.addEventListener('click', () => editUser(btn.dataset.id));
     });
     document.querySelectorAll('.user-del-btn').forEach(btn => {
       btn.addEventListener('click', () => deleteUser(btn.dataset.id, btn.dataset.username));
+    });
+    document.querySelectorAll('.user-block-btn').forEach(btn => {
+      btn.addEventListener('click', () => adminBlockUser(btn.dataset.id, btn.dataset.username, 'block'));
+    });
+    document.querySelectorAll('.user-unblock-btn').forEach(btn => {
+      btn.addEventListener('click', () => adminBlockUser(btn.dataset.id, '', 'unblock'));
+    });
+    document.querySelectorAll('.user-flag-btn').forEach(btn => {
+      btn.addEventListener('click', () => adminBlockUser(btn.dataset.id, btn.dataset.username, 'flag_spam'));
     });
   }
 
@@ -474,6 +498,28 @@
     } catch (e) {
       showToast(e.message, 'error');
     }
+  }
+
+  async function adminBlockUser(id, username, action) {
+    const labels = {
+      block: `Block user "${username}"? They will be unable to file grievances until unblocked.`,
+      unblock: 'Unblock this user? Their spam flags will be cleared.',
+      flag_spam: `Flag "${username}" as spam? They will be forced to upload a photo ID to continue.`,
+    };
+    if (!confirm(labels[action])) return;
+    let reason = 'Manual admin action';
+    if (action !== 'unblock') {
+      const input = prompt('Reason (optional):', reason);
+      if (input === null) return;
+      reason = input || reason;
+    }
+    try {
+      await api('PUT', `/admin/users/${id}/block?action=${action}&reason=${encodeURIComponent(reason)}`);
+      const msgs = { block: 'User blocked', unblock: 'User unblocked', flag_spam: 'User flagged — must upload photo ID' };
+      showToast(msgs[action]);
+      loadSpamFlagged();
+      loadUsers();
+    } catch (e) { showToast(e.message, 'error'); }
   }
 
   async function deleteUser(id, username) {

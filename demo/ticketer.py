@@ -10,6 +10,7 @@ import json
 import logging
 import math
 import statistics
+import difflib
 import ipaddress
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
@@ -1598,6 +1599,13 @@ class DeadlineEstimator:
 # ---------------------------------------------------------------------------
 SELF_RESOLVE_CONFIDENCE_THRESHOLD = 0.60
 
+def find_officer_for_department(db, department: str) -> Optional[str]:
+    """Find an officer assigned to a department and return their full_name, or None."""
+    if not department:
+        return None
+    officer = db.users.find_one({"role": "officer", "department": department})
+    return officer["full_name"] if officer else None
+
 async def process_grievance(data: GrievanceCreate, db, user: Optional[dict] = None,
                             attachment_ids: Optional[List[str]] = None) -> GrievanceResponse:
     text = f"{data.title} {data.description}"
@@ -1635,6 +1643,11 @@ async def process_grievance(data: GrievanceCreate, db, user: Optional[dict] = No
 
     g_status = GrievanceStatus.ESCALATED if tier == ResolutionTier.ESCALATION else GrievanceStatus.PENDING
 
+    # Auto-assign officer when escalated at creation
+    assigned_officer_name = None
+    if g_status == GrievanceStatus.ESCALATED:
+        assigned_officer_name = find_officer_for_department(db, department.value)
+
     tracking = generate_tracking_number(db)
     sla = calculate_sla_deadline(priority)
     now = datetime.now(timezone.utc)
@@ -1666,7 +1679,7 @@ async def process_grievance(data: GrievanceCreate, db, user: Optional[dict] = No
         "estimated_resolution_deadline": estimated_deadline,
         "ai_resolution": ai_resolution,
         "manual_resolution": None, "resolution_type": None,
-        "confidence_score": confidence_score, "assigned_officer": None,
+        "confidence_score": confidence_score, "assigned_officer": assigned_officer_name,
         "resolution_feedback": None, "notes": [],
         "location": {"type": "Point", "coordinates": [data.location.longitude, data.location.latitude]}
             if data.location and data.location.longitude and data.location.latitude else None,
@@ -1815,6 +1828,49 @@ async def admin_create_user(user_data: UserCreate,
     await loop.run_in_executor(executor, db.users.insert_one, user_doc)
     logger.info("Admin %s created user %s (%s)", user["username"], user_data.username, user_data.role.value)
     return user_to_response(user_doc)
+
+@app.put("/admin/users/{user_id}/block")
+async def admin_block_user(user_id: str, action: str = Query(...),
+                           reason: str = Query("Manual admin action"),
+                           user=Depends(require_role(UserRole.ADMIN.value)), db=Depends(get_db)):
+    """Admin can manually block, unblock, or flag a citizen as spam."""
+    if action not in ("block", "unblock", "flag_spam"):
+        raise HTTPException(status_code=400, detail="action must be block, unblock, or flag_spam")
+    user_id = validate_uuid(user_id, "user_id")
+    loop = asyncio.get_event_loop()
+    target = await loop.run_in_executor(executor, db.users.find_one, {"_id": user_id})
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+    if target["role"] != UserRole.CITIZEN.value:
+        raise HTTPException(status_code=400, detail="Can only block/flag citizen accounts")
+
+    now = datetime.now(timezone.utc)
+    if action == "block":
+        await loop.run_in_executor(executor, lambda: db.spam_tracking.update_one(
+            {"_id": user_id},
+            {"$set": {"is_blocked": True, "blocked_at": now, "photo_id_status": "none"},
+             "$push": {"pattern_flags": {"type": "manual_block", "detail": reason,
+                                          "by": user["username"], "at": now.isoformat()}}},
+            upsert=True))
+        logger.info("Admin %s blocked user %s: %s", user["username"], target["username"], reason)
+        return {"detail": f"User '{target['username']}' blocked"}
+    elif action == "unblock":
+        await loop.run_in_executor(executor, lambda: db.spam_tracking.update_one(
+            {"_id": user_id},
+            {"$set": {"is_blocked": False, "spam_score": 0.0, "photo_id_status": "approved",
+                      "pattern_flags": []}},
+            upsert=True))
+        logger.info("Admin %s unblocked user %s", user["username"], target["username"])
+        return {"detail": f"User '{target['username']}' unblocked"}
+    else:  # flag_spam
+        await loop.run_in_executor(executor, lambda: db.spam_tracking.update_one(
+            {"_id": user_id},
+            {"$set": {"is_blocked": True, "blocked_at": now, "photo_id_status": "none"},
+             "$push": {"pattern_flags": {"type": "admin_flag_spam", "detail": reason,
+                                          "by": user["username"], "at": now.isoformat()}}},
+            upsert=True))
+        logger.info("Admin %s flagged user %s as spam: %s", user["username"], target["username"], reason)
+        return {"detail": f"User '{target['username']}' flagged — must upload photo ID"}
 
 @app.put("/admin/users/{user_id}", response_model=UserResponse)
 async def admin_update_user(user_id: str, update: UserUpdate,
@@ -2190,10 +2246,16 @@ async def update_status(grievance_id: str, new_status: GrievanceStatus,
                         user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value)),
                         db=Depends(get_db)):
     grievance_id = validate_uuid(grievance_id, "grievance_id")
-    def update():
-        return db.grievances.update_one({"_id": grievance_id},
-            {"$set": {"status": new_status.value, "updated_at": datetime.now(timezone.utc)}})
     loop = asyncio.get_event_loop()
+    update_fields: dict = {"status": new_status.value, "updated_at": datetime.now(timezone.utc)}
+    if new_status == GrievanceStatus.ESCALATED:
+        g = await loop.run_in_executor(executor, db.grievances.find_one, {"_id": grievance_id})
+        if g and not g.get("assigned_officer"):
+            officer_name = find_officer_for_department(db, g.get("department"))
+            if officer_name:
+                update_fields["assigned_officer"] = officer_name
+    def update():
+        return db.grievances.update_one({"_id": grievance_id}, {"$set": update_fields})
     result = await loop.run_in_executor(executor, update)
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Grievance not found")
@@ -2929,27 +2991,30 @@ async def update_scheme_documents(scheme_id: str,
 # ---------------------------------------------------------------------------
 @app.get("/analytics", response_model=AnalyticsResponse)
 async def get_analytics(days: int = Query(30, ge=1, le=365),
+                        department: Optional[str] = Query(None),
                         user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value)),
                         db=Depends(get_db)):
     start_date = datetime.now(timezone.utc) - timedelta(days=days)
+    base: dict = {"created_at": {"$gte": start_date}}
+    if department:
+        base["department"] = department
     def fetch():
-        total = db.grievances.count_documents({"created_at": {"$gte": start_date}})
+        total = db.grievances.count_documents(base)
         self_resolved = db.grievances.count_documents({
-            "created_at": {"$gte": start_date}, "status": "resolved",
+            **base, "status": "resolved",
             "resolution_tier": "self_resolvable", "resolution_type": "ai"})
         ai_drafted = db.grievances.count_documents({
-            "created_at": {"$gte": start_date},
-            "ai_resolution": {"$exists": True, "$ne": None}})
-        escalated = db.grievances.count_documents({"created_at": {"$gte": start_date}, "status": "escalated"})
+            **base, "ai_resolution": {"$exists": True, "$ne": None}})
+        escalated = db.grievances.count_documents({**base, "status": "escalated"})
         sent_results = list(db.grievances.aggregate([
-            {"$match": {"created_at": {"$gte": start_date}}},
+            {"$match": base},
             {"$group": {"_id": "$sentiment", "count": {"$sum": 1}}}]))
         dept_results = list(db.grievances.aggregate([
-            {"$match": {"created_at": {"$gte": start_date}}},
+            {"$match": base},
             {"$group": {"_id": "$department", "count": {"$sum": 1}}}]))
         # Real avg resolution time
         avg_pipe = [
-            {"$match": {"created_at": {"$gte": start_date}, "status": "resolved"}},
+            {"$match": {**base, "status": "resolved"}},
             {"$project": {"duration": {"$subtract": ["$updated_at", "$created_at"]}}},
             {"$group": {"_id": None, "avg_ms": {"$avg": "$duration"}}}]
         avg_result = list(db.grievances.aggregate(avg_pipe))
@@ -2957,35 +3022,32 @@ async def get_analytics(days: int = Query(30, ge=1, le=365),
         # Pending and SLA breached counts
         now = datetime.now(timezone.utc)
         pending_count = db.grievances.count_documents({
-            "created_at": {"$gte": start_date},
-            "status": {"$in": ["pending", "in_progress", "escalated"]}})
+            **base, "status": {"$in": ["pending", "in_progress", "escalated"]}})
         sla_breached_count = db.grievances.count_documents({
-            "created_at": {"$gte": start_date},
-            "status": {"$in": ["pending", "in_progress", "escalated"]},
+            **base, "status": {"$in": ["pending", "in_progress", "escalated"]},
             "sla_deadline": {"$lt": now}})
         # Deadline alerts (near-breach: within 25% of remaining time)
         deadline_alert_count = db.grievances.count_documents({
-            "created_at": {"$gte": start_date},
-            "status": {"$in": ["pending", "in_progress", "escalated"]},
+            **base, "status": {"$in": ["pending", "in_progress", "escalated"]},
             "$or": [
                 {"sla_deadline": {"$lt": now}},
                 {"estimated_resolution_deadline": {"$lt": now, "$ne": None}},
             ]})
         # Status distribution
         status_results = list(db.grievances.aggregate([
-            {"$match": {"created_at": {"$gte": start_date}}},
+            {"$match": base},
             {"$group": {"_id": "$status", "count": {"$sum": 1}}}]))
         status_dist = {s["_id"]: s["count"] for s in status_results}
         # Top districts by grievance count (all, not capped at 10)
         district_pipe = [
-            {"$match": {"created_at": {"$gte": start_date}, "district": {"$ne": None}}},
+            {"$match": {**base, "district": {"$ne": None}}},
             {"$group": {"_id": "$district", "count": {"$sum": 1}}},
             {"$sort": {"count": -1}}]
         district_results = list(db.grievances.aggregate(district_pipe))
         top_districts = [{"district": d["_id"], "count": d["count"]} for d in district_results]
         # Top complaint titles
         complaint_pipe = [
-            {"$match": {"created_at": {"$gte": start_date}}},
+            {"$match": base},
             {"$group": {"_id": "$title", "department": {"$first": "$department"}, "count": {"$sum": 1}}},
             {"$sort": {"count": -1}}, {"$limit": 10}]
         complaint_results = list(db.grievances.aggregate(complaint_pipe))
@@ -3146,6 +3208,66 @@ async def get_spam_flagged(user=Depends(require_role(UserRole.ADMIN.value)), db=
         })
     return result
 
+@app.get("/admin/spam-flagged/{user_id}")
+async def get_spam_flag_detail(user_id: str,
+                               user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value)),
+                               db=Depends(get_db)):
+    user_id = validate_uuid(user_id, "user_id")
+    loop = asyncio.get_event_loop()
+    record = await loop.run_in_executor(executor, db.spam_tracking.find_one, {"_id": user_id})
+    if not record:
+        raise HTTPException(status_code=404, detail="No spam record found for this user")
+    u = await loop.run_in_executor(executor, db.users.find_one, {"_id": user_id})
+    grievances = await loop.run_in_executor(executor, lambda: list(
+        db.grievances.find({"citizen_user_id": user_id}).sort("created_at", -1).limit(20)))
+    # Build grievance list with content hashes
+    grv_list = []
+    texts = []
+    for g in grievances:
+        text = f"{g.get('title', '')} {g.get('description', '')}".lower().strip()
+        texts.append(text)
+        grv_list.append({
+            "id": g["_id"],
+            "tracking_number": g.get("tracking_number"),
+            "title": g.get("title"),
+            "description": g.get("description", "")[:200],
+            "status": g.get("status"),
+            "department": g.get("department"),
+            "priority": g.get("priority"),
+            "created_at": g.get("created_at"),
+            "content_hash": hashlib.sha256(
+                f"{g.get('title', '')}|{g.get('description', '')}".lower().strip().encode()
+            ).hexdigest(),
+            "similar_to": [],
+        })
+    # Pairwise near-duplicate detection (SequenceMatcher, threshold 75%)
+    for i in range(len(grv_list)):
+        for j in range(i + 1, len(grv_list)):
+            ratio = difflib.SequenceMatcher(None, texts[i], texts[j]).ratio()
+            if ratio >= 0.75:
+                pct = round(ratio * 100)
+                grv_list[i]["similar_to"].append(
+                    {"tracking_number": grv_list[j]["tracking_number"], "similarity": pct})
+                grv_list[j]["similar_to"].append(
+                    {"tracking_number": grv_list[i]["tracking_number"], "similarity": pct})
+    return {
+        "user_id": user_id,
+        "username": u["username"] if u else "unknown",
+        "full_name": u["full_name"] if u else "unknown",
+        "email": u.get("email") if u else None,
+        "phone": u.get("phone") if u else None,
+        "spam_score": record.get("spam_score", 0),
+        "is_blocked": record.get("is_blocked", False),
+        "blocked_at": record.get("blocked_at"),
+        "photo_id_status": record.get("photo_id_status", "none"),
+        "photo_id_file_id": record.get("photo_id_file_id"),
+        "pattern_flags": record.get("pattern_flags", []),
+        "ip_addresses": record.get("ip_addresses", []),
+        "filing_timestamps": record.get("filing_timestamps", []),
+        "duplicate_hashes": record.get("duplicate_hashes", []),
+        "grievances": grv_list,
+    }
+
 @app.put("/admin/spam-flagged/{user_id}/review")
 async def review_spam_user(user_id: str, approved: bool = Query(...),
                            user=Depends(require_role(UserRole.ADMIN.value)), db=Depends(get_db)):
@@ -3194,9 +3316,14 @@ async def check_deadlines(user=Depends(require_role(UserRole.OFFICER.value, User
             note = {"id": str(uuid.uuid4()), "content": "Auto-escalated: deadline breached",
                     "officer": "System", "note_type": "internal",
                     "created_at": now}
-            await loop.run_in_executor(executor, lambda gid=g["_id"]: db.grievances.update_one(
+            update_fields: dict = {"status": "escalated", "updated_at": now}
+            if not g.get("assigned_officer"):
+                officer_name = find_officer_for_department(db, g.get("department"))
+                if officer_name:
+                    update_fields["assigned_officer"] = officer_name
+            await loop.run_in_executor(executor, lambda gid=g["_id"], uf=update_fields: db.grievances.update_one(
                 {"_id": gid},
-                {"$set": {"status": "escalated", "updated_at": now},
+                {"$set": uf,
                  "$push": {"notes": note}}))
             escalated_ids.append(g["_id"])
     return {"escalated_count": len(escalated_ids), "escalated_ids": escalated_ids}
@@ -3541,6 +3668,7 @@ PAGES = [
     ("admin", "admin.html"),
     ("community", "community.html"),
     ("systemic-issue-detail", "systemic_issue_detail.html"),
+    ("spam-flag-detail", "spam_flag_detail.html"),
 ]
 
 for _path, _template in PAGES:
