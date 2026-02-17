@@ -316,7 +316,7 @@
         </div>
         <div class="text-sm" style="margin:0.3rem 0;">
           Photo ID: <strong>${escapeHtml(r.photo_id_status)}</strong>
-          ${r.photo_id_file_id ? ` · <a href="/attachments/${r.photo_id_file_id}" target="_blank">View Photo ID</a>` : ''}
+          ${r.photo_id_file_id ? ` · <a href="/attachments/${r.photo_id_file_id}${getToken() ? '?token=' + encodeURIComponent(getToken()) : ''}" target="_blank">View Photo ID</a>` : ''}
         </div>
         ${r.pattern_flags.length ? '<div class="text-sm text-muted">Flags: ' + r.pattern_flags.map(f => escapeHtml(f.type + ': ' + f.detail)).join(', ') + '</div>' : ''}
         <div style="display:flex;gap:0.5rem;margin-top:0.5rem;align-items:center;">

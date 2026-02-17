@@ -230,9 +230,10 @@ async function toggleVouches(gid) {
     el.innerHTML = vouches.map(v => {
       const name = v.is_anonymous ? 'Anonymous' : escapeHtml(v.user_name || 'Citizen');
       const initials = v.is_anonymous ? '?' : name.split(' ').map(w => w[0]).join('').substring(0, 2);
+      const ctk = getToken() ? `?token=${encodeURIComponent(getToken())}` : '';
       const evidenceHtml = (v.evidence_file_ids || []).length
         ? '<div class="vouch-evidence-grid">' + v.evidence_file_ids.map(fid =>
-            `<img src="/attachments/${escapeHtml(fid)}" alt="Evidence" onclick="window.open('/attachments/${escapeHtml(fid)}','_blank')">`
+            `<img src="/attachments/${escapeHtml(fid)}${ctk}" alt="Evidence" onclick="window.open('/attachments/${escapeHtml(fid)}${ctk}','_blank')">`
           ).join('') + '</div>'
         : '';
       return `<div class="vouch-item">

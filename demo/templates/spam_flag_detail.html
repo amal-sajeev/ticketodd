@@ -181,10 +181,10 @@ async function loadFlagDetail() {
               <span class="badge ${d.photo_id_status === 'approved' ? 'badge-resolved' : d.photo_id_status === 'rejected' ? 'badge-escalated' : d.photo_id_status === 'pending_review' ? 'badge-in_progress' : 'badge-pending'}" style="font-size:0.75rem;">${escapeHtml(photoIdLabel(d.photo_id_status))}</span>
             </div>
             ${d.photo_id_file_id
-              ? '<div style="border-radius:10px;overflow:hidden;border:1px solid var(--outline-variant);margin-bottom:0.5rem;">'
-                + '<img src="/attachments/' + encodeURIComponent(d.photo_id_file_id) + '" alt="Photo ID" style="width:100%;display:block;cursor:pointer;" onclick="window.open(this.src, \'_blank\')" title="Click to open full size">'
+              ? (function(){ var stk = getToken() ? '?token=' + encodeURIComponent(getToken()) : ''; return '<div style="border-radius:10px;overflow:hidden;border:1px solid var(--outline-variant);margin-bottom:0.5rem;">'
+                + '<img src="/attachments/' + encodeURIComponent(d.photo_id_file_id) + stk + '" alt="Photo ID" style="width:100%;display:block;cursor:pointer;" onclick="window.open(this.src, \'_blank\')" title="Click to open full size">'
                 + '</div>'
-                + '<a href="/attachments/' + encodeURIComponent(d.photo_id_file_id) + '" target="_blank" class="btn btn-secondary btn-sm btn-block"><span class="icon sm">open_in_new</span> Open Full Size</a>'
+                + '<a href="/attachments/' + encodeURIComponent(d.photo_id_file_id) + stk + '" target="_blank" class="btn btn-secondary btn-sm btn-block"><span class="icon sm">open_in_new</span> Open Full Size</a>'; })()
               : '<div class="text-sm text-muted" style="padding:1.5rem 0;text-align:center;border:2px dashed var(--outline-variant);border-radius:10px;"><span class="icon" style="font-size:2rem;display:block;margin-bottom:0.3rem;opacity:0.4;">no_photography</span>No photo ID uploaded</div>'}
           </div>
 

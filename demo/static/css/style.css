@@ -1379,6 +1379,106 @@ select.form-control {
   font-variation-settings: 'FILL' 1;
 }
 
+/* Chat attach button */
+.chat-attach-btn {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.chat-attach-btn:hover {
+  background: var(--surface-container);
+  color: var(--primary);
+}
+
+.chat-attach-btn .icon {
+  font-size: 20px;
+  transform: rotate(-45deg);
+}
+
+/* Chat file preview strip */
+.chat-file-preview {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  overflow-x: auto;
+  border-top: 1px solid var(--outline-variant);
+  background: var(--surface-dim);
+  scrollbar-width: thin;
+}
+
+.chat-file-preview.hidden {
+  display: none;
+}
+
+.chat-file-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--surface-container);
+  border: 1px solid var(--outline-variant);
+  border-radius: 8px;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.78rem;
+  color: var(--on-surface);
+  white-space: nowrap;
+  flex-shrink: 0;
+  max-width: 180px;
+}
+
+.chat-file-chip img {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.chat-file-chip-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100px;
+}
+
+.chat-file-chip-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--on-surface-variant);
+  padding: 0;
+  display: flex;
+  align-items: center;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.chat-file-chip-remove:hover {
+  color: var(--error);
+}
+
+/* Attachment indicator on user bubble */
+.chat-attach-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.35rem;
+  font-size: 0.75rem;
+  opacity: 0.8;
+  color: inherit;
+}
+
 /* Chat markdown */
 .chat-bubble.bot p {
   margin: 0 0 0.4rem;
@@ -3203,6 +3303,37 @@ input[type="file"].form-control::file-selector-button:hover {
 
 .chat-widget-input-area .chat-send-btn .icon {
   font-size: 18px;
+}
+
+/* Widget attach button */
+.chat-widget-attach-btn {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+}
+
+.chat-widget-attach-btn .icon {
+  font-size: 18px;
+}
+
+/* Widget file preview */
+.chat-widget-file-preview {
+  padding: 0.4rem 0.6rem;
+}
+
+.chat-widget-file-preview .chat-file-chip {
+  padding: 0.2rem 0.4rem;
+  font-size: 0.74rem;
+  max-width: 140px;
+}
+
+.chat-widget-file-preview .chat-file-chip img {
+  width: 24px;
+  height: 24px;
+}
+
+.chat-widget-file-preview .chat-file-chip-name {
+  max-width: 70px;
 }
 
 /* --- Animations --- */

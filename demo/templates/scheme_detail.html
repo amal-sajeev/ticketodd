@@ -208,7 +208,7 @@
 
     title.textContent = filename;
     title.title = filename;
-    const url = `/attachments/${docId}`;
+    const url = `/attachments/${docId}${getToken() ? '?token=' + encodeURIComponent(getToken()) : ''}`;
 
     // Reset state
     pdfDoc = null;

@@ -308,7 +308,7 @@ class GrievanceResponse(BaseModel):
     notes: List[Dict] = Field(default_factory=list)
     location: Optional[Geolocation] = None
     citizen_user_id: Optional[str] = None
-    attachments: List[Dict] = Field(default_factory=list)
+    attachments: List[str] = Field(default_factory=list)
     impact_score: Optional[int] = None
     scheme_match: Optional[Dict] = None
     sub_tasks: List[Dict] = Field(default_factory=list)
@@ -333,6 +333,7 @@ class ChatMessage(BaseModel):
     message: str = Field(..., max_length=2000)
     language: Language = Language.ENGLISH
     conversation_history: List[Dict[str, str]] = Field(default_factory=list)
+    attachment_ids: List[str] = Field(default_factory=list)
 
 class ChatResponse(BaseModel):
     reply: str
@@ -532,6 +533,29 @@ async def lifespan(app: FastAPI):
 
 app.router.lifespan_context = lifespan
 
+def _dedupe_and_create_vouch_index():
+    """Remove duplicate vouches then (re-)create the unique compound index."""
+    pipeline = [
+        {"$group": {
+            "_id": {"grievance_id": "$grievance_id", "user_id": "$user_id"},
+            "ids": {"$push": "$_id"},
+            "count": {"$sum": 1},
+        }},
+        {"$match": {"count": {"$gt": 1}}},
+    ]
+    for doc in db.vouches.aggregate(pipeline):
+        # Keep the first document, delete the rest
+        dups = doc["ids"][1:]
+        if dups:
+            db.vouches.delete_many({"_id": {"$in": dups}})
+            logger.warning(
+                "Removed %d duplicate vouch(es) for grievance_id=%s user_id=%s",
+                len(dups), doc["_id"]["grievance_id"], doc["_id"]["user_id"],
+            )
+    db.vouches.create_index(
+        [("grievance_id", 1), ("user_id", 1)], unique=True,
+    )
+
 async def startup_db():
     global db_client, db, gfs
     db_client = MongoClient(MONGODB_URL)
@@ -552,7 +576,7 @@ async def startup_db():
     await loop.run_in_executor(executor, lambda: db.spam_tracking.create_index("_id"))
     # Vouches indexes
     await loop.run_in_executor(executor, lambda: db.vouches.create_index("grievance_id"))
-    await loop.run_in_executor(executor, lambda: db.vouches.create_index([("grievance_id", 1), ("user_id", 1)], unique=True))
+    await loop.run_in_executor(executor, _dedupe_and_create_vouch_index)
     # Systemic issues
     await loop.run_in_executor(executor, lambda: db.systemic_issues.create_index("status"))
     await loop.run_in_executor(executor, lambda: db.systemic_issues.create_index("department"))
@@ -2466,6 +2490,8 @@ async def chat(request: Request, msg: ChatMessage, user=Depends(get_current_user
         "ask them to confirm which district it falls under.\n"
         "- Once you have items 1-4 at minimum, summarize what you have and ask:\n"
         "  'Shall I file this grievance now, or would you like to add anything?'\n"
+        "- If the citizen's message includes '[... file(s) attached]', that means proof/evidence images "
+        "have ALREADY been uploaded. Acknowledge the attachment and do NOT ask for it again.\n"
         "- ONLY when the citizen confirms (says yes/file/submit/go ahead), include this JSON block "
         "at the END of your response:\n"
         '```json\n{"action":"file_grievance","title":"brief title","description":"full details including location, timing, and specifics","district":"ExactDistrictName"}\n```\n'
@@ -2482,7 +2508,10 @@ async def chat(request: Request, msg: ChatMessage, user=Depends(get_current_user
             role = "user"
         content = str(h.get("content", ""))[:2000]
         messages.append({"role": role, "content": content})
-    messages.append({"role": "user", "content": msg.message})
+    user_content = msg.message
+    if msg.attachment_ids:
+        user_content += f"\n\n[The citizen has attached {len(msg.attachment_ids)} file(s) with this message. The proof image / evidence is already uploaded — do NOT ask for it again.]"
+    messages.append({"role": "user", "content": user_content})
 
     try:
         reply = await openai_chat(messages)
@@ -2490,7 +2519,11 @@ async def chat(request: Request, msg: ChatMessage, user=Depends(get_current_user
             return ChatResponse(reply="I apologize, I'm having trouble right now. Please try again.", sources=[])
 
         filed_grievance = None
-        json_match = re.search(r'```json\s*(\{.*?"action"\s*:\s*"file_grievance".*?\})\s*```', reply, re.DOTALL)
+        # Try fenced JSON first (```json ... ``` or ``` ... ```), then bare JSON object
+        json_match = (
+            re.search(r'```(?:json)?\s*(\{.*?"action"\s*:\s*"file_grievance".*?\})\s*```', reply, re.DOTALL)
+            or re.search(r'(\{[^{}]*"action"\s*:\s*"file_grievance"[^{}]*\})', reply, re.DOTALL)
+        )
         if json_match:
             try:
                 action_data = json.loads(json_match.group(1))
@@ -2506,7 +2539,8 @@ async def chat(request: Request, msg: ChatMessage, user=Depends(get_current_user
                         citizen_name=user.get("full_name"),
                         citizen_email=user.get("email"),
                     )
-                    result = await process_grievance(grievance_data, db, user)
+                    result = await process_grievance(grievance_data, db, user,
+                                                      attachment_ids=msg.attachment_ids or None)
                     filed_grievance = {
                         "id": result.id,
                         "tracking_number": result.tracking_number,
@@ -2522,6 +2556,43 @@ async def chat(request: Request, msg: ChatMessage, user=Depends(get_current_user
     except Exception as e:
         logger.error("Chat error: %s", e)
         return ChatResponse(reply="I apologize, I'm having trouble right now. Please try again.", sources=[])
+
+
+@app.post("/chat/upload")
+@limiter.limit("20/minute")
+async def chat_upload_files(
+    request: Request,
+    files: List[UploadFile] = File(...),
+    user=Depends(get_current_user),
+):
+    """Upload files to GridFS for later attachment to a chatbot-filed grievance."""
+    if len(files) > MAX_FILES_PER_GRIEVANCE:
+        raise HTTPException(400, f"Maximum {MAX_FILES_PER_GRIEVANCE} files allowed")
+
+    uploaded = []
+    loop = asyncio.get_event_loop()
+    for f in files:
+        if f.content_type and f.content_type not in ALLOWED_MIME_TYPES:
+            raise HTTPException(400, f"File type {f.content_type} not allowed. Accepted: images, audio, video.")
+        content = await f.read()
+        if len(content) > MAX_FILE_SIZE:
+            raise HTTPException(400, f"{f.filename} exceeds 50 MB limit")
+        fid = await loop.run_in_executor(
+            executor,
+            lambda c=content, fn=f.filename, ct=f.content_type: gfs.put(
+                c, filename=fn, content_type=ct,
+                metadata={"type": "chat_attachment",
+                          "uploaded_at": datetime.now(timezone.utc).isoformat()}
+            )
+        )
+        uploaded.append({
+            "id": str(fid),
+            "filename": f.filename,
+            "content_type": f.content_type,
+            "size": len(content),
+        })
+    return {"files": uploaded}
+
 
 # ---------------------------------------------------------------------------
 # KNOWLEDGE BASE ENDPOINTS
@@ -3162,8 +3233,21 @@ async def get_attachments(grievance_id: str, user=Depends(get_current_user), db=
 
 @app.get("/attachments/{attachment_id}")
 async def get_attachment(attachment_id: str,
+                         token: Optional[str] = Query(None, alias="token"),
                          user=Depends(get_optional_user),
                          db=Depends(get_db)):
+    # Allow token via query param so <img> tags can authenticate
+    if user is None and token:
+        try:
+            loop_t = asyncio.get_event_loop()
+            revoked = await loop_t.run_in_executor(executor, lambda: db.revoked_tokens.find_one({"_id": token}))
+            if not revoked:
+                payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+                username = payload.get("sub")
+                if username:
+                    user = await loop_t.run_in_executor(executor, db.users.find_one, {"username": username})
+        except Exception:
+            pass
     try:
         loop = asyncio.get_event_loop()
         # Verify attachment belongs to a grievance the requester can access

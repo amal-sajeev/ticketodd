@@ -15,7 +15,10 @@
         <div class="chat-bubble bot">Hello! I'm <strong>Seva</strong>, your Panchayati Raj & Drinking Water Department assistant. How can I help you today? I can assist with JJM water connections, MGNREGS, PMAY-G housing, BGBO infrastructure, panchayat governance, or help you file a grievance.</div>
       </div>
     </div>
+    <div class="chat-file-preview hidden" id="chatFilePreview"></div>
     <div class="chat-input-area">
+      <input type="file" id="chatFileInput" multiple accept="image/*,audio/*,video/*" style="display:none">
+      <button class="chat-attach-btn" onclick="document.getElementById('chatFileInput').click()" aria-label="Attach file"><span class="icon">attach_file</span></button>
       <input type="text" id="chatInput" placeholder="Type your message..." autocomplete="off">
       <button class="chat-send-btn" onclick="sendMessage()" id="sendBtn" aria-label="Send message"><span class="icon">send</span></button>
     </div>

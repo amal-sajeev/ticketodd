@@ -6,7 +6,11 @@ from .config import new_id, now_utc, pwd_context
 # Raw user definitions
 # ---------------------------------------------------------------------------
 USERS = [
-    # ---- Citizens (4) ----
+    # ---- Citizens (5) ----
+    {"username": "ram_kumar", "password": "password123",
+     "full_name": "Ram Kumar", "email": "ram.kumar@email.com",
+     "phone": "9876543209", "role": "citizen", "department": None},
+
     {"username": "citizen1", "password": "citizen123",
      "full_name": "Rajesh Kumar Swain", "email": "rajesh.swain@email.com",
      "phone": "9876543210", "role": "citizen", "department": None},

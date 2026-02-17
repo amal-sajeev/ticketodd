@@ -6,6 +6,60 @@ const BOT_NAME = 'Seva';
 
 if (!requireAuth()) {}
 
+/* ── File attachment state ── */
+let pendingFiles = [];
+let uploadedAttachmentIds = [];
+const filePreviewEl = document.getElementById('chatFilePreview');
+const fileInputEl = document.getElementById('chatFileInput');
+const CHAT_ALLOWED_TYPES = ['image/', 'audio/', 'video/'];
+const CHAT_MAX_FILE_SIZE = 50 * 1024 * 1024;
+const CHAT_MAX_FILES = 5;
+
+if (fileInputEl) {
+  fileInputEl.addEventListener('change', () => {
+    addPendingFiles(Array.from(fileInputEl.files));
+    fileInputEl.value = '';
+  });
+}
+
+function addPendingFiles(files) {
+  for (const f of files) {
+    if (pendingFiles.length >= CHAT_MAX_FILES) { showToast(`Maximum ${CHAT_MAX_FILES} files`, 'error'); break; }
+    if (!CHAT_ALLOWED_TYPES.some(t => f.type.startsWith(t))) { showToast(`${f.name}: unsupported type`, 'error'); continue; }
+    if (f.size > CHAT_MAX_FILE_SIZE) { showToast(`${f.name}: exceeds 50 MB`, 'error'); continue; }
+    if (pendingFiles.some(e => e.name === f.name && e.size === f.size)) continue;
+    pendingFiles.push(f);
+  }
+  renderFilePreview();
+}
+
+function removePendingFile(idx) {
+  pendingFiles.splice(idx, 1);
+  renderFilePreview();
+}
+
+function renderFilePreview() {
+  if (!filePreviewEl) return;
+  if (!pendingFiles.length) { filePreviewEl.innerHTML = ''; filePreviewEl.classList.add('hidden'); return; }
+  filePreviewEl.classList.remove('hidden');
+  filePreviewEl.innerHTML = pendingFiles.map((f, i) => {
+    const isImg = f.type.startsWith('image/');
+    const thumb = isImg ? `<img src="${URL.createObjectURL(f)}" alt="">` : `<span class="icon" style="font-size:20px;">description</span>`;
+    return `<div class="chat-file-chip">${thumb}<span class="chat-file-chip-name">${escapeHtml(f.name)}</span><button onclick="removePendingFile(${i})" class="chat-file-chip-remove" aria-label="Remove"><span class="icon" style="font-size:14px;">close</span></button></div>`;
+  }).join('');
+}
+
+async function uploadPendingFiles() {
+  if (!pendingFiles.length) return;
+  const fd = new FormData();
+  pendingFiles.forEach(f => fd.append('files', f));
+  const result = await apiFormData('POST', '/chat/upload', fd);
+  const newIds = (result.files || []).map(f => f.id);
+  uploadedAttachmentIds = newIds;
+  pendingFiles = [];
+  renderFilePreview();
+}
+
 /* Restore conversation transferred from the floating widget */
 (function restoreTransfer() {
   try {
@@ -164,25 +218,39 @@ function hideTyping() { document.getElementById('typingIndicator')?.remove(); }
 
 async function sendMessage() {
   const text = inputEl.value.trim();
-  if (!text) return;
+  const hasFiles = pendingFiles.length > 0;
+  if (!text && !hasFiles) return;
   inputEl.value = '';
-  addBubble('user', escapeHtml(text));
-  chatHistory.push({ role: 'user', content: text });
+
+  const fileCount = pendingFiles.length;
+  const attachHtml = fileCount ? `<div class="chat-attach-indicator"><span class="icon" style="font-size:14px;">attach_file</span> ${fileCount} file${fileCount > 1 ? 's' : ''} attached</div>` : '';
+  addBubble('user', escapeHtml(text || '(files attached)') + attachHtml);
+  const historyContent = fileCount
+    ? (text || '(files attached)') + ` [${fileCount} file(s) attached]`
+    : text;
+  chatHistory.push({ role: 'user', content: historyContent });
   showTyping();
   document.getElementById('sendBtn').disabled = true;
 
   try {
+    if (hasFiles) {
+      await uploadPendingFiles();
+    }
     const data = await api('POST', '/chat', {
-      message: text,
+      message: text || 'I have attached files for my grievance.',
       language: document.getElementById('chatLang').value,
       conversation_history: chatHistory.slice(-10),
+      attachment_ids: uploadedAttachmentIds,
     });
     hideTyping();
     const chunks = splitReply(data.reply);
     await addBotBubbles(chunks);
     chatHistory.push({ role: 'assistant', content: data.reply });
     if (data.sources) addSchemeSources(data.sources);
-    if (data.filed_grievance) addFiledGrievance(data.filed_grievance);
+    if (data.filed_grievance) {
+      addFiledGrievance(data.filed_grievance);
+      uploadedAttachmentIds = [];
+    }
   } catch (e) {
     hideTyping();
     addBubble('bot', 'Sorry, something went wrong. Please try again.');

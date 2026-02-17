@@ -14,9 +14,15 @@
   let chatHistory = [];
   let panelOpen = false;
   let unreadCount = 0;
+  let wPendingFiles = [];
+  let wUploadedAttachmentIds = [];
+
+  const W_ALLOWED_TYPES = ['image/', 'audio/', 'video/'];
+  const W_MAX_FILE_SIZE = 50 * 1024 * 1024;
+  const W_MAX_FILES = 5;
 
   /* --- DOM references (set after injection) --- */
-  let fab, badge, panel, messagesEl, inputEl, sendBtn, langSelect;
+  let fab, badge, panel, messagesEl, inputEl, sendBtn, langSelect, wFileInput, wFilePreview;
 
   /* === Lifecycle ========================================================= */
 
@@ -77,7 +83,10 @@
           <div class="chat-bubble bot">Hello! I'm <strong>${BOT_NAME}</strong>, your PR&DW assistant. How can I help you today?</div>
         </div>
       </div>
+      <div class="chat-file-preview chat-widget-file-preview hidden" id="cwFilePreview"></div>
       <div class="chat-widget-input-area">
+        <input type="file" id="cwFileInput" multiple accept="image/*,audio/*,video/*" style="display:none">
+        <button class="chat-attach-btn chat-widget-attach-btn" id="cwAttach" aria-label="Attach file"><span class="icon">attach_file</span></button>
         <input type="text" id="cwInput" placeholder="Type a message..." autocomplete="off">
         <button class="chat-send-btn" id="cwSend" aria-label="Send message"><span class="icon">send</span></button>
       </div>`;
@@ -88,14 +97,65 @@
     inputEl = document.getElementById('cwInput');
     sendBtn = document.getElementById('cwSend');
     langSelect = document.getElementById('cwLang');
+    wFileInput = document.getElementById('cwFileInput');
+    wFilePreview = document.getElementById('cwFilePreview');
 
     /* Events */
     document.getElementById('cwClose').addEventListener('click', closePanel);
     document.getElementById('cwTransfer').addEventListener('click', transferToPage);
+    document.getElementById('cwAttach').addEventListener('click', () => wFileInput.click());
     sendBtn.addEventListener('click', sendMessage);
     inputEl.addEventListener('keydown', e => {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
     });
+    wFileInput.addEventListener('change', () => {
+      wAddPendingFiles(Array.from(wFileInput.files));
+      wFileInput.value = '';
+    });
+  }
+
+  /* === Widget File Attachment ============================================= */
+
+  function wAddPendingFiles(files) {
+    for (const f of files) {
+      if (wPendingFiles.length >= W_MAX_FILES) { showToast('Maximum ' + W_MAX_FILES + ' files', 'error'); break; }
+      if (!W_ALLOWED_TYPES.some(t => f.type.startsWith(t))) { showToast(f.name + ': unsupported type', 'error'); continue; }
+      if (f.size > W_MAX_FILE_SIZE) { showToast(f.name + ': exceeds 50 MB', 'error'); continue; }
+      if (wPendingFiles.some(e => e.name === f.name && e.size === f.size)) continue;
+      wPendingFiles.push(f);
+    }
+    wRenderFilePreview();
+  }
+
+  function wRemovePendingFile(idx) {
+    wPendingFiles.splice(idx, 1);
+    wRenderFilePreview();
+  }
+
+  /* Expose to onclick in rendered HTML */
+  window._cwRemoveFile = wRemovePendingFile;
+
+  function wRenderFilePreview() {
+    if (!wFilePreview) return;
+    if (!wPendingFiles.length) { wFilePreview.innerHTML = ''; wFilePreview.classList.add('hidden'); return; }
+    wFilePreview.classList.remove('hidden');
+    wFilePreview.innerHTML = wPendingFiles.map((f, i) => {
+      const isImg = f.type.startsWith('image/');
+      const thumb = isImg ? '<img src="' + URL.createObjectURL(f) + '" alt="">' : '<span class="icon" style="font-size:18px;">description</span>';
+      return '<div class="chat-file-chip">' + thumb + '<span class="chat-file-chip-name">' + escapeHtml(f.name) + '</span><button onclick="_cwRemoveFile(' + i + ')" class="chat-file-chip-remove" aria-label="Remove"><span class="icon" style="font-size:14px;">close</span></button></div>';
+    }).join('');
+  }
+
+  async function wUploadPendingFiles() {
+    if (!wPendingFiles.length) return;
+    const fd = new FormData();
+    wPendingFiles.forEach(f => fd.append('files', f));
+    const result = await apiFormData('POST', '/chat/upload', fd);
+    const newIds = (result.files || []).map(f => f.id);
+    // Replace (not accumulate) so retries don't duplicate attachments
+    wUploadedAttachmentIds = newIds;
+    wPendingFiles = [];
+    wRenderFilePreview();
   }
 
   /* === Panel Toggle ====================================================== */
@@ -247,25 +307,39 @@
 
   async function sendMessage() {
     const text = inputEl.value.trim();
-    if (!text) return;
+    const hasFiles = wPendingFiles.length > 0;
+    if (!text && !hasFiles) return;
     inputEl.value = '';
-    wAddBubble('user', escapeHtml(text));
-    chatHistory.push({ role: 'user', content: text });
+
+    const fileCount = wPendingFiles.length;
+    const attachHtml = fileCount ? '<div class="chat-attach-indicator"><span class="icon" style="font-size:14px;">attach_file</span> ' + fileCount + ' file' + (fileCount > 1 ? 's' : '') + ' attached</div>' : '';
+    wAddBubble('user', escapeHtml(text || '(files attached)') + attachHtml);
+    const historyContent = fileCount
+      ? (text || '(files attached)') + ` [${fileCount} file(s) attached]`
+      : text;
+    chatHistory.push({ role: 'user', content: historyContent });
     wShowTyping();
     sendBtn.disabled = true;
 
     try {
+      if (hasFiles) {
+        await wUploadPendingFiles();
+      }
       const data = await api('POST', '/chat', {
-        message: text,
+        message: text || 'I have attached files for my grievance.',
         language: langSelect.value,
         conversation_history: chatHistory.slice(-10),
+        attachment_ids: wUploadedAttachmentIds,
       });
       wHideTyping();
       const chunks = splitReply(data.reply);
       await wAddBotBubbles(chunks);
       chatHistory.push({ role: 'assistant', content: data.reply });
       if (data.sources) wAddSchemeSources(data.sources);
-      if (data.filed_grievance) wAddFiledGrievance(data.filed_grievance);
+      if (data.filed_grievance) {
+        wAddFiledGrievance(data.filed_grievance);
+        wUploadedAttachmentIds = [];
+      }
 
       if (!panelOpen) {
         unreadCount++;

@@ -256,16 +256,18 @@ async function loadAttachments(gid) {
     const atts = await api('GET', `/grievances/${gid}/attachments`);
     if (!atts || !atts.length) return;
     const section = document.getElementById('attachmentsSection');
+    const tk = getToken() ? `?token=${encodeURIComponent(getToken())}` : '';
     section.innerHTML = '<h3 class="mt-2"><span class="icon sm">attach_file</span> Attachments</h3><div class="attachment-grid">' +
       atts.map(a => {
+        const url = `/attachments/${a.id}${tk}`;
         if (a.content_type?.startsWith('image/')) {
-          return `<div class="attachment-item"><img src="/attachments/${a.id}" alt="${escapeHtml(a.filename)}"><div class="text-sm">${escapeHtml(a.filename)}</div></div>`;
+          return `<div class="attachment-item"><img src="${url}" alt="${escapeHtml(a.filename)}"><div class="text-sm">${escapeHtml(a.filename)}</div></div>`;
         } else if (a.content_type?.startsWith('audio/')) {
-          return `<div class="attachment-item"><span class="icon sm">audiotrack</span><audio controls src="/attachments/${a.id}" style="width:140px;"></audio><div class="text-sm">${escapeHtml(a.filename)}</div></div>`;
+          return `<div class="attachment-item"><span class="icon sm">audiotrack</span><audio controls src="${url}" style="width:140px;"></audio><div class="text-sm">${escapeHtml(a.filename)}</div></div>`;
         } else if (a.content_type?.startsWith('video/')) {
-          return `<div class="attachment-item"><video controls src="/attachments/${a.id}" style="max-width:140px;max-height:100px;"></video><div class="text-sm">${escapeHtml(a.filename)}</div></div>`;
+          return `<div class="attachment-item"><video controls src="${url}" style="max-width:140px;max-height:100px;"></video><div class="text-sm">${escapeHtml(a.filename)}</div></div>`;
         }
-        return `<div class="attachment-item"><a href="/attachments/${a.id}" target="_blank"><span class="icon sm">description</span> ${escapeHtml(a.filename)}</a></div>`;
+        return `<div class="attachment-item"><a href="${url}" target="_blank"><span class="icon sm">description</span> ${escapeHtml(a.filename)}</a></div>`;
       }).join('') + '</div>';
   } catch {}
 }
@@ -281,9 +283,10 @@ async function loadVouches(gid) {
       vouches.map(v => {
         const name = v.is_anonymous ? 'Anonymous' : escapeHtml(v.user_name || 'Citizen');
         const initials = v.is_anonymous ? '?' : name.split(' ').map(w => w[0]).join('').substring(0, 2);
+        const vtk = getToken() ? `?token=${encodeURIComponent(getToken())}` : '';
         const evidenceHtml = (v.evidence_file_ids || []).length
           ? '<div class="vouch-evidence-grid">' + v.evidence_file_ids.map(fid => {
-              return `<img src="/attachments/${escapeHtml(fid)}" alt="Evidence" onclick="window.open('/attachments/${escapeHtml(fid)}','_blank')">`;
+              return `<img src="/attachments/${escapeHtml(fid)}${vtk}" alt="Evidence" onclick="window.open('/attachments/${escapeHtml(fid)}${vtk}','_blank')">`;
             }).join('') + '</div>'
           : '';
         return `<div class="vouch-item">
