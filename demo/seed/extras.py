@@ -232,36 +232,16 @@ def _build_forecasts() -> list[dict]:
 
 
 # ===================================================================
-# 3.  VOUCHES  (6 — for public grievances)
+# 3.  VOUCHES  (for public grievances)
 # ===================================================================
-def _build_vouches(grievances: list[dict], user_ids: dict[str, str]) -> list[dict]:
-    now = now_utc()
-    public_grvs = [g for g in grievances if g.get("is_public")]
-    vouches: list[dict] = []
 
-    cit_ids = [uid for uname, uid in user_ids.items() if uname.startswith("citizen")]
-
-    for idx, grv in enumerate(public_grvs[:4]):
-        # Each public grievance gets 1-2 vouches from different citizens
-        vouch_user = cit_ids[(idx + 1) % len(cit_ids)]
-        vouches.append({
-            "grievance_id": grv["_id"],
-            "user_id": vouch_user,
-            "comment": _vouch_comments[idx % len(_vouch_comments)],
-            "evidence_file_ids": [],
-            "created_at": now - timedelta(days=5 - idx, hours=idx * 3),
-        })
-        # Second vouch on the first two
-        if idx < 2:
-            vouch_user_2 = cit_ids[(idx + 2) % len(cit_ids)]
-            vouches.append({
-                "grievance_id": grv["_id"],
-                "user_id": vouch_user_2,
-                "comment": _vouch_comments[(idx + 2) % len(_vouch_comments)],
-                "evidence_file_ids": ["placeholder_evidence_001"] if idx == 0 else [],
-                "created_at": now - timedelta(days=4 - idx, hours=idx * 2),
-            })
-    return vouches
+# Map citizen usernames to full names for vouch attribution
+_CITIZEN_NAMES = {
+    "citizen1": "Rajesh Kumar Swain",
+    "citizen2": "Anita Behera",
+    "citizen3": "Dambaru Majhi",
+    "citizen4": "Kuni Sabar",
+}
 
 _vouch_comments = [
     "I can confirm this issue. Our village faces the same problem. Water supply has been erratic for months.",
@@ -270,7 +250,45 @@ _vouch_comments = [
     "I support this grievance. Multiple families in our ward are affected by the same issue.",
     "This is accurate. The road has been in terrible condition since last monsoon. Many accidents have occurred.",
     "Confirmed. The contractor left months ago. We need urgent intervention.",
+    "Same problem in our hamlet. The hand pump has been broken for 3 months and nobody repairs it.",
+    "My family is also affected. We have to walk 2 km to fetch drinking water now.",
+    None,  # vouch without comment
+    "I spoke to the Sarpanch about this but nothing happened. Supporting this grievance.",
+    None,  # vouch without comment
+    "The drainage near our school is completely blocked. Children are falling sick regularly.",
 ]
+
+def _build_vouches(grievances: list[dict], user_ids: dict[str, str]) -> list[dict]:
+    now = now_utc()
+    public_grvs = [g for g in grievances if g.get("is_public")]
+    vouches: list[dict] = []
+
+    # Build list of (username, user_id) for citizens only
+    cit_entries = [(uname, uid) for uname, uid in user_ids.items() if uname.startswith("citizen")]
+
+    comment_idx = 0
+    for idx, grv in enumerate(public_grvs[:6]):
+        # Each public grievance gets 1-3 vouches from different citizens
+        n_vouches = 3 if idx < 2 else (2 if idx < 4 else 1)
+        for v_idx in range(n_vouches):
+            uname, uid = cit_entries[(idx + v_idx + 1) % len(cit_entries)]
+            # Skip if citizen filed this grievance
+            if grv.get("citizen_user_id") == uid:
+                uname, uid = cit_entries[(idx + v_idx + 2) % len(cit_entries)]
+            is_anonymous = (comment_idx % 5 == 3)  # roughly 1 in 5 are anonymous
+            comment = _vouch_comments[comment_idx % len(_vouch_comments)]
+            comment_idx += 1
+            vouches.append({
+                "_id": new_id(),
+                "grievance_id": grv["_id"],
+                "user_id": uid,
+                "user_name": _CITIZEN_NAMES.get(uname, "Citizen"),
+                "is_anonymous": is_anonymous,
+                "comment": comment[:500] if comment else None,
+                "evidence_file_ids": [],
+                "created_at": now - timedelta(days=6 - idx, hours=v_idx * 4 + idx),
+            })
+    return vouches
 
 
 # ===================================================================
@@ -401,12 +419,16 @@ async def import_extras(db, grievances: list[dict], user_ids: dict[str, str]) ->
     # --- Vouches ---
     print("\n  Importing vouches...")
     vouches = _build_vouches(grievances, user_ids)
+    anon_count = sum(1 for v in vouches if v.get("is_anonymous"))
     for v in vouches:
         db.vouches.insert_one(v)
+        label = "Anonymous" if v.get("is_anonymous") else v.get("user_name", "?")
+        has_comment = "with comment" if v.get("comment") else "no comment"
+        print(f"    Vouch by {label:20s} ({has_comment})")
     db.vouches.create_index("grievance_id")
     db.vouches.create_index([("grievance_id", 1), ("user_id", 1)], unique=True)
     counts["vouches"] = len(vouches)
-    print(f"  => {len(vouches)} vouches")
+    print(f"  => {len(vouches)} vouches ({anon_count} anonymous)")
 
     # --- Spam tracking ---
     print("\n  Importing spam tracking records...")

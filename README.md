@@ -208,6 +208,8 @@ ticketodd-main/
       scheme_detail.html     # Scheme detail with eligibility
       knowledge.html         # Knowledge base management
       analytics.html         # Analytics dashboard
+      reports.html           # Admin reports (daily/weekly stats)
+      profile.html           # User profile management
     static/
       css/style.css          # Material 3 global styles
       js/common.js           # Shared JS utilities, nav, API client, toasts
@@ -215,7 +217,7 @@ ticketodd-main/
       js/analytics.js        # Analytics dashboard (metrics, Chart.js charts)
       odisha_districts.json  # GeoJSON for district map
       odisha_census_data.json # Census data for impact scoring (30 districts)
-  seed_users.py              # Standalone user seeder script
+    seed_users.py            # Standalone user seeder script
 ```
 
 ## Setup
@@ -229,19 +231,20 @@ ticketodd-main/
 
 2. **Set environment variables**
 
-   ```
-   MONGODB_URL=mongodb://localhost:27017
-   QDRANT_URL=http://localhost:6333
-   QDRANT_API_KEY=...            # optional, if Qdrant requires auth
-   OPENAI_API_KEY=sk-...
-   OPENAI_MODEL=gpt-5-mini       # optional, default gpt-5-mini
-   OPENAI_VISION_MODEL=gpt-4o    # optional, for scanned document extraction
-   EMBEDDING_MODEL=text-embedding-3-large  # optional
-   JWT_SECRET=your-secret-key
-   OPENWEATHERMAP_API_KEY=...    # optional, for predictive forecasting
+   ```bash
+   cp .env.example .env
+   # Edit .env with your API keys and secrets
    ```
 
-3. **Run the server**
+   Required variables: `OPENAI_API_KEY`, `MONGODB_URL`, `QDRANT_URL`, `JWT_SECRET`. See `.env.example` for the full list.
+
+3. **Seed demo data** (optional but recommended)
+
+   ```bash
+   python importer.py
+   ```
+
+4. **Run the server**
 
    ```bash
    python ticketer.py
@@ -249,9 +252,18 @@ ticketodd-main/
 
    The portal will be available at `http://localhost:8000`.
 
+## Demo Credentials
+
+| Role    | Username      | Password      |
+|---------|---------------|---------------|
+| Citizen | citizen1      | citizen123    |
+| Citizen | citizen2      | citizen123    |
+| Officer | officer_bdo   | officer123    |
+| Admin   | admin         | admin123      |
+
 ## API Overview
 
-The system exposes 68 endpoints across these groups:
+The system exposes 73 endpoints across these groups:
 
 - **Auth** — register (with optional face enrollment), login (password or face), officers list, spam status, photo ID upload
 - **Grievances** — CRUD, status updates, assignment, resolution, notes, deadline checks, public tracking

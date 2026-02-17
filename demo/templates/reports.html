@@ -141,32 +141,6 @@
         <p style="margin-top:1rem;color:var(--on-surface-variant);">Generating report...</p>
     </div>
 
-    <!-- AI Insights Section -->
-    <div class="card ai-accent mb-3" id="aiSection">
-        <div class="flex-between">
-            <h3 class="ai-label"><span class="icon sm filled">auto_awesome</span> AI Executive Summary</h3>
-            <button class="btn btn-sm btn-tonal" onclick="generateAIReport()" id="btnGenAI">
-                <span class="icon sm">temp_preferences_custom</span> Generate Insights
-            </button>
-        </div>
-        <div id="aiContent" style="display:none; margin-top:1rem;">
-            <!-- Summary -->
-            <div style="background:var(--surface-container-low); padding:1rem; border-radius:8px; margin-bottom:1rem;">
-                <ul id="aiSummaryList" style="padding-left:1.2rem; line-height:1.6; color:var(--on-surface);"></ul>
-            </div>
-            <!-- Themes -->
-            <div>
-                <h4 style="font-size:0.9rem; margin-bottom:0.5rem; color:var(--on-surface-variant);">Detected Themes
-                </h4>
-                <div id="aiThemes" style="display:flex; gap:0.5rem; flex-wrap:wrap;"></div>
-            </div>
-        </div>
-        <div id="aiLoading" style="display:none; text-align:center; padding:1.5rem;">
-            <div class="spinner"><span></span><span></span><span></span></div>
-            <p class="text-sm text-muted mt-1">Analyzing...</p>
-        </div>
-    </div>
-
     <div id="reportContent">
         <!-- KPI Cards -->
         <div class="kpi-grid">
@@ -200,7 +174,6 @@
         </div>
 
         <!-- Charts Row -->
-        <!-- Charts Row -->
         <div class="charts-grid" style="grid-template-columns: 1fr 1fr 1fr;">
             <div class="chart-card">
                 <h3>Status Breakdown</h3>
@@ -221,16 +194,6 @@
                 <div style="margin-top:1rem; max-height:250px; overflow-y:auto;" id="districtList">
                     <!-- Populated by JS -->
                 </div>
-            </div>
-        </div>
-
-        <!-- Sentiment Heatmap Row -->
-        <div class="card mb-3">
-            <h3>Sentiment Heatmap (By Department)</h3>
-            <p class="text-muted" style="font-size:0.8rem; margin-bottom:1rem;">Stacked view of citizen sentiment for
-                each department</p>
-            <div style="position:relative; height:300px;">
-                <canvas id="sentimentChart"></canvas>
             </div>
         </div>
 
@@ -299,56 +262,10 @@
 <script>
     let deptChart = null;
     let statusChart = null;
-    let sentimentChart = null;
-    let currentReportTimeframe = 'daily';
-
-    async function generateAIReport() {
-        const btn = document.getElementById('btnGenAI');
-        const content = document.getElementById('aiContent');
-        const loading = document.getElementById('aiLoading');
-
-        btn.disabled = true;
-        content.style.display = 'none';
-        loading.style.display = 'block';
-
-        try {
-            const res = await fetch('/admin/reports/analysis', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ timeframe: currentReportTimeframe })
-            });
-            const data = await res.json();
-
-            // Render Summary
-            const list = document.getElementById('aiSummaryList');
-            list.innerHTML = data.summary.map(s => `<li>${marked.parseInline(s)}</li>`).join('');
-
-            // Render Themes
-            const themes = document.getElementById('aiThemes');
-            themes.innerHTML = data.themes.map(t =>
-                `<span class="badge" style="background:var(--primary-container);color:var(--on-primary-container);padding:0.4rem 0.8rem;">
-                    ${escapeHtml(t.name)} <span style="opacity:0.7;margin-left:4px;">(${t.count})</span>
-                 </span>`
-            ).join('');
-
-            content.style.display = 'block';
-        } catch (e) {
-            showToast('AI Analysis failed: ' + e.message, 'error');
-        } finally {
-            loading.style.display = 'none';
-            btn.disabled = false;
-        }
-    }
 
     async function loadReport(timeframe) {
-        currentReportTimeframe = timeframe;
         document.getElementById('reportLoading').style.display = 'block';
         document.getElementById('reportContent').style.display = 'none';
-
-        // Reset AI section
-        document.getElementById('aiContent').style.display = 'none';
-        document.getElementById('aiLoading').style.display = 'none';
-
         document.getElementById('reportSubtitle').textContent = timeframe === 'daily' ? "Today's statistics and activities" : "Overview for the last 7 days";
 
         // Toggle buttons
@@ -376,7 +293,6 @@
             // Charts
             renderDeptChart(data.departments);
             renderStatusChart(data.status_breakdown);
-            renderSentimentChart(data.sentiment_by_dept);
             document.getElementById('chart-dept-total').textContent = 'Total: ' + data.departments.reduce((s, d) => s + d.count, 0);
 
             // Officer Tables
@@ -488,42 +404,6 @@
                 cutout: '65%',
                 plugins: {
                     legend: { position: 'right', labels: { usePointStyle: true, boxWidth: 8 } }
-                }
-            }
-        });
-    }
-
-    function renderSentimentChart(data) {
-        const ctx = document.getElementById('sentimentChart');
-        if (sentimentChart) sentimentChart.destroy();
-
-        if (!data || Object.keys(data).length === 0) return;
-
-        const depts = Object.keys(data);
-        const sentiments = ['frustrated', 'negative', 'neutral', 'positive'];
-        const colors = { 'frustrated': '#C62828', 'negative': '#E57373', 'neutral': '#BDBDBD', 'positive': '#4CAF50' };
-
-        const datasets = sentiments.map(s => ({
-            label: statusLabel(s),
-            data: depts.map(d => data[d][s] || 0),
-            backgroundColor: colors[s]
-        }));
-
-        sentimentChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: depts.map(d => deptLabel(d)),
-                datasets: datasets
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    x: { stacked: true },
-                    y: { stacked: true, beginAtZero: true }
-                },
-                plugins: {
-                    legend: { position: 'top' }
                 }
             }
         });

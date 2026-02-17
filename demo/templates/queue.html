@@ -44,8 +44,12 @@ if (requireAuth()) {
 function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
 function impactColor(s) { return s<=30?'#66BB6A':s<=60?'#FFB74D':s<=80?'#FF7043':'#EF5350'; }
 
-async function loadQueue() {
-  showLoading('queueList');
+const QUEUE_PAGE_SIZE = 50;
+let queueOffset = 0;
+let queueHasMore = false;
+
+async function loadQueue(append = false) {
+  if (!append) { showLoading('queueList'); queueOffset = 0; }
   const params = new URLSearchParams();
   const s = document.getElementById('fStatus').value; if (s) params.set('status', s);
   const d = document.getElementById('fDept').value; if (d) params.set('department', d);
@@ -54,32 +58,54 @@ async function loadQueue() {
   const sortBy = document.getElementById('fSort').value;
   if (sortBy === 'impact') params.set('sort_by', 'impact_score');
   else params.set('group_by_date', 'true');
-  params.set('limit', '50');
+  params.set('limit', String(QUEUE_PAGE_SIZE));
+  params.set('skip', String(queueOffset));
   try {
     let grievances = await api('GET', '/grievances?' + params.toString());
     const search = document.getElementById('fSearch').value.toLowerCase();
     if (search) grievances = grievances.filter(g => g.title.toLowerCase().includes(search) || g.description.toLowerCase().includes(search));
-    document.getElementById('queueCount').textContent = `${grievances.length} grievances found`;
+    queueHasMore = grievances.length >= QUEUE_PAGE_SIZE;
     const list = document.getElementById('queueList');
-    if (!grievances.length) { list.innerHTML = '<div class="card text-center" style="padding:2rem;">No matching grievances.</div>'; return; }
+    if (!append && !grievances.length) {
+      document.getElementById('queueCount').textContent = '0 grievances found';
+      list.innerHTML = '<div class="card text-center" style="padding:2rem;">No matching grievances.</div>';
+      return;
+    }
 
     const now = new Date();
+    let html = '';
     if (sortBy === 'date') {
-      // Group by date
       const groups = {};
       grievances.forEach(g => {
         const dateKey = new Date(g.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
         if (!groups[dateKey]) groups[dateKey] = [];
         groups[dateKey].push(g);
       });
-      let html = '';
       for (const [date, items] of Object.entries(groups)) {
         html += `<div class="date-group-header"><span class="icon sm">calendar_today</span><h3>${date}</h3><span class="count">${items.length}</span></div>`;
         html += items.map(g => renderQueueCard(g, now)).join('');
       }
-      list.innerHTML = html;
     } else {
-      list.innerHTML = grievances.map(g => renderQueueCard(g, now)).join('');
+      html = grievances.map(g => renderQueueCard(g, now)).join('');
+    }
+
+    // Remove old Load More button
+    const oldBtn = document.getElementById('queueLoadMore');
+    if (oldBtn) oldBtn.remove();
+
+    if (append) {
+      list.insertAdjacentHTML('beforeend', html);
+    } else {
+      list.innerHTML = html;
+    }
+
+    queueOffset += grievances.length;
+    document.getElementById('queueCount').textContent = `${queueOffset}${queueHasMore ? '+' : ''} grievances found`;
+
+    // Add Load More button if there are more results
+    if (queueHasMore) {
+      list.insertAdjacentHTML('beforeend',
+        '<div id="queueLoadMore" class="load-more-wrap"><button class="btn btn-secondary" onclick="loadQueue(true)"><span class="icon sm">expand_more</span> Load More</button></div>');
     }
     document.querySelectorAll('.queue-card').forEach(card => {
       card.addEventListener('click', () => { window.location.href = '/grievance-detail?id=' + encodeURIComponent(card.dataset.id); });

@@ -98,13 +98,34 @@ function setupAnonToggle() {
   });
 }
 
-// File preview
+const MAX_FILES = 5;
+const MAX_FILE_SIZE_MB = 50;
+
+function validateFiles(files, maxCount, maxSizeMB) {
+  if (files.length > maxCount) {
+    showToast(`Too many files. Maximum ${maxCount} allowed.`, 'error');
+    return false;
+  }
+  for (const f of files) {
+    if (f.size > maxSizeMB * 1024 * 1024) {
+      showToast(`"${f.name}" exceeds ${maxSizeMB} MB limit.`, 'error');
+      return false;
+    }
+  }
+  return true;
+}
+
 function setupFilePreview() {
   document.getElementById('fileInput').addEventListener('change', function() {
     const preview = document.getElementById('filePreview');
     preview.innerHTML = '';
     const label = document.getElementById('fileInputLabel');
     if (this.files.length) {
+      if (!validateFiles(this.files, MAX_FILES, MAX_FILE_SIZE_MB)) {
+        this.value = '';
+        label.textContent = 'No file chosen';
+        return;
+      }
       label.textContent = this.files.length === 1 ? this.files[0].name : `${this.files.length} files selected`;
     } else {
       label.textContent = 'No file chosen';
@@ -213,9 +234,13 @@ async function submitGrievance(e) {
   const lon = document.getElementById('lon').value;
   if (lat) fd.append('latitude', lat);
   if (lon) fd.append('longitude', lon);
-  // Attach files
+  // Attach files (with validation)
   const fileInput = document.getElementById('fileInput');
   if (fileInput.files.length) {
+    if (!validateFiles(fileInput.files, MAX_FILES, MAX_FILE_SIZE_MB)) {
+      btn.textContent = 'Submit Grievance'; btn.disabled = false;
+      return;
+    }
     Array.from(fileInput.files).forEach(f => fd.append('files', f));
   }
 

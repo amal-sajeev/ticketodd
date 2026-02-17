@@ -41,6 +41,9 @@
         <input type="file" id="vouchFiles" multiple accept="image/*,audio/*,video/*">
       </div>
     </div>
+    <div class="form-check" style="margin-top:0.5rem;">
+      <input type="checkbox" id="vouchAnonymous"><label for="vouchAnonymous">Post anonymously</label>
+    </div>
     <div style="display:flex;gap:0.5rem;margin-top:1rem;">
       <button class="btn btn-primary" onclick="submitVouch()">Submit Vouch</button>
       <button class="btn btn-secondary" onclick="closeVouchModal()">Cancel</button>
@@ -52,8 +55,20 @@
 <style>
 .community-card { transition:transform 0.2s ease; }
 .community-card:hover { transform:translateY(-2px); }
-.vouch-count { display:inline-flex;align-items:center;gap:0.25rem;padding:0.2rem 0.6rem;border-radius:10px;background:var(--success-container);color:var(--success);font-weight:600;font-size:0.85rem; }
+.vouch-count { display:inline-flex;align-items:center;gap:0.25rem;padding:0.2rem 0.6rem;border-radius:10px;background:var(--success-container);color:var(--success);font-weight:600;font-size:0.85rem;cursor:pointer; }
+.vouch-count:hover { filter:brightness(0.95); }
 .distance-badge { display:inline-flex;align-items:center;gap:0.2rem;padding:0.15rem 0.5rem;border-radius:8px;background:var(--primary-container-low);color:var(--primary);font-size:0.8rem; }
+.vouch-list { margin-top:0.75rem;border-top:1px solid var(--outline-variant);padding-top:0.75rem; }
+.vouch-item { display:flex;gap:0.6rem;padding:0.5rem 0;border-bottom:1px solid var(--surface-container); }
+.vouch-item:last-child { border-bottom:none; }
+.vouch-avatar { width:32px;height:32px;border-radius:50%;background:var(--primary-container-low);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:0.75rem;font-weight:700;color:var(--primary); }
+.vouch-item-body { flex:1;min-width:0; }
+.vouch-item-name { font-weight:600;font-size:0.82rem;color:var(--on-surface); }
+.vouch-item-date { font-size:0.72rem;color:var(--on-surface-variant);margin-left:0.5rem; }
+.vouch-item-comment { font-size:0.85rem;color:var(--on-surface-variant);margin-top:0.15rem;line-height:1.4; }
+.vouch-evidence-grid { display:flex;flex-wrap:wrap;gap:0.4rem;margin-top:0.35rem; }
+.vouch-evidence-grid img { width:64px;height:64px;object-fit:cover;border-radius:6px;cursor:pointer;border:1px solid var(--outline-variant); }
+.vouch-evidence-grid img:hover { opacity:0.85; }
 </style>
 <script>
 let userLat = null, userLon = null;
@@ -63,6 +78,17 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('radiusKm').addEventListener('change', loadFeed);
   document.getElementById('vouchFiles').addEventListener('change', function() {
     const label = document.getElementById('vouchFilesLabel');
+    const maxVouchFiles = 3, maxVouchSizeMB = 50;
+    if (this.files.length > maxVouchFiles) {
+      showToast(`Too many files. Maximum ${maxVouchFiles} allowed.`, 'error');
+      this.value = ''; label.textContent = 'No file chosen'; return;
+    }
+    for (const f of this.files) {
+      if (f.size > maxVouchSizeMB * 1024 * 1024) {
+        showToast(`"${f.name}" exceeds ${maxVouchSizeMB} MB limit.`, 'error');
+        this.value = ''; label.textContent = 'No file chosen'; return;
+      }
+    }
     label.textContent = this.files.length ? (this.files.length === 1 ? this.files[0].name : `${this.files.length} files selected`) : 'No file chosen';
   });
 });
@@ -93,21 +119,25 @@ async function ipFallback(el) {
   loadFeed();
 }
 
-async function loadFeed() {
+const FEED_PAGE_SIZE = 30;
+let feedOffset = 0;
+
+async function loadFeed(append = false) {
   const list = document.getElementById('feedList');
-  list.innerHTML = '<div class="spinner"><span></span><span></span><span></span></div>';
+  if (!append) { list.innerHTML = '<div class="spinner"><span></span><span></span><span></span></div>'; feedOffset = 0; }
   const radius = document.getElementById('radiusKm').value;
-  let url = `/public/grievances?radius_km=${radius}&limit=30`;
+  let url = `/public/grievances?radius_km=${radius}&limit=${FEED_PAGE_SIZE}&skip=${append ? feedOffset : 0}`;
   if (userLat != null && userLon != null) url += `&lat=${userLat}&lon=${userLon}`;
   try {
     const res = await fetch(url);
     const grievances = await res.json();
-    if (!grievances.length) {
+    const feedHasMore = grievances.length >= FEED_PAGE_SIZE;
+    if (!append && !grievances.length) {
       list.innerHTML = '<div class="card text-center" style="padding:2rem;"><p>No public grievances found nearby.</p><p class="text-sm text-muted">Try increasing the radius or check back later.</p></div>';
       return;
     }
-    list.innerHTML = grievances.map(g => `
-      <div class="card card-animate community-card" style="padding:1rem;margin-bottom:0.75rem;">
+    const html = grievances.map(g => `
+      <div class="card card-animate community-card" style="padding:1rem;margin-bottom:0.75rem;" data-gid="${escapeHtml(g.id)}">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;">
           <div style="flex:1;">
             <h4 style="margin:0 0 0.3rem;">${escapeHtml(g.title)}</h4>
@@ -120,16 +150,34 @@ async function loadFeed() {
             </div>
           </div>
           <div style="text-align:center;min-width:80px;">
-            <div class="vouch-count"><span class="icon sm">handshake</span> ${g.vouch_count}</div>
+            <div class="vouch-count toggle-vouches" data-gid="${escapeHtml(g.id)}" title="Click to view vouches"><span class="icon sm">handshake</span> ${g.vouch_count}</div>
             <div class="text-sm text-muted">${g.evidence_count} evidence</div>
           </div>
         </div>
         <div style="display:flex;gap:0.5rem;margin-top:0.75rem;">
           <button class="btn btn-primary btn-sm vouch-btn" data-gid="${escapeHtml(g.id)}"><span class="icon sm">handshake</span> Vouch for this</button>
+          <button class="btn btn-secondary btn-sm toggle-vouches" data-gid="${escapeHtml(g.id)}"><span class="icon sm">expand_more</span> View Vouches</button>
           <a href="/grievance-detail?id=${encodeURIComponent(g.id)}" class="btn btn-secondary btn-sm">View Details</a>
         </div>
+        <div class="vouch-list hidden" id="vouches-${escapeHtml(g.id)}"></div>
       </div>`).join('');
+
+    const oldBtn = document.getElementById('feedLoadMore');
+    if (oldBtn) oldBtn.remove();
+
+    if (append) {
+      list.insertAdjacentHTML('beforeend', html);
+    } else {
+      list.innerHTML = html;
+    }
+    feedOffset += grievances.length;
+
+    if (feedHasMore) {
+      list.insertAdjacentHTML('beforeend',
+        '<div id="feedLoadMore" class="load-more-wrap"><button class="btn btn-secondary" onclick="loadFeed(true)"><span class="icon sm">expand_more</span> Load More</button></div>');
+    }
     document.querySelectorAll('.vouch-btn').forEach(b => b.addEventListener('click', () => openVouchModal(b.dataset.gid)));
+    document.querySelectorAll('.toggle-vouches').forEach(b => b.addEventListener('click', () => toggleVouches(b.dataset.gid)));
   } catch (e) { list.innerHTML = `<p style="color:var(--error);">Error loading feed: ${escapeHtml(e.message || 'Unknown error')}</p>`; }
 }
 
@@ -139,6 +187,7 @@ function openVouchModal(gid) {
   document.getElementById('vouchComment').value = '';
   document.getElementById('vouchFiles').value = '';
   document.getElementById('vouchFilesLabel').textContent = 'No file chosen';
+  document.getElementById('vouchAnonymous').checked = false;
   document.getElementById('vouchModal').style.display = 'flex';
 }
 
@@ -149,7 +198,12 @@ async function submitVouch() {
   const fd = new FormData();
   const comment = document.getElementById('vouchComment').value;
   if (comment) fd.append('comment', comment);
+  if (document.getElementById('vouchAnonymous').checked) fd.append('anonymous', 'true');
   const files = document.getElementById('vouchFiles').files;
+  if (files.length > 3) { showToast('Maximum 3 evidence files allowed.', 'error'); return; }
+  for (const f of files) {
+    if (f.size > 50 * 1024 * 1024) { showToast(`"${f.name}" exceeds 50 MB limit.`, 'error'); return; }
+  }
   Array.from(files).forEach(f => fd.append('files', f));
   try {
     const res = await fetch(`/public/grievances/${gid}/vouch`, {
@@ -161,6 +215,36 @@ async function submitVouch() {
     closeVouchModal();
     loadFeed();
   } catch (e) { showToast(e.message, 'error'); }
+}
+
+async function toggleVouches(gid) {
+  const el = document.getElementById('vouches-' + gid);
+  if (!el) return;
+  if (!el.classList.contains('hidden')) { el.classList.add('hidden'); return; }
+  el.innerHTML = '<div class="text-sm text-muted" style="padding:0.5rem 0;">Loading vouches...</div>';
+  el.classList.remove('hidden');
+  try {
+    const res = await fetch(`/public/grievances/${gid}/vouches`);
+    const vouches = await res.json();
+    if (!vouches.length) { el.innerHTML = '<div class="text-sm text-muted" style="padding:0.5rem 0;">No vouches yet. Be the first!</div>'; return; }
+    el.innerHTML = vouches.map(v => {
+      const name = v.is_anonymous ? 'Anonymous' : escapeHtml(v.user_name || 'Citizen');
+      const initials = v.is_anonymous ? '?' : name.split(' ').map(w => w[0]).join('').substring(0, 2);
+      const evidenceHtml = (v.evidence_file_ids || []).length
+        ? '<div class="vouch-evidence-grid">' + v.evidence_file_ids.map(fid =>
+            `<img src="/attachments/${escapeHtml(fid)}" alt="Evidence" onclick="window.open('/attachments/${escapeHtml(fid)}','_blank')">`
+          ).join('') + '</div>'
+        : '';
+      return `<div class="vouch-item">
+        <div class="vouch-avatar">${initials}</div>
+        <div class="vouch-item-body">
+          <span class="vouch-item-name">${name}</span><span class="vouch-item-date">${formatDate(v.created_at)}</span>
+          ${v.comment ? `<div class="vouch-item-comment">${escapeHtml(v.comment)}</div>` : ''}
+          ${evidenceHtml}
+        </div>
+      </div>`;
+    }).join('');
+  } catch { el.innerHTML = '<div class="text-sm text-muted">Failed to load vouches.</div>'; }
 }
 </script>
 {% endblock %}
