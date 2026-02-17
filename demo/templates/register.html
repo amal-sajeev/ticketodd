@@ -46,7 +46,6 @@
       </div>
       <button class="btn btn-primary btn-block" id="finishBtn" onclick="handleRegister()" style="display:none;">Finish &
         Register</button>
-      <button class="btn btn-outline-secondary btn-block mb-2" id="skipBtn" onclick="skipFace()">Skip for Now</button>
       <button class="btn btn-link btn-block btn-sm" onclick="location.reload()">Back</button>
     </div>
     <p class="mt-2 text-sm">Already have an account? <a href="/login" class="auth-link">Sign in</a></p>
@@ -278,13 +277,6 @@
       // Stop camera to save resources
       stopCamera();
     }
-  }
-
-  function skipFace() {
-    faceDescriptor = null;
-    console.log("⏭️ Face registration skipped");
-    stopCamera();
-    handleRegister();
   }
 
   function stopCamera() {

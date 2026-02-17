@@ -21,10 +21,26 @@ function getToken() { return localStorage.getItem('token'); }
 function getUser() { try { return JSON.parse(localStorage.getItem('user')); } catch { return null; } }
 function setAuth(token, user) { localStorage.setItem('token', token); localStorage.setItem('user', JSON.stringify(user)); }
 function clearAuth() { localStorage.removeItem('token'); localStorage.removeItem('user'); }
-function isLoggedIn() { return !!getToken(); }
+
+function isTokenExpired() {
+  const token = getToken();
+  if (!token) return true;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return !payload.exp || (payload.exp * 1000) < Date.now();
+  } catch { return true; }
+}
+
+function isLoggedIn() { return !!getToken() && !isTokenExpired(); }
 
 function requireAuth() {
-  if (!isLoggedIn()) { window.location.href = '/login'; return false; }
+  if (!getToken()) { window.location.href = '/login'; return false; }
+  if (isTokenExpired()) {
+    clearAuth();
+    showToast('Session expired — please log in again', 'error');
+    setTimeout(() => { window.location.href = '/login'; }, 1500);
+    return false;
+  }
   return true;
 }
 function requireRole(role) {
@@ -47,14 +63,28 @@ async function api(method, endpoint, body = null) {
   if (body) opts.body = JSON.stringify(body);
   try {
     const res = await fetch(`${API}${endpoint}`, opts);
-    if (res.status === 401) { clearAuth(); window.location.href = '/login'; return null; }
+    if (res.status === 401) {
+      const err = await res.json().catch(() => ({}));
+      // Auth endpoints return 401 for wrong credentials — don't treat as session expiry
+      if (endpoint.startsWith('/auth/')) {
+        throw new Error(err.detail || 'Authentication failed');
+      }
+      clearAuth();
+      showToast('Session expired — please log in again', 'error');
+      setTimeout(() => { window.location.href = '/login'; }, 1500);
+      throw new Error('Session expired');
+    }
+    if (res.status === 429) {
+      throw new Error('Too many requests — please wait a moment and try again');
+    }
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.detail || `Request failed (${res.status})`);
     }
     return await res.json();
   } catch (e) {
-    if (e.message?.includes('Request failed')) throw e;
+    if (e.message?.includes('Request failed') || e.message === 'Session expired'
+        || e.message?.includes('Authentication') || e.message?.includes('Too many')) throw e;
     console.error('API Error:', e);
     throw e;
   }
@@ -67,14 +97,27 @@ async function apiFormData(method, endpoint, formData) {
   if (token) opts.headers['Authorization'] = `Bearer ${token}`;
   try {
     const res = await fetch(`${API}${endpoint}`, opts);
-    if (res.status === 401) { clearAuth(); window.location.href = '/login'; return null; }
+    if (res.status === 401) {
+      const err = await res.json().catch(() => ({}));
+      if (endpoint.startsWith('/auth/')) {
+        throw new Error(err.detail || 'Authentication failed');
+      }
+      clearAuth();
+      showToast('Session expired — please log in again', 'error');
+      setTimeout(() => { window.location.href = '/login'; }, 1500);
+      throw new Error('Session expired');
+    }
+    if (res.status === 429) {
+      throw new Error('Too many requests — please wait a moment and try again');
+    }
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.detail || `Request failed (${res.status})`);
     }
     return await res.json();
   } catch (e) {
-    if (e.message?.includes('Request failed')) throw e;
+    if (e.message?.includes('Request failed') || e.message === 'Session expired'
+        || e.message?.includes('Authentication') || e.message?.includes('Too many')) throw e;
     console.error('API Error:', e);
     throw e;
   }
@@ -164,8 +207,7 @@ function renderNav() {
       <a href="/track">Track</a>
       <a href="/chatbot">Chatbot</a>
       <a href="/schemes">Schemes</a>
-      <a href="/community">Community</a>
-      <a href="/profile">Profile</a>`;
+      <a href="/community">Community</a>`;
   } else if (user.role === 'admin') {
     links = `
       <a href="/officer-dashboard">Dashboard</a>
@@ -173,16 +215,14 @@ function renderNav() {
       <a href="/knowledge">Knowledge</a>
       <a href="/analytics-view">Analytics</a>
       <a href="/admin">Admin</a>
-      <a href="/community">Community</a>
-      <a href="/profile">Profile</a>`;
+      <a href="/community">Community</a>`;
   } else {
     links = `
       <a href="/officer-dashboard">Dashboard</a>
       <a href="/queue">Queue</a>
       <a href="/knowledge">Knowledge</a>
       <a href="/analytics-view">Analytics</a>
-      <a href="/community">Community</a>
-      <a href="/profile">Profile</a>`;
+      <a href="/community">Community</a>`;
   }
 
   const bellHtml = (user.role === 'admin') ? `

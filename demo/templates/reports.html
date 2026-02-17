@@ -1,0 +1,433 @@
+{% extends "base.html" %}
+{% block title %}Reports — PR&DW Portal{% endblock %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<style>
+    .report-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .report-controls {
+        background: var(--surface-container);
+        padding: 0.25rem;
+        border-radius: 99px;
+        display: flex;
+        gap: 0.25rem;
+    }
+
+    .report-btn {
+        padding: 0.5rem 1.25rem;
+        border-radius: 99px;
+        border: none;
+        background: transparent;
+        color: var(--on-surface-variant);
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .report-btn.active {
+        background: var(--primary);
+        color: var(--on-primary);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .kpi-card {
+        background: var(--surface-container-low);
+        padding: 1.5rem;
+        border-radius: 12px;
+        border: 1px solid var(--outline-variant);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .kpi-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .kpi-content h3 {
+        margin: 0;
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--on-surface);
+    }
+
+    .kpi-content p {
+        margin: 0;
+        color: var(--on-surface-variant);
+        font-size: 0.9rem;
+    }
+
+    .charts-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .chart-card {
+        background: var(--surface-container-low);
+        padding: 1.5rem;
+        border-radius: 16px;
+        border: 1px solid var(--outline-variant);
+        height: 100%;
+    }
+
+    .officer-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    table.data-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+    }
+
+    table.data-table th {
+        text-align: left;
+        padding: 0.75rem;
+        border-bottom: 2px solid var(--outline-variant);
+        color: var(--on-surface-variant);
+        font-weight: 600;
+    }
+
+    table.data-table td {
+        padding: 0.75rem;
+        border-bottom: 1px solid var(--outline-variant);
+        color: var(--on-surface);
+    }
+
+    table.data-table tr:last-child td {
+        border-bottom: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-content wide">
+    <div class="report-header">
+        <div>
+            <h1><span class="icon filled" style="color:var(--primary);">assessment</span> Daily Reports</h1>
+            <p class="subtitle" id="reportSubtitle">Overview of grievance activities</p>
+        </div>
+        <div class="report-controls">
+            <button class="report-btn active" onclick="switchReport('daily')" id="btn-daily">Daily</button>
+            <button class="report-btn" onclick="switchReport('weekly')" id="btn-weekly">Weekly</button>
+        </div>
+    </div>
+
+    <div id="reportLoading" style="display:none; text-align:center; padding:3rem;">
+        <div class="spinner"><span></span><span></span><span></span></div>
+        <p style="margin-top:1rem;color:var(--on-surface-variant);">Generating report...</p>
+    </div>
+
+    <div id="reportContent">
+        <!-- KPI Cards -->
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#E3F2FD; color:#1565C0;">
+                    <span class="icon">add_circle</span>
+                </div>
+                <div class="kpi-content">
+                    <h3 id="kpi-new">0</h3>
+                    <p>New Grievances</p>
+                </div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#E8F5E9; color:#2E7D32;">
+                    <span class="icon">check_circle</span>
+                </div>
+                <div class="kpi-content">
+                    <h3 id="kpi-resolved">0</h3>
+                    <p>Resolved</p>
+                </div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#FFF3E0; color:#EF6C00;">
+                    <span class="icon">pending_actions</span>
+                </div>
+                <div class="kpi-content">
+                    <h3 id="kpi-active">0</h3>
+                    <p>Total Active</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="charts-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+            <div class="chart-card">
+                <h3>Status Breakdown</h3>
+                <p class="text-muted" style="font-size:0.8rem; margin-bottom:1rem;">All time distribution</p>
+                <div style="position:relative; height:250px;">
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h3 class="flex-between">Department Distribution <span class="badge" id="chart-dept-total">Total:
+                        0</span></h3>
+                <div style="position:relative; height:250px; margin-top:1rem;">
+                    <canvas id="deptChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h3>Top Districts (New)</h3>
+                <div style="margin-top:1rem; max-height:250px; overflow-y:auto;" id="districtList">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Officer Load -->
+        <div class="officer-grid">
+            <div class="chart-card">
+                <h3>Current Officer Workload (Top 10)</h3>
+                <p class="text-muted" style="font-size:0.8rem; margin-bottom:1rem;">Officers with most active cases
+                    assigned</p>
+                <div class="table-container">
+                    <table class="data-table" id="officerLoadTable">
+                        <thead>
+                            <tr>
+                                <th>Officer Name</th>
+                                <th style="text-align:right;">Active Cases</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h3>New Assignments</h3>
+                <p class="text-muted" style="font-size:0.8rem; margin-bottom:1rem;">Officers assigned new cases in this
+                    period</p>
+                <div class="table-container">
+                    <table class="data-table" id="newAssignTable">
+                        <thead>
+                            <tr>
+                                <th>Officer Name</th>
+                                <th style="text-align:right;">New Cases</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed List -->
+        <div class="card">
+            <div style="padding:1.5rem; border-bottom:1px solid var(--outline-variant);">
+                <h3>New Grievances List</h3>
+            </div>
+            <div class="table-container">
+                <table class="data-table" id="newGrievanceTable">
+                    <thead>
+                        <tr>
+                            <th>Tracking #</th>
+                            <th>Title</th>
+                            <th>Department</th>
+                            <th>District</th>
+                            <th>Status</th>
+                            <th style="text-align:right;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let deptChart = null;
+    let statusChart = null;
+
+    async function loadReport(timeframe) {
+        document.getElementById('reportLoading').style.display = 'block';
+        document.getElementById('reportContent').style.display = 'none';
+        document.getElementById('reportSubtitle').textContent = timeframe === 'daily' ? "Today's statistics and activities" : "Overview for the last 7 days";
+
+        // Toggle buttons
+        document.querySelectorAll('.report-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('btn-' + timeframe).classList.add('active');
+
+        try {
+            const data = await api('GET', '/admin/reports/stats?timeframe=' + timeframe);
+
+            // KPI Updates
+            animateValue('kpi-new', data.kpi.new_added);
+            animateValue('kpi-active', data.kpi.active_total);
+            animateValue('kpi-resolved', data.kpi.resolved);
+
+            // District List
+            const distEl = document.getElementById('districtList');
+            if (data.districts.length) {
+                distEl.innerHTML = '<table class="data-table"><tbody>' +
+                    data.districts.map(d => `<tr><td>${d.name}</td><td style="text-align:right;font-weight:600;">${d.count}</td></tr>`).join('') +
+                    '</tbody></table>';
+            } else {
+                distEl.innerHTML = '<p class="text-muted text-center" style="padding:1rem;">No data available</p>';
+            }
+
+            // Charts
+            renderDeptChart(data.departments);
+            renderStatusChart(data.status_breakdown);
+            document.getElementById('chart-dept-total').textContent = 'Total: ' + data.departments.reduce((s, d) => s + d.count, 0);
+
+            // Officer Tables
+            renderOfficerTable('officerLoadTable', data.current_officer_load);
+            renderOfficerTable('newAssignTable', data.new_by_officer);
+
+            // Grievance Table
+            const tbody = document.querySelector('#newGrievanceTable tbody');
+            if (data.recent_grievances.length) {
+                tbody.innerHTML = data.recent_grievances.map(g => `
+          <tr>
+            <td style="font-family:monospace;">${g.tracking_number}</td>
+            <td style="max-width:250px;"><div class="truncate">${escapeHtml(g.title)}</div></td>
+            <td>${deptBadge(g.department)}</td>
+            <td>${escapeHtml(g.district || '-')}</td>
+            <td>${statusBadge(g.status)}</td>
+            <td style="text-align:right;"><a href="/grievance-detail?id=${g.id}" class="btn btn-sm btn-outline">View</a></td>
+          </tr>
+        `).join('');
+            } else {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center p-3 text-muted">No new grievances found in this period.</td></tr>';
+            }
+
+        } catch (e) {
+            showToast('Failed to load report: ' + e.message, 'error');
+        } finally {
+            document.getElementById('reportLoading').style.display = 'none';
+            document.getElementById('reportContent').style.display = 'block';
+        }
+    }
+
+    function renderStatusChart(data) {
+        const ctx = document.getElementById('statusChart');
+        if (statusChart) statusChart.destroy();
+
+        if (!data || !data.length) return;
+
+        statusChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: data.map(d => statusLabel(d.name)),
+                datasets: [{
+                    data: data.map(d => d.count),
+                    backgroundColor: data.map(d => getStatusColor(d.name)),
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '60%',
+                plugins: {
+                    legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, font: { size: 10 } } }
+                }
+            }
+        });
+    }
+
+    function getStatusColor(s) {
+        const colors = {
+            pending: '#757575',
+            in_progress: '#0288D1',
+            resolved: '#2E7D32',
+            escalated: '#D32F2F',
+            rejected: '#C62828'
+        };
+        return colors[s] || '#9E9E9E';
+    }
+
+    function statusLabel(s) {
+        return (s || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    }
+
+    function renderOfficerTable(tableId, data) {
+        const tbody = document.querySelector('#' + tableId + ' tbody');
+        if (data.length) {
+            tbody.innerHTML = data.map(o => `<tr><td>${escapeHtml(o.name)}</td><td style="text-align:right;font-weight:600;">${o.count}</td></tr>`).join('');
+        } else {
+            tbody.innerHTML = '<tr><td colspan="2" class="text-muted text-center">No data</td></tr>';
+        }
+    }
+
+    function renderDeptChart(data) {
+        const ctx = document.getElementById('deptChart');
+        if (deptChart) deptChart.destroy();
+
+        if (!data.length) return;
+
+        deptChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: data.map(d => deptLabel(d.name)),
+                datasets: [{
+                    data: data.map(d => d.count),
+                    backgroundColor: [
+                        '#1A73E8', '#E91E63', '#9C27B0', '#673AB7', '#3F51B5',
+                        '#00BCD4', '#009688', '#4CAF50', '#8BC34A', '#CDDC39'
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '65%',
+                plugins: {
+                    legend: { position: 'right', labels: { usePointStyle: true, boxWidth: 8 } }
+                }
+            }
+        });
+    }
+
+    function switchReport(type) {
+        loadReport(type);
+    }
+
+    function animateValue(id, end) {
+        const obj = document.getElementById(id);
+        let start = 0;
+        const duration = 1000;
+        let startTimestamp = null;
+        const step = (timestamp) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+            obj.innerHTML = Math.floor(progress * (end - start) + start);
+            if (progress < 1) {
+                window.requestAnimationFrame(step);
+            }
+        };
+        window.requestAnimationFrame(step);
+    }
+
+    // Load daily report by default
+    loadReport('daily');
+</script>
+{% endblock %}

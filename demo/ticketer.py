@@ -83,7 +83,7 @@ if not JWT_SECRET or len(JWT_SECRET) < 32:
         "Generate one with: python -c \"import secrets; print(secrets.token_urlsafe(48))\""
     )
 JWT_ALGORITHM = "HS256"
-JWT_EXPIRE_HOURS = 2
+JWT_EXPIRE_HOURS = 24
 EMBEDDING_DIM = 3072  # text-embedding-3-large
 
 OPENWEATHERMAP_API_KEY = os.getenv("OPENWEATHERMAP_API_KEY", "")
@@ -1722,7 +1722,7 @@ async def register(request: Request, user_data: UserCreate, db=Depends(get_db)):
     return TokenResponse(access_token=token, user=user_to_response(user_doc))
 
 @app.post("/auth/login", response_model=TokenResponse)
-@limiter.limit("10/minute")
+@limiter.limit("30/minute")
 async def login(request: Request, form: UserLogin, db=Depends(get_db)):
     loop = asyncio.get_event_loop()
 
@@ -1749,39 +1749,6 @@ async def login(request: Request, form: UserLogin, db=Depends(get_db)):
 @app.get("/auth/me", response_model=UserResponse)
 async def get_me(user=Depends(get_current_user)):
     return user_to_response(user)
-
-@app.put("/auth/me", response_model=UserResponse)
-async def update_me(update: UserUpdate, user=Depends(get_current_user), db=Depends(get_db)):
-    """Allow user to update their own profile (including adding face)"""
-    loop = asyncio.get_event_loop()
-    user_id = str(user["_id"])
-    
-    set_fields: Dict[str, Any] = {}
-    if update.full_name is not None:
-        set_fields["full_name"] = update.full_name
-    if update.email is not None:
-        set_fields["email"] = update.email
-    if update.phone is not None:
-        set_fields["phone"] = update.phone
-    if update.password is not None:
-        set_fields["hashed_password"] = hash_password(update.password)
-        
-    if update.face_descriptor is not None:
-        # If setting a new face, check uniqueness
-        if update.face_descriptor: # if not empty list or None
-             existing_face_user = await find_user_by_face(update.face_descriptor, db)
-             if existing_face_user and str(existing_face_user["_id"]) != user_id:
-                 raise HTTPException(status_code=400, detail="This face is already registered with another account.")
-        set_fields["face_descriptor"] = update.face_descriptor
-
-    if not set_fields:
-        raise HTTPException(status_code=400, detail="No fields to update")
-        
-    result = await loop.run_in_executor(
-        executor, lambda: db.users.update_one({"_id": user_id}, {"$set": set_fields}))
-        
-    updated = await loop.run_in_executor(executor, db.users.find_one, {"_id": user_id})
-    return user_to_response(updated)
 
 @app.middleware("http")
 async def add_permissions_policy(request, call_next):
@@ -3574,7 +3541,6 @@ PAGES = [
     ("admin", "admin.html"),
     ("community", "community.html"),
     ("systemic-issue-detail", "systemic_issue_detail.html"),
-    ("profile", "profile.html"),
 ]
 
 for _path, _template in PAGES:
@@ -3587,6 +3553,103 @@ for _path, _template in PAGES:
         return handler
     app.add_api_route(f"/{_path}" if _path else "/", _make_handler(_template),
                       methods=["GET"], response_class=HTMLResponse, include_in_schema=False)
+
+# ---------------------------------------------------------------------------
+# ADMIN REPORTS ENDPOINTS
+# ---------------------------------------------------------------------------
+@app.get("/admin/reports", response_class=HTMLResponse)
+async def admin_reports_page(request: Request):
+    return templates.TemplateResponse("reports.html", {"request": request})
+
+@app.get("/admin/reports/stats")
+async def admin_reports_stats(
+    timeframe: str = Query("daily", regex="^(daily|weekly)$"),
+    user=Depends(require_role(UserRole.ADMIN.value)),
+    db=Depends(get_db)
+):
+    """
+    Get statistics for Admin Reports.
+    - Daily: usage since midnight local time (approx via UTC offset or just UTC midnight).
+      For simplicity in this demo, 'daily' = since 00:00 UTC today.
+    - Weekly: usage since 7 days ago.
+    """
+    now = datetime.now(timezone.utc)
+    if timeframe == "daily":
+        # Start of today (UTC)
+        start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    else:
+        # Last 7 days
+        start_date = now - timedelta(days=7)
+
+    def fetch_report_data():
+        # 1. Total Active Grievances (Snapshot, independent of timeframe)
+        total_active = db.grievances.count_documents({"status": {"$in": ["pending", "in_progress", "escalated"]}})
+
+        # 2. New Grievances Added in Timeframe
+        new_grievances_cursor = db.grievances.find({"created_at": {"$gte": start_date}}).sort("created_at", -1)
+        new_grievances_list = list(new_grievances_cursor)
+        new_count = len(new_grievances_list)
+        
+        # 3. Resolved in Timeframe
+        resolved_count = db.grievances.count_documents({
+            "updated_at": {"$gte": start_date},
+            "status": "resolved"
+        })
+        
+        # 4. Status Breakdown (All Time / Current Snapshot - matching user expectation)
+        # The user likely wants to see the current state of the system ("Pending: 5, In Progress: 2...")
+        pipeline = [{"$group": {"_id": "$status", "count": {"$sum": 1}}}]
+        status_results = list(db.grievances.aggregate(pipeline))
+        status_counts = {r["_id"]: r["count"] for r in status_results}
+
+        # District-wise (New)
+        district_counts = {}
+        # Department-wise (New)
+        dept_counts = {}
+        # Assigned-to
+        officer_counts = {}
+
+        converted_new_list = []
+        for g in new_grievances_list:
+            d = g.get("district") or "Unknown"
+            district_counts[d] = district_counts.get(d, 0) + 1
+            
+            dept = g.get("department") or "general"
+            dept_counts[dept] = dept_counts.get(dept, 0) + 1
+            
+            off = g.get("assigned_officer")
+            if off:
+                officer_counts[off] = officer_counts.get(off, 0) + 1
+            
+            converted_new_list.append(convert_db_grievance(g))
+
+        # 5. Top Officers by Active Assignment (Snapshot of backlog)
+        active_officer_pipe = [
+            {"$match": {"status": {"$in": ["in_progress", "escalated"]}, "assigned_officer": {"$exists": True, "$ne": None}}},
+            {"$group": {"_id": "$assigned_officer", "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}},
+            {"$limit": 10}
+        ]
+        active_officer_results = list(db.grievances.aggregate(active_officer_pipe))
+        active_officer_load = [{"name": r["_id"], "count": r["count"]} for r in active_officer_results]
+
+        return {
+            "period": "Today" if timeframe == "daily" else "Last 7 Days",
+            "kpi": {
+                "active_total": total_active,
+                "new_added": new_count,
+                "resolved": resolved_count
+            },
+            "status_breakdown": [{"name": k, "count": v} for k,v in status_counts.items()],
+            "districts": [{"name": k, "count": v} for k,v in sorted(district_counts.items(), key=lambda item: item[1], reverse=True)],
+            "departments": [{"name": k, "count": v} for k,v in sorted(dept_counts.items(), key=lambda item: item[1], reverse=True)],
+            "new_by_officer": [{"name": k, "count": v} for k,v in sorted(officer_counts.items(), key=lambda item: item[1], reverse=True)],
+            "current_officer_load": active_officer_load,
+            "recent_grievances": [GrievanceResponse(**g, id=g["_id"]) for g in converted_new_list[:50]]
+        }
+
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(executor, fetch_report_data)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
