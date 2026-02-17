@@ -210,7 +210,7 @@
       document.getElementById('breachedCount').textContent = data.breached.length;
       document.getElementById('criticalCount').textContent = data.critical.length;
       document.getElementById('warningCount').textContent = data.warning.length;
-      summary.style.display = 'grid';
+      summary.classList.remove('hidden');
 
       if (data.total_alerts === 0) {
         container.innerHTML = '<div class="card all-clear"><span class="icon filled" style="font-size:2.5rem;color:var(--success);">check_circle</span><br>All clear — no grievances nearing their SLA deadline.</div>';

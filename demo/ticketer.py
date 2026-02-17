@@ -2435,7 +2435,7 @@ async def chat(request: Request, msg: ChatMessage, user=Depends(get_current_user
         sources.append({"type": "service_memory", "query": m["query"], "score": m["score"]})
     for s in scheme_results:
         context_parts.append(f"Scheme: {s['name']} - {s['description']}. Eligibility: {s['eligibility']}")
-        sources.append({"type": "scheme", "name": s["name"], "score": s["score"]})
+        sources.append({"type": "scheme", "id": s["id"], "name": s["name"], "score": s["score"]})
     context_text = "\n".join(context_parts) if context_parts else "No specific knowledge base context found."
 
     system_prompt = (
@@ -2508,6 +2508,7 @@ async def chat(request: Request, msg: ChatMessage, user=Depends(get_current_user
                     )
                     result = await process_grievance(grievance_data, db, user)
                     filed_grievance = {
+                        "id": result.id,
                         "tracking_number": result.tracking_number,
                         "status": result.status.value,
                         "department": result.department.value,

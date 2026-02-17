@@ -6,6 +6,28 @@ const BOT_NAME = 'Seva';
 
 if (!requireAuth()) {}
 
+/* Restore conversation transferred from the floating widget */
+(function restoreTransfer() {
+  try {
+    const raw = sessionStorage.getItem('chatbot_transfer');
+    if (!raw) return;
+    const state = JSON.parse(raw);
+    sessionStorage.removeItem('chatbot_transfer');
+    sessionStorage.removeItem('chatWidgetState');
+    if (state.chatHistory && state.chatHistory.length > 0) {
+      chatHistory.push(...state.chatHistory);
+    }
+    if (state.messagesHTML && messagesEl) {
+      messagesEl.innerHTML = state.messagesHTML;
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+    if (state.lang) {
+      const langEl = document.getElementById('chatLang');
+      if (langEl) langEl.value = state.lang;
+    }
+  } catch (e) { /* corrupted data — ignore */ }
+})();
+
 inputEl?.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
 
 /* Check if previous sibling already has the bot header so we don't repeat it */
@@ -87,10 +109,37 @@ function addFiledGrievance(fg) {
   }
   const div = document.createElement('div');
   div.className = 'chat-filed-grievance';
+  const detailLink = fg.id
+    ? `<a href="/grievance-detail?id=${encodeURIComponent(fg.id)}" class="chat-action-btn"><span class="icon">visibility</span> View Details</a>`
+    : '';
   div.innerHTML = `
     <h4><span class="icon filled" style="font-size:16px;color:var(--success);">check_circle</span> Grievance Filed Successfully</h4>
-    <p><strong>Tracking:</strong> <a href="/track">${escapeHtml(fg.tracking_number)}</a></p>
-    <p>${statusBadge(fg.status)} ${deptBadge(fg.department)} ${priorityBadge(fg.priority)}</p>`;
+    <p><strong>Tracking:</strong> ${escapeHtml(fg.tracking_number)}</p>
+    <p>${statusBadge(fg.status)} ${deptBadge(fg.department)} ${priorityBadge(fg.priority)}</p>
+    <div class="chat-action-links">
+      ${detailLink}
+      <a href="/track" class="chat-action-btn secondary"><span class="icon">search</span> Track Grievance</a>
+    </div>`;
+  group.appendChild(div);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function addSchemeSources(sources) {
+  const schemes = (sources || []).filter(s => s.type === 'scheme' && s.id && s.score > 0.4);
+  if (!schemes.length) return;
+  let group = messagesEl.lastElementChild;
+  if (!group || !group.classList.contains('bot-group')) {
+    group = document.createElement('div');
+    group.className = 'bot-group';
+    group.innerHTML = `<div class="bot-header"><div class="bot-avatar"><span class="icon filled" style="color:#fff;font-size:16px;">smart_toy</span></div><span class="bot-name">${BOT_NAME}</span></div>`;
+    messagesEl.appendChild(group);
+  }
+  const div = document.createElement('div');
+  div.className = 'chat-scheme-sources';
+  const links = schemes.map(s =>
+    `<a href="/scheme-detail?id=${encodeURIComponent(s.id)}" class="chat-action-btn"><span class="icon">open_in_new</span> ${escapeHtml(s.name)}</a>`
+  ).join('');
+  div.innerHTML = `<div class="chat-scheme-sources-label"><span class="icon">auto_awesome</span> Related Schemes</div><div class="chat-action-links">${links}</div>`;
   group.appendChild(div);
   messagesEl.scrollTop = messagesEl.scrollHeight;
 }
@@ -132,6 +181,7 @@ async function sendMessage() {
     const chunks = splitReply(data.reply);
     await addBotBubbles(chunks);
     chatHistory.push({ role: 'assistant', content: data.reply });
+    if (data.sources) addSchemeSources(data.sources);
     if (data.filed_grievance) addFiledGrievance(data.filed_grievance);
   } catch (e) {
     hideTyping();
