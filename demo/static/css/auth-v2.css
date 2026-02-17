@@ -13,8 +13,9 @@ footer.footer {
     left: 0;
     width: 100%;
     height: 100vh;
-    background: #f8f9fa;
-    /* White/Light Grey Background */
+    background: #f57c00 url('/static/bg_imgae.jpg') no-repeat center center;
+    background-size: cover;
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -24,24 +25,35 @@ footer.footer {
     z-index: 9999;
 }
 
+/* Add overlay for better card contrast */
+.auth-page-container::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.2);
+    z-index: 0;
+}
+
 .auth-split-layout {
     display: flex;
     width: 100%;
     max-width: 800px;
-    background: rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
     border-radius: 20px;
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.5);
     overflow: hidden;
     min-height: 250px;
+    position: relative;
+    z-index: 1;
 }
 
 /* Left Panel - Branding */
 .auth-left-panel {
     flex: 1;
-    background: linear-gradient(135deg, rgba(15, 76, 129, 0.9) 0%, rgba(30, 136, 229, 0.9) 100%);
+    background: linear-gradient(135deg, rgba(216, 67, 21, 0.85) 0%, rgba(245, 124, 0, 0.85) 100%);
     color: white;
     padding: 2rem;
     display: flex;
@@ -102,7 +114,7 @@ footer.footer {
 /* Fallback icon if no img */
 .auth-logo .icon {
     font-size: 30px;
-    color: #0f4c81;
+    color: #e65100;
 }
 
 .auth-brand h2 {
@@ -163,7 +175,7 @@ footer.footer {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.5);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
 }
@@ -196,12 +208,12 @@ footer.footer {
 
 .form-control:focus {
     background: #fff;
-    border-color: #0f4c81;
-    box-shadow: 0 0 0 4px rgba(15, 76, 129, 0.1);
+    border-color: #e65100;
+    box-shadow: 0 0 0 4px rgba(230, 81, 0, 0.15);
 }
 
 .btn-primary {
-    background: #0f4c81;
+    background: #e65100;
     padding: 0.8rem;
     font-size: 0.95rem;
     letter-spacing: 0.5px;
@@ -213,7 +225,7 @@ footer.footer {
 }
 
 .btn-primary:hover {
-    background: #0d3d66;
+    background: #bf360c;
 }
 
 .btn-secondary {
@@ -237,7 +249,7 @@ footer.footer {
 .btn-link {
     background: none;
     border: none;
-    color: #0f4c81;
+    color: #e65100;
     font-weight: 500;
     cursor: pointer;
     text-decoration: underline;
@@ -247,7 +259,7 @@ footer.footer {
 }
 
 .btn-link:hover {
-    color: #0d3d66;
+    color: #bf360c;
 }
 
 /* Nav Tabs - Merged Style */
@@ -280,7 +292,7 @@ footer.footer {
 
 .nav-tab.active {
     background: #fff;
-    color: #0f4c81;
+    color: #e65100;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
