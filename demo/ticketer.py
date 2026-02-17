@@ -3166,6 +3166,7 @@ async def get_attachment(attachment_id: str,
                          db=Depends(get_db)):
     try:
         loop = asyncio.get_event_loop()
+        # Verify attachment belongs to a grievance the requester can access
         oid = ObjectId(attachment_id)
         grievance = await loop.run_in_executor(executor, lambda: db.grievances.find_one(
             {"attachments": attachment_id}, {"citizen_user_id": 1, "is_public": 1}))
@@ -3203,31 +3204,8 @@ async def get_attachment(attachment_id: str,
         elif user and user.get("role") in ("officer", "admin"):
             pass  # Staff can access any attachment (e.g. photo IDs)
         else:
-            # 3. If not public, enforce strict grievance/vouch permissions
-            grievance = await loop.run_in_executor(executor, lambda: db.grievances.find_one(
-                {"attachments": attachment_id}, {"citizen_user_id": 1, "is_public": 1}))
-            
-            # Also check if it's vouch evidence
-            vouch = None
-            if not grievance:
-                vouch = await loop.run_in_executor(executor, lambda: db.vouches.find_one(
-                    {"evidence_file_ids": attachment_id}))
-
-            # Allow access if: user is officer/admin, or it's a public grievance,
-            # or the citizen owns the grievance, or it's vouch evidence
-            if grievance:
-                is_public = grievance.get("is_public", False)
-                is_owner = user and str(grievance.get("citizen_user_id", "")) == str(user.get("_id", ""))
-                is_staff = user and user.get("role") in ("officer", "admin")
-                if not (is_public or is_owner or is_staff):
-                    raise HTTPException(status_code=403, detail="Access denied to this attachment")
-            elif vouch:
-                pass  # Vouch evidence is viewable by anyone who can see the grievance
-            elif user and user.get("role") in ("officer", "admin"):
-                pass  # Staff can access any attachment (e.g. photo IDs)
-            else:
-                raise HTTPException(status_code=403, detail="Access denied to this attachment")
-
+            raise HTTPException(status_code=403, detail="Access denied to this attachment")
+        fobj = await loop.run_in_executor(executor, lambda: gfs.get(oid))
         def iterfile():
             while True:
                 chunk = fobj.read(8192)
@@ -3238,8 +3216,7 @@ async def get_attachment(attachment_id: str,
                                  headers={"Content-Disposition": f'inline; filename="{fobj.filename}"'})
     except HTTPException:
         raise
-    except Exception as e:
-        logger.error("Error fetching attachment: %s", e)
+    except Exception:
         raise HTTPException(status_code=404, detail="Attachment not found")
 
 # ---------------------------------------------------------------------------
@@ -3906,11 +3883,105 @@ async def admin_reports_stats(
             "departments": [{"name": k, "count": v} for k,v in sorted(dept_counts.items(), key=lambda item: item[1], reverse=True)],
             "new_by_officer": [{"name": k, "count": v} for k,v in sorted(officer_counts.items(), key=lambda item: item[1], reverse=True)],
             "current_officer_load": active_officer_load,
-            "recent_grievances": [GrievanceResponse(**g, id=g["_id"]) for g in converted_new_list[:50]]
+            "recent_grievances": [GrievanceResponse(**g, id=g["_id"]) for g in converted_new_list[:50]],
+            "sentiment_by_dept": _fetch_sentiment_heatmap(db, start_date)
         }
 
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(executor, fetch_report_data)
+
+def _fetch_sentiment_heatmap(db, start_date):
+    """Aggregate sentiment counts per department for a stacked bar chart."""
+    pipeline = [
+        {"$match": {"created_at": {"$gte": start_date}, "department": {"$ne": None}}},
+        {"$group": {
+            "_id": {"dept": "$department", "sentiment": "$sentiment"},
+            "count": {"$sum": 1}
+        }}
+    ]
+    results = list(db.grievances.aggregate(pipeline))
+    output = {}
+    for r in results:
+        dept = r["_id"].get("dept", "Unknown")
+        sent = r["_id"].get("sentiment", "neutral")
+        cnt = r["count"]
+        if dept not in output:
+            output[dept] = {}
+        output[dept][sent] = cnt
+    return output
+
+@app.post("/admin/reports/analysis")
+async def admin_reports_analysis(
+    request: Request,
+    user=Depends(require_role(UserRole.ADMIN.value)),
+    db=Depends(get_db)
+):
+    """AI-powered executive summary of grievances for the selected timeframe."""
+    body = await request.json()
+    timeframe = body.get("timeframe", "daily")
+
+    now = datetime.now(timezone.utc)
+    if timeframe == "daily":
+        start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    else:
+        start_date = now - timedelta(days=7)
+
+    def fetch_grievances():
+        return list(db.grievances.find(
+            {"created_at": {"$gte": start_date}},
+            {"title": 1, "description": 1, "department": 1, "sentiment": 1, "status": 1}
+        ).limit(100))
+
+    loop = asyncio.get_event_loop()
+    grievances = await loop.run_in_executor(executor, fetch_grievances)
+
+    if not grievances:
+        return {
+            "summary": ["No grievances found for this period for analysis."],
+            "themes": []
+        }
+
+    data_summary = [
+        f"- [{g.get('department')}][{g.get('sentiment')}] {g.get('title')}: {(g.get('description') or '')[:100]}..."
+        for g in grievances
+    ]
+    data_text = "\n".join(data_summary)
+
+    system_prompt = """You are an expert government policy analyst. Analyze the provided grievance data.
+
+Output JSON format only:
+{
+    "summary": [
+        "Insight 1 (e.g. Surge in water complaints in Ganjam)",
+        "Insight 2 (e.g. High dissatisfaction in MGNREGS payments)",
+        "Insight 3 (e.g. Recurring road maintenance issues)"
+    ],
+    "themes": [
+        {"name": "Theme Name", "count": 5},
+        {"name": "Theme Name", "count": 3}
+    ]
+}
+
+- Summary should be professional, concise, and actionable. Max 3 bullets.
+- Themes should group similar issues (auto-clustering). Return max 5 themes."""
+
+    try:
+        response = await openai_client.chat.completions.create(
+            model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Analyze these grievances:\n{data_text}"}
+            ],
+            response_format={"type": "json_object"}
+        )
+        content = response.choices[0].message.content
+        return json.loads(content)
+    except Exception as e:
+        logger.error("AI Analysis Error: %s", e)
+        return {
+            "summary": [f"AI Analysis unavailable: {str(e)}"],
+            "themes": []
+        }
 
 # ---------------------------------------------------------------------------
 # PRESENTATION (unlisted — no nav link)
