@@ -258,26 +258,37 @@ _vouch_comments = [
     "The drainage near our school is completely blocked. Children are falling sick regularly.",
 ]
 
-def _build_vouches(grievances: list[dict], user_ids: dict[str, str]) -> list[dict]:
+def _build_vouches(grievances: list[dict], user_ids: dict[str, str],
+                   evidence_ids: list[str] | None = None) -> list[dict]:
     now = now_utc()
     public_grvs = [g for g in grievances if g.get("is_public")]
     vouches: list[dict] = []
+    evidence_ids = evidence_ids or []
 
     # Build list of (username, user_id) for citizens only
     cit_entries = [(uname, uid) for uname, uid in user_ids.items() if uname.startswith("citizen")]
 
     comment_idx = 0
+    vouch_serial = 0
     for idx, grv in enumerate(public_grvs[:6]):
         # Each public grievance gets 1-3 vouches from different citizens
         n_vouches = 3 if idx < 2 else (2 if idx < 4 else 1)
+        used_uids: set[str] = set()
         for v_idx in range(n_vouches):
-            uname, uid = cit_entries[(idx + v_idx + 1) % len(cit_entries)]
-            # Skip if citizen filed this grievance
-            if grv.get("citizen_user_id") == uid:
-                uname, uid = cit_entries[(idx + v_idx + 2) % len(cit_entries)]
+            offset = idx + v_idx + 1
+            uname, uid = cit_entries[offset % len(cit_entries)]
+            while uid == grv.get("citizen_user_id") or uid in used_uids:
+                offset += 1
+                uname, uid = cit_entries[offset % len(cit_entries)]
+            used_uids.add(uid)
             is_anonymous = (comment_idx % 5 == 3)  # roughly 1 in 5 are anonymous
             comment = _vouch_comments[comment_idx % len(_vouch_comments)]
             comment_idx += 1
+
+            ev = []
+            if evidence_ids and vouch_serial < 3:
+                ev = [evidence_ids[vouch_serial % len(evidence_ids)]]
+
             vouches.append({
                 "_id": new_id(),
                 "grievance_id": grv["_id"],
@@ -285,16 +296,18 @@ def _build_vouches(grievances: list[dict], user_ids: dict[str, str]) -> list[dic
                 "user_name": _CITIZEN_NAMES.get(uname, "Citizen"),
                 "is_anonymous": is_anonymous,
                 "comment": comment[:500] if comment else None,
-                "evidence_file_ids": [],
+                "evidence_file_ids": ev,
                 "created_at": now - timedelta(days=6 - idx, hours=v_idx * 4 + idx),
             })
+            vouch_serial += 1
     return vouches
 
 
 # ===================================================================
 # 4.  SPAM TRACKING  (2)
 # ===================================================================
-def _build_spam_tracking(user_ids: dict[str, str]) -> list[dict]:
+def _build_spam_tracking(user_ids: dict[str, str],
+                         photo_id_file_id: str | None = None) -> list[dict]:
     now = now_utc()
     # Use a citizen ID that exists — citizen2 gets moderate spam, citizen4 gets blocked
     cit2 = user_ids.get("citizen2", new_id())
@@ -310,7 +323,7 @@ def _build_spam_tracking(user_ids: dict[str, str]) -> list[dict]:
          "spam_score": 0.85,
          "is_blocked": True,
          "blocked_at": now - timedelta(hours=1),
-         "photo_id_file_id": None,
+         "photo_id_file_id": photo_id_file_id,
          "photo_id_status": "pending_review",
          "admin_notified": True,
          "pattern_flags": [
@@ -385,9 +398,11 @@ def _build_officer_anomalies(user_ids: dict[str, str]) -> list[dict]:
 # ===================================================================
 # Public import function
 # ===================================================================
-async def import_extras(db, grievances: list[dict], user_ids: dict[str, str]) -> dict[str, int]:
+async def import_extras(db, grievances: list[dict], user_ids: dict[str, str],
+                        *, file_ids: dict | None = None) -> dict[str, int]:
     """Seed systemic issues, forecasts, vouches, spam tracking, officer anomalies."""
     counts: dict[str, int] = {}
+    file_ids = file_ids or {}
 
     # --- Systemic issues ---
     print("\n  Importing systemic issues...")
@@ -418,7 +433,8 @@ async def import_extras(db, grievances: list[dict], user_ids: dict[str, str]) ->
 
     # --- Vouches ---
     print("\n  Importing vouches...")
-    vouches = _build_vouches(grievances, user_ids)
+    vouches = _build_vouches(grievances, user_ids,
+                             evidence_ids=file_ids.get("vouch_evidence"))
     anon_count = sum(1 for v in vouches if v.get("is_anonymous"))
     for v in vouches:
         db.vouches.insert_one(v)
@@ -432,7 +448,8 @@ async def import_extras(db, grievances: list[dict], user_ids: dict[str, str]) ->
 
     # --- Spam tracking ---
     print("\n  Importing spam tracking records...")
-    spam_records = _build_spam_tracking(user_ids)
+    spam_records = _build_spam_tracking(user_ids,
+                                       photo_id_file_id=file_ids.get("photo_id"))
     for sr in spam_records:
         db.spam_tracking.update_one({"_id": sr["_id"]}, {"$set": sr}, upsert=True)
     db.spam_tracking.create_index("_id")

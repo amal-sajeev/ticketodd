@@ -178,9 +178,9 @@ GRIEVANCES = [
      "impact_score": 67,
      "sub_tasks": [
          {"id": "st-jajpur-1", "department": "infrastructure", "task": "Repair waterlogged road surface and correct camber for proper drainage",
-          "status": "completed", "assigned_officer": "Sri Debashis Swain, Sr. District Officer"},
+          "status": "resolved", "assigned_officer": "Sri Debashis Swain, Sr. District Officer"},
          {"id": "st-jajpur-2", "department": "sanitation", "task": "Clean clogged drain, activate SLWM unit, start weekly waste collection",
-          "status": "completed", "assigned_officer": "Smt. Sarojini Das, Block Sanitation Coord."},
+          "status": "resolved", "assigned_officer": "Smt. Sarojini Das, Block Sanitation Coord."},
      ],
      "notes": [
          {"officer": "Sri Debashis Swain, Sr. District Officer", "content": "Cross-department case: infrastructure + sanitation. Coordinating with Block Sanitation.", "note_type": "internal"},
@@ -591,11 +591,14 @@ GRIEVANCES = [
 # ---------------------------------------------------------------------------
 # Import function
 # ---------------------------------------------------------------------------
-async def import_grievances(db, user_ids: dict[str, str]) -> list[dict]:
+_ATTACHMENT_INDICES = {3, 12, 20, 25}
+
+async def import_grievances(db, user_ids: dict[str, str], *, file_ids: dict | None = None) -> list[dict]:
     """Insert all seed grievances. Returns list of inserted docs (for extras to reference)."""
     print("\n  Importing grievances...")
     now = now_utc()
     inserted: list[dict] = []
+    attachment_pool = (file_ids or {}).get("grievance_attachments", [])
 
     for i, g in enumerate(GRIEVANCES):
         # Tracking number via counter
@@ -611,7 +614,7 @@ async def import_grievances(db, user_ids: dict[str, str]) -> list[dict]:
         sla_hrs = PRIORITY_SLA_HOURS.get(pri, 168)
 
         # Timestamps
-        created = now - timedelta(days=50 - i)   # spread over ~50 days
+        created = now - timedelta(days=42 - i)   # spread so newest land within this week
         if status == "resolved":
             updated = created + timedelta(days=3, hours=i * 2)
             sla     = created + timedelta(hours=sla_hrs)
@@ -675,7 +678,11 @@ async def import_grievances(db, user_ids: dict[str, str]) -> list[dict]:
             "notes": seed_notes,
             "location": geojson_point(g["district"]) if g.get("district") else None,
             "citizen_user_id": citizen_uid,
-            "attachments": [],
+            "attachments": (
+                [attachment_pool[i % len(attachment_pool)]]
+                if attachment_pool and i in _ATTACHMENT_INDICES
+                else []
+            ),
             "impact_score": g.get("impact_score"),
             "scheme_match": g.get("scheme_match"),
             "sub_tasks": g.get("sub_tasks", []),

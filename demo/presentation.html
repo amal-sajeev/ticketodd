@@ -9,7 +9,7 @@
 <style>
 /* ==========================================================================
    PR&DW Grievance Portal — Presentation Base Styles
-   1920x1080 fixed-frame design
+   1280x720 fixed-frame design
    ========================================================================== */
 
 /* --- Reset --- */
@@ -32,10 +32,10 @@
   --border:rgba(255,255,255,.08);
   --gradient-hero:linear-gradient(135deg,#1A73E8 0%,#00BCD4 50%,#7C4DFF 100%);
   --gradient-subtle:linear-gradient(135deg,rgba(26,115,232,.12),rgba(0,188,212,.08),rgba(124,77,255,.12));
-  --radius:12px;
-  --radius-lg:20px;
-  --shadow:0 8px 32px rgba(0,0,0,.4);
-  --shadow-glow:0 0 40px rgba(26,115,232,.15);
+  --radius:8px;
+  --radius-lg:14px;
+  --shadow:0 5px 21px rgba(0,0,0,.4);
+  --shadow-glow:0 0 27px rgba(26,115,232,.15);
   /* App M3 tokens (for mockups) */
   --app-primary:#1A73E8;
   --app-surface:#FFFFFF;
@@ -65,36 +65,36 @@ body{
 }
 
 /* --- Material Symbols --- */
-.icon{font-family:'Material Symbols Outlined';font-weight:normal;font-style:normal;font-size:24px;line-height:1;letter-spacing:normal;text-transform:none;display:inline-block;white-space:nowrap;word-wrap:normal;direction:ltr;-webkit-font-smoothing:antialiased;font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;vertical-align:middle}
+.icon{font-family:'Material Symbols Outlined';font-weight:normal;font-style:normal;font-size:18px;line-height:1;letter-spacing:normal;text-transform:none;display:inline-block;white-space:nowrap;word-wrap:normal;direction:ltr;-webkit-font-smoothing:antialiased;font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;vertical-align:middle}
 .icon.filled{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
 
 /* ==========================================================================
-   Deck & Slides — 1920x1080 fixed frame
+   Deck & Slides — 1280x720 fixed frame
    ========================================================================== */
 .deck{
   position:absolute;
   top:0;left:0;
-  width:1920px;height:1080px;
+  width:1280px;height:720px;
   overflow:hidden;
   background:var(--surface);
-  border-radius:8px;
-  box-shadow:0 0 80px rgba(0,0,0,.6);
+  border-radius:6px;
+  box-shadow:0 0 53px rgba(0,0,0,.6);
   transform-origin:0 0;
 }
 .slide{
   position:absolute;
-  width:1920px;height:1080px;
+  width:1280px;height:720px;
   overflow:hidden;
-  padding:60px 80px 72px;
+  padding:32px 48px 40px;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   opacity:0;pointer-events:none;z-index:0;
   will-change:transform,opacity;
 }
 .slide.active{opacity:1;pointer-events:auto;z-index:2}
 .slide-inner{
-  width:100%;max-width:1760px;height:100%;
+  width:100%;max-width:1184px;height:100%;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  text-align:center;gap:24px;
+  text-align:center;gap:18px;
   position:relative;
   overflow:hidden;
 }
@@ -103,13 +103,13 @@ body{
    Progress Bar
    ========================================================================== */
 .progress-track{
-  position:absolute;top:0;left:0;right:0;height:3px;z-index:100;
+  position:absolute;top:0;left:0;right:0;height:2px;z-index:100;
   background:rgba(255,255,255,.06);
 }
 .progress-fill{
   height:100%;background:var(--gradient-hero);
   transition:width .4s cubic-bezier(.4,0,.2,1);
-  box-shadow:0 0 12px var(--primary-glow);
+  box-shadow:0 0 8px var(--primary-glow);
 }
 
 /* ==========================================================================
@@ -118,42 +118,42 @@ body{
 .footer-bar{
   position:absolute;bottom:0;left:0;right:0;z-index:100;
   display:flex;align-items:center;justify-content:space-between;
-  padding:8px 28px;
-  background:rgba(13,17,23,.92);backdrop-filter:blur(12px);
+  padding:5px 19px;
+  background:rgba(13,17,23,.92);backdrop-filter:blur(8px);
   border-top:1px solid var(--border);
-  font-size:12px;color:var(--text-muted);
+  font-size:8px;color:var(--text-muted);
 }
-.footer-bar .govt{display:flex;align-items:center;gap:5px}
-.footer-bar .govt .icon{font-size:14px;color:var(--primary)}
+.footer-bar .govt{display:flex;align-items:center;gap:3px}
+.footer-bar .govt .icon{font-size:10px;color:var(--primary)}
 .footer-bar .counter{font-weight:600;color:var(--text-secondary);font-variant-numeric:tabular-nums}
 
 /* ==========================================================================
    Navigation
    ========================================================================== */
 .nav-hint{
-  position:absolute;bottom:38px;right:24px;z-index:100;
-  display:flex;gap:5px;
+  position:absolute;bottom:25px;right:16px;z-index:100;
+  display:flex;gap:3px;
 }
 .nav-btn{
-  width:32px;height:32px;border-radius:8px;border:1px solid var(--border);
+  width:22px;height:22px;border-radius:5px;border:1px solid var(--border);
   background:rgba(255,255,255,.04);color:var(--text-secondary);
   display:flex;align-items:center;justify-content:center;cursor:pointer;
   transition:all .2s;font-size:0;
 }
 .nav-btn:hover{background:rgba(26,115,232,.15);color:var(--primary-light);border-color:rgba(26,115,232,.3)}
-.nav-btn .icon{font-size:18px}
+.nav-btn .icon{font-size:12px}
 
 /* ==========================================================================
-   Typography (px-based for 1920x1080)
+   Typography (px-based for 1280x720)
    ========================================================================== */
-.slide h1{font-size:56px;font-weight:800;line-height:1.12;letter-spacing:-.5px}
-.slide h2{font-size:40px;font-weight:700;line-height:1.2;letter-spacing:-.3px}
-.slide h3{font-size:22px;font-weight:600;line-height:1.3}
-.slide p,.slide li{font-size:18px;line-height:1.6;color:var(--text-secondary)}
-.slide .lead{font-size:21px;color:var(--text-secondary);max-width:900px}
+.slide h1{font-size:42px;font-weight:800;line-height:1.12;letter-spacing:-.4px}
+.slide h2{font-size:30px;font-weight:700;line-height:1.2;letter-spacing:-.2px}
+.slide h3{font-size:17px;font-weight:600;line-height:1.3}
+.slide p,.slide li{font-size:14px;line-height:1.6;color:var(--text-secondary)}
+.slide .lead{font-size:16px;color:var(--text-secondary);max-width:680px}
 
 /* --- Tags --- */
-.tag{display:inline-block;padding:6px 18px;border-radius:100px;font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.tag{display:inline-block;padding:5px 14px;border-radius:100px;font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
 .tag-blue{background:rgba(26,115,232,.15);color:var(--primary-light)}
 .tag-cyan{background:rgba(0,188,212,.12);color:#4dd0e1}
 .tag-purple{background:rgba(124,77,255,.12);color:#b388ff}
@@ -166,82 +166,82 @@ body{
 /* ==========================================================================
    Card Grid
    ========================================================================== */
-.cards{display:grid;gap:20px;width:100%;text-align:left}
+.cards{display:grid;gap:15px;width:100%;text-align:left}
 .cards-2{grid-template-columns:1fr 1fr}
 .cards-3{grid-template-columns:1fr 1fr 1fr}
 .cards-4{grid-template-columns:1fr 1fr 1fr 1fr}
 .card{
   background:var(--surface-raised);border:1px solid var(--border);
-  border-radius:var(--radius);padding:24px;
-  display:flex;flex-direction:column;gap:10px;
+  border-radius:var(--radius);padding:18px;
+  display:flex;flex-direction:column;gap:8px;
   transition:border-color .25s,box-shadow .25s;
 }
 .card:hover{border-color:rgba(26,115,232,.25);box-shadow:var(--shadow-glow)}
 .card .card-icon{
-  width:40px;height:40px;border-radius:10px;
+  width:30px;height:30px;border-radius:8px;
   display:flex;align-items:center;justify-content:center;
-  margin-bottom:2px;
+  margin-bottom:1px;
 }
-.card .card-icon .icon{font-size:22px}
+.card .card-icon .icon{font-size:17px}
 .card-icon-blue{background:rgba(26,115,232,.12);color:var(--primary-light)}
 .card-icon-cyan{background:rgba(0,188,212,.10);color:#4dd0e1}
 .card-icon-purple{background:rgba(124,77,255,.10);color:#b388ff}
 .card-icon-green{background:rgba(30,142,62,.12);color:#69f0ae}
 .card-icon-orange{background:rgba(227,116,0,.12);color:#ffb74d}
 .card-icon-red{background:rgba(217,48,37,.12);color:#ef9a9a}
-.card h3{font-size:17px;color:var(--text-primary)}
-.card p{font-size:15px;line-height:1.55;color:var(--text-secondary)}
+.card h3{font-size:13px;color:var(--text-primary)}
+.card p{font-size:11px;line-height:1.55;color:var(--text-secondary)}
 
 /* ==========================================================================
    Split Layout
    ========================================================================== */
-.split{display:flex;gap:48px;align-items:center;width:100%;text-align:left}
-.split-text{flex:1;display:flex;flex-direction:column;gap:14px}
+.split{display:flex;gap:36px;align-items:center;width:100%;text-align:left}
+.split-text{flex:1;display:flex;flex-direction:column;gap:11px}
 .split-visual{flex:0 0 auto;display:flex;align-items:center;justify-content:center}
 
 /* ==========================================================================
    Feature List
    ========================================================================== */
-.feature-list{list-style:none;text-align:left;display:flex;flex-direction:column;gap:12px}
-.feature-list li{display:flex;align-items:flex-start;gap:12px;font-size:16px;color:var(--text-secondary)}
-.feature-list .icon{color:var(--primary-light);font-size:22px;flex-shrink:0;margin-top:2px}
+.feature-list{list-style:none;text-align:left;display:flex;flex-direction:column;gap:10px}
+.feature-list li{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--text-secondary)}
+.feature-list .icon{color:var(--primary-light);font-size:17px;flex-shrink:0;margin-top:1px}
 
 /* ==========================================================================
    Stats
    ========================================================================== */
-.stats{display:flex;gap:56px;justify-content:center;flex-wrap:wrap}
+.stats{display:flex;gap:42px;justify-content:center;flex-wrap:wrap}
 .stat{display:flex;flex-direction:column;align-items:center;gap:2px}
-.stat .num{font-size:54px;font-weight:800}
-.stat .lbl{font-size:14px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
+.stat .num{font-size:40px;font-weight:800}
+.stat .lbl{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
 
 /* ==========================================================================
    Department Badges
    ========================================================================== */
-.dept-badges{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;max-width:1200px}
-.dept-badge{padding:6px 16px;border-radius:100px;font-size:14px;font-weight:500;background:var(--surface-raised);border:1px solid var(--border);color:var(--text-secondary)}
+.dept-badges{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:900px}
+.dept-badge{padding:5px 12px;border-radius:100px;font-size:11px;font-weight:500;background:var(--surface-raised);border:1px solid var(--border);color:var(--text-secondary)}
 
 /* ==========================================================================
    Flow Diagram (non-SVG fallback elements)
    ========================================================================== */
 .flow{display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:nowrap}
 .flow-step{
-  display:flex;flex-direction:column;align-items:center;gap:10px;
-  padding:20px 24px;min-width:170px;
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  padding:15px 18px;min-width:128px;
   background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius-lg);
   position:relative;
 }
 .flow-step .step-num{
-  position:absolute;top:-12px;left:50%;transform:translateX(-50%);
-  width:24px;height:24px;border-radius:50%;
+  position:absolute;top:-8px;left:50%;transform:translateX(-50%);
+  width:16px;height:16px;border-radius:50%;
   background:var(--gradient-hero);color:#fff;
-  font-size:11px;font-weight:700;
+  font-size:8px;font-weight:700;
   display:flex;align-items:center;justify-content:center;
 }
-.flow-step .icon{font-size:30px}
-.flow-step h3{font-size:14px}
-.flow-step p{font-size:12px;color:var(--text-muted);text-align:center}
-.flow-arrow{font-size:24px;color:var(--text-muted);padding:0 6px}
-.flow-arrow .icon{font-size:28px}
+.flow-step .icon{font-size:22px}
+.flow-step h3{font-size:11px}
+.flow-step p{font-size:9px;color:var(--text-muted);text-align:center}
+.flow-arrow{font-size:18px;color:var(--text-muted);padding:0 5px}
+.flow-arrow .icon{font-size:21px}
 
 /* ==========================================================================
    Tech Table
@@ -249,15 +249,15 @@ body{
 .tech-table{
   width:100%;border-collapse:collapse;text-align:left;
   background:var(--surface-raised);border-radius:var(--radius);overflow:hidden;
-  border:1px solid var(--border);font-size:13px;
+  border:1px solid var(--border);font-size:10px;
 }
 .tech-table th{
-  padding:10px 20px;font-size:11px;font-weight:600;
+  padding:8px 15px;font-size:9px;font-weight:600;
   color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;
   background:var(--surface-bright);border-bottom:1px solid var(--border);
 }
 .tech-table td{
-  padding:10px 20px;color:var(--text-secondary);
+  padding:8px 15px;color:var(--text-secondary);
   border-bottom:1px solid var(--border);
 }
 .tech-table tr:last-child td{border-bottom:none}
@@ -267,26 +267,26 @@ body{
    Title Slide Specials
    ========================================================================== */
 .title-emblem{
-  width:88px;height:88px;border-radius:50%;
+  width:66px;height:66px;border-radius:50%;
   background:var(--gradient-hero);
   display:flex;align-items:center;justify-content:center;
-  box-shadow:0 0 50px var(--primary-glow);
+  box-shadow:0 0 33px var(--primary-glow);
 }
-.title-emblem .icon{font-size:46px;color:#fff}
-.title-dept{font-size:15px;font-weight:500;color:var(--text-muted);letter-spacing:.06em;text-transform:uppercase}
+.title-emblem .icon{font-size:34px;color:#fff}
+.title-dept{font-size:12px;font-weight:500;color:var(--text-muted);letter-spacing:.06em;text-transform:uppercase}
 .title-version{
-  display:inline-flex;align-items:center;gap:5px;
-  padding:5px 14px;border-radius:100px;
+  display:inline-flex;align-items:center;gap:4px;
+  padding:4px 11px;border-radius:100px;
   background:rgba(30,142,62,.12);color:#69f0ae;
-  font-size:12px;font-weight:600;
+  font-size:10px;font-weight:600;
 }
 
 /* ==========================================================================
    CTA Box (Thank You slide)
    ========================================================================== */
 .cta-box{
-  display:inline-flex;flex-direction:column;align-items:center;gap:8px;
-  padding:24px 40px;border-radius:var(--radius-lg);
+  display:inline-flex;flex-direction:column;align-items:center;gap:6px;
+  padding:18px 30px;border-radius:var(--radius-lg);
   background:var(--gradient-subtle);border:1px solid rgba(26,115,232,.2);
 }
 
@@ -294,80 +294,80 @@ body{
    Mockup Frame
    ========================================================================== */
 .mockup-frame{
-  border-radius:10px;overflow:hidden;
-  box-shadow:0 8px 40px rgba(0,0,0,.35),0 0 0 1px rgba(255,255,255,.06);
+  border-radius:7px;overflow:hidden;
+  box-shadow:0 5px 27px rgba(0,0,0,.35),0 0 0 1px rgba(255,255,255,.06);
   background:var(--app-surface-dim);
   font-family:'Inter',system-ui,sans-serif;
   color:var(--app-on-surface);
-  font-size:12px;
-  transform:perspective(1200px) rotateY(-2deg);
+  font-size:8px;
+  transform:perspective(800px) rotateY(-2deg);
   transition:transform .6s cubic-bezier(.16,1,.3,1);
 }
-.slide.active .mockup-frame{transform:perspective(1200px) rotateY(0deg)}
+.slide.active .mockup-frame{transform:perspective(800px) rotateY(0deg)}
 
 /* --- Mockup Navbar --- */
 .m-navbar{
   display:flex;align-items:center;justify-content:space-between;
-  padding:0 12px;height:36px;
+  padding:0 8px;height:24px;
   background:var(--app-surface);
   border-bottom:1px solid var(--app-outline-variant);
-  box-shadow:0 1px 3px rgba(0,0,0,.06);
+  box-shadow:0 1px 2px rgba(0,0,0,.06);
 }
-.m-navbar .m-logo{display:flex;align-items:center;gap:4px;font-weight:700;font-size:11px;color:var(--app-primary)}
-.m-navbar .m-logo .icon{font-size:16px;font-variation-settings:'FILL' 1,'wght' 500}
-.m-nav-links{display:flex;gap:2px}
-.m-nav-links span{padding:3px 8px;border-radius:14px;font-size:10px;font-weight:500;color:var(--app-on-surface-variant)}
+.m-navbar .m-logo{display:flex;align-items:center;gap:3px;font-weight:700;font-size:7px;color:var(--app-primary)}
+.m-navbar .m-logo .icon{font-size:11px;font-variation-settings:'FILL' 1,'wght' 500}
+.m-nav-links{display:flex;gap:1px}
+.m-nav-links span{padding:2px 5px;border-radius:9px;font-size:7px;font-weight:500;color:var(--app-on-surface-variant)}
 .m-nav-links span.active{background:var(--app-primary-container);color:#0842A0;font-weight:600}
-.m-user-badge{padding:2px 8px;border-radius:14px;font-size:9px;font-weight:500;background:var(--app-primary-container-low);color:#0842A0}
+.m-user-badge{padding:1px 5px;border-radius:9px;font-size:6px;font-weight:500;background:var(--app-primary-container-low);color:#0842A0}
 
 /* --- Mockup Metric Card --- */
-.m-metrics{display:flex;gap:6px;padding:10px 12px 0}
+.m-metrics{display:flex;gap:4px;padding:7px 8px 0}
 .m-metric-card{
-  flex:1;text-align:center;padding:8px 4px;
+  flex:1;text-align:center;padding:5px 3px;
   background:var(--app-surface);border:1px solid var(--app-outline-variant);
-  border-radius:8px;box-shadow:0 1px 2px rgba(0,0,0,.04);
+  border-radius:5px;box-shadow:0 1px 2px rgba(0,0,0,.04);
 }
 .m-metric-card .m-metric-icon{
-  width:24px;height:24px;border-radius:6px;
+  width:16px;height:16px;border-radius:4px;
   display:inline-flex;align-items:center;justify-content:center;
-  margin:0 auto 3px;
+  margin:0 auto 2px;
 }
-.m-metric-card .m-metric-icon .icon{font-size:14px}
+.m-metric-card .m-metric-icon .icon{font-size:9px}
 .m-metric-card .m-metric-icon.blue{background:var(--app-primary-container-low);color:var(--app-primary)}
 .m-metric-card .m-metric-icon.green{background:var(--app-success-container);color:var(--app-success)}
 .m-metric-card .m-metric-icon.amber{background:var(--app-warning-container);color:var(--app-warning)}
 .m-metric-card .m-metric-icon.red{background:var(--app-error-container);color:var(--app-error)}
-.m-metric-card .m-metric-val{font-size:16px;font-weight:700;color:var(--app-on-surface)}
-.m-metric-card .m-metric-lbl{font-size:8px;color:var(--app-on-surface-variant);font-weight:500;margin-top:1px}
+.m-metric-card .m-metric-val{font-size:11px;font-weight:700;color:var(--app-on-surface)}
+.m-metric-card .m-metric-lbl{font-size:5px;color:var(--app-on-surface-variant);font-weight:500;margin-top:1px}
 
 /* --- Mockup Date Group Header --- */
 .m-date-header{
-  display:flex;align-items:center;gap:4px;
-  padding:6px 12px 2px;font-size:9px;font-weight:600;
+  display:flex;align-items:center;gap:3px;
+  padding:4px 8px 1px;font-size:6px;font-weight:600;
   color:var(--app-on-surface-variant);
 }
-.m-date-header .icon{font-size:12px}
+.m-date-header .icon{font-size:8px}
 .m-date-header .count{
-  font-size:8px;background:var(--app-surface-container);
-  padding:1px 5px;border-radius:4px;margin-left:auto;
+  font-size:5px;background:var(--app-surface-container);
+  padding:1px 3px;border-radius:3px;margin-left:auto;
 }
 
 /* --- Mockup Grievance Card --- */
 .m-grievance-card{
-  margin:4px 12px;padding:10px 12px;
+  margin:3px 8px;padding:7px 8px;
   background:var(--app-surface);border:1px solid var(--app-outline-variant);
-  border-radius:8px;box-shadow:0 1px 2px rgba(0,0,0,.04);
+  border-radius:5px;box-shadow:0 1px 2px rgba(0,0,0,.04);
 }
-.m-grievance-card.status-pending{border-left:3px solid var(--app-warning)}
-.m-grievance-card.status-in_progress{border-left:3px solid var(--app-primary)}
-.m-grievance-card.status-resolved{border-left:3px solid var(--app-success)}
-.m-grievance-card.status-escalated{border-left:3px solid var(--app-error)}
-.m-grievance-card h4{font-size:11px;font-weight:600;color:var(--app-on-surface);margin-bottom:4px}
-.m-grievance-card p{font-size:10px;color:var(--app-on-surface-variant);margin-bottom:5px;line-height:1.4}
-.m-badges{display:flex;flex-wrap:wrap;gap:3px;align-items:center}
+.m-grievance-card.status-pending{border-left:2px solid var(--app-warning)}
+.m-grievance-card.status-in_progress{border-left:2px solid var(--app-primary)}
+.m-grievance-card.status-resolved{border-left:2px solid var(--app-success)}
+.m-grievance-card.status-escalated{border-left:2px solid var(--app-error)}
+.m-grievance-card h4{font-size:7px;font-weight:600;color:var(--app-on-surface);margin-bottom:3px}
+.m-grievance-card p{font-size:7px;color:var(--app-on-surface-variant);margin-bottom:3px;line-height:1.4}
+.m-badges{display:flex;flex-wrap:wrap;gap:2px;align-items:center}
 
 /* --- Mockup Badges --- */
-.m-badge{display:inline-flex;align-items:center;gap:2px;padding:1px 6px;border-radius:4px;font-size:8px;font-weight:600;white-space:nowrap}
+.m-badge{display:inline-flex;align-items:center;gap:1px;padding:1px 4px;border-radius:3px;font-size:5px;font-weight:600;white-space:nowrap}
 .m-badge-pending{background:var(--app-warning-container);color:#B45309}
 .m-badge-in_progress{background:var(--app-primary-container-low);color:#0842A0}
 .m-badge-resolved{background:var(--app-success-container);color:#15803D}
@@ -377,29 +377,29 @@ body{
 .m-badge-priority-medium{background:var(--app-warning-container);color:#B45309}
 .m-badge-priority-high{background:var(--app-error-container);color:#B91C1C}
 .m-badge-priority-urgent{background:#F3E8FD;color:#6D28D9}
-.m-badge-impact{display:inline-flex;align-items:center;justify-content:center;padding:1px 5px;border-radius:3px;font-size:8px;font-weight:700;color:#fff}
+.m-badge-impact{display:inline-flex;align-items:center;justify-content:center;padding:1px 3px;border-radius:2px;font-size:5px;font-weight:700;color:#fff}
 
 /* --- Mockup Filter Bar --- */
 .m-filter-bar{
-  display:flex;gap:6px;padding:8px 12px;margin:8px 12px 0;
+  display:flex;gap:4px;padding:5px 8px;margin:5px 8px 0;
   background:var(--app-surface);border:1px solid var(--app-outline-variant);
-  border-radius:8px;
+  border-radius:5px;
 }
 .m-filter-item{
-  flex:1;display:flex;flex-direction:column;gap:2px;
+  flex:1;display:flex;flex-direction:column;gap:1px;
 }
-.m-filter-item label{font-size:8px;font-weight:600;color:var(--app-on-surface-variant)}
+.m-filter-item label{font-size:5px;font-weight:600;color:var(--app-on-surface-variant)}
 .m-filter-item .m-select{
-  padding:3px 6px;border-radius:4px;
+  padding:2px 4px;border-radius:3px;
   background:var(--app-surface-dim);border:1px solid var(--app-outline-variant);
-  font-size:9px;color:var(--app-on-surface);
+  font-size:6px;color:var(--app-on-surface);
 }
 
 /* --- Mockup Button --- */
 .m-btn{
-  display:inline-flex;align-items:center;gap:3px;
-  padding:4px 10px;border-radius:14px;
-  font-size:9px;font-weight:600;border:none;
+  display:inline-flex;align-items:center;gap:2px;
+  padding:3px 7px;border-radius:9px;
+  font-size:6px;font-weight:600;border:none;
 }
 .m-btn-primary{background:var(--app-primary);color:#fff}
 .m-btn-secondary{background:var(--app-surface-container);color:var(--app-on-surface-variant);border:1px solid var(--app-outline-variant)}
@@ -408,64 +408,64 @@ body{
 /* --- Mockup Impact Circle --- */
 .m-impact-circle{
   display:inline-flex;align-items:center;justify-content:center;
-  width:28px;height:28px;border-radius:50%;
-  font-weight:700;font-size:10px;color:#fff;flex-shrink:0;
+  width:19px;height:19px;border-radius:50%;
+  font-weight:700;font-size:7px;color:#fff;flex-shrink:0;
 }
 
 /* --- Mockup Detail Rows --- */
-.m-detail-row{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:10px}
-.m-detail-row .m-label{width:100px;color:var(--app-on-surface-variant);font-weight:500;flex-shrink:0}
+.m-detail-row{display:flex;align-items:center;gap:5px;padding:3px 0;font-size:7px}
+.m-detail-row .m-label{width:67px;color:var(--app-on-surface-variant);font-weight:500;flex-shrink:0}
 .m-detail-row .m-value{color:var(--app-on-surface);font-weight:500}
 
 /* --- Mockup AI Resolution Box --- */
 .m-ai-box{
-  margin:8px 0;padding:10px;border-radius:8px;
+  margin:5px 0;padding:7px;border-radius:5px;
   background:linear-gradient(135deg,rgba(26,115,232,.06),rgba(0,188,212,.04),rgba(124,77,255,.06));
   border:1px solid rgba(26,115,232,.15);
 }
-.m-ai-box .m-ai-header{display:flex;align-items:center;gap:4px;font-size:10px;font-weight:600;color:var(--app-primary);margin-bottom:4px}
-.m-ai-box .m-ai-header .icon{font-size:14px}
-.m-ai-box p{font-size:9px;color:var(--app-on-surface-variant);line-height:1.5}
+.m-ai-box .m-ai-header{display:flex;align-items:center;gap:3px;font-size:7px;font-weight:600;color:var(--app-primary);margin-bottom:3px}
+.m-ai-box .m-ai-header .icon{font-size:9px}
+.m-ai-box p{font-size:6px;color:var(--app-on-surface-variant);line-height:1.5}
 
 /* --- Mockup Tabs --- */
-.m-tabs{display:flex;gap:0;border-bottom:1px solid var(--app-outline-variant);padding:0 12px}
-.m-tab{padding:6px 12px;font-size:10px;font-weight:500;color:var(--app-on-surface-variant);border-bottom:2px solid transparent;margin-bottom:-1px}
+.m-tabs{display:flex;gap:0;border-bottom:1px solid var(--app-outline-variant);padding:0 8px}
+.m-tab{padding:4px 8px;font-size:7px;font-weight:500;color:var(--app-on-surface-variant);border-bottom:2px solid transparent;margin-bottom:-1px}
 .m-tab.active{color:var(--app-primary);border-bottom-color:var(--app-primary);font-weight:600}
 
 /* --- Mockup Upload Zone --- */
 .m-upload-zone{
-  margin:8px 12px;padding:14px;border-radius:8px;
+  margin:5px 8px;padding:9px;border-radius:5px;
   border:2px dashed var(--app-outline-variant);
-  text-align:center;font-size:10px;color:var(--app-on-surface-variant);
+  text-align:center;font-size:7px;color:var(--app-on-surface-variant);
 }
-.m-upload-zone .icon{font-size:20px;color:var(--app-primary);display:block;margin:0 auto 4px}
+.m-upload-zone .icon{font-size:13px;color:var(--app-primary);display:block;margin:0 auto 3px}
 
 /* --- Mockup Two Column --- */
-.m-two-col{display:flex;gap:10px;padding:8px 12px}
-.m-two-col .m-col-main{flex:2;display:flex;flex-direction:column;gap:6px}
-.m-two-col .m-col-side{flex:1;display:flex;flex-direction:column;gap:6px}
+.m-two-col{display:flex;gap:7px;padding:5px 8px}
+.m-two-col .m-col-main{flex:2;display:flex;flex-direction:column;gap:4px}
+.m-two-col .m-col-side{flex:1;display:flex;flex-direction:column;gap:4px}
 
 /* --- Mockup Vouch --- */
-.m-vouch-count{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:10px;background:var(--app-success-container);color:var(--app-success);font-weight:600;font-size:9px}
-.m-distance-badge{display:inline-flex;align-items:center;gap:2px;padding:1px 6px;border-radius:8px;background:var(--app-primary-container-low);color:var(--app-primary);font-size:9px}
+.m-vouch-count{display:inline-flex;align-items:center;gap:2px;padding:1px 5px;border-radius:7px;background:var(--app-success-container);color:var(--app-success);font-weight:600;font-size:6px}
+.m-distance-badge{display:inline-flex;align-items:center;gap:1px;padding:1px 4px;border-radius:5px;background:var(--app-primary-container-low);color:var(--app-primary);font-size:6px}
 
 /* --- Mockup Spam Score Gauge --- */
-.m-gauge-track{width:100%;height:6px;background:var(--app-surface-container);border-radius:3px;overflow:hidden}
-.m-gauge-fill{height:100%;border-radius:3px}
+.m-gauge-track{width:100%;height:4px;background:var(--app-surface-container);border-radius:2px;overflow:hidden}
+.m-gauge-fill{height:100%;border-radius:2px}
 
 /* --- Mockup Section Header --- */
 .m-section-header{
   display:flex;align-items:center;justify-content:space-between;
-  padding:8px 12px 0;
+  padding:5px 8px 0;
 }
-.m-section-header h3{font-size:12px;font-weight:700;color:var(--app-on-surface);display:flex;align-items:center;gap:4px}
-.m-section-header h3 .icon{font-size:16px}
+.m-section-header h3{font-size:8px;font-weight:700;color:var(--app-on-surface);display:flex;align-items:center;gap:3px}
+.m-section-header h3 .icon{font-size:11px}
 
 /* ==========================================================================
    Animations
    ========================================================================== */
 @keyframes fadeInUp{
-  from{opacity:0;transform:translateY(24px) scale(.98);filter:blur(2px)}
+  from{opacity:0;transform:translateY(16px) scale(.98);filter:blur(2px)}
   to{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}
 }
 @keyframes shimmer{
@@ -474,17 +474,17 @@ body{
 }
 @keyframes particleFloat{
   0%,100%{transform:translate(0,0);opacity:.3}
-  25%{transform:translate(10px,-20px);opacity:.6}
-  50%{transform:translate(-5px,-40px);opacity:.4}
-  75%{transform:translate(15px,-20px);opacity:.5}
+  25%{transform:translate(7px,-13px);opacity:.6}
+  50%{transform:translate(-3px,-27px);opacity:.4}
+  75%{transform:translate(10px,-13px);opacity:.5}
 }
 @keyframes pulseEmblem{
-  0%,100%{box-shadow:0 0 40px var(--primary-glow)}
-  50%{box-shadow:0 0 60px rgba(26,115,232,.4)}
+  0%,100%{box-shadow:0 0 27px var(--primary-glow)}
+  50%{box-shadow:0 0 40px rgba(26,115,232,.4)}
 }
 @keyframes slideInRight{
-  from{opacity:0;transform:perspective(1200px) rotateY(-4deg) translateX(40px)}
-  to{opacity:1;transform:perspective(1200px) rotateY(-2deg) translateX(0)}
+  from{opacity:0;transform:perspective(800px) rotateY(-4deg) translateX(27px)}
+  to{opacity:1;transform:perspective(800px) rotateY(-2deg) translateX(0)}
 }
 
 /* --- Stagger delays --- */
@@ -506,18 +506,18 @@ body{
    ========================================================================== */
 /* Default: slide horizontal */
 .slide{transition:opacity .5s cubic-bezier(.16,1,.3,1),transform .5s cubic-bezier(.16,1,.3,1)}
-.slide.exit-left{opacity:0;transform:translateX(-80px) scale(.97)}
-.slide.exit-right{opacity:0;transform:translateX(80px) scale(.97)}
-.slide.enter-left{transform:translateX(-80px) scale(.97)}
-.slide.enter-right{transform:translateX(80px) scale(.97)}
+.slide.exit-left{opacity:0;transform:translateX(-53px) scale(.97)}
+.slide.exit-right{opacity:0;transform:translateX(53px) scale(.97)}
+.slide.enter-left{transform:translateX(-53px) scale(.97)}
+.slide.enter-right{transform:translateX(53px) scale(.97)}
 
 /* Zoom */
 .slide[data-transition="zoom"].exit-left,.slide[data-transition="zoom"].exit-right{opacity:0;transform:scale(1.08)}
 .slide[data-transition="zoom"].enter-left,.slide[data-transition="zoom"].enter-right{transform:scale(.88)}
 
 /* Morph */
-.slide[data-transition="morph"].exit-left,.slide[data-transition="morph"].exit-right{opacity:0;transform:translateY(-30px)}
-.slide[data-transition="morph"].enter-left,.slide[data-transition="morph"].enter-right{transform:translateY(30px)}
+.slide[data-transition="morph"].exit-left,.slide[data-transition="morph"].exit-right{opacity:0;transform:translateY(-20px)}
+.slide[data-transition="morph"].enter-left,.slide[data-transition="morph"].enter-right{transform:translateY(20px)}
 
 /* Reveal */
 .slide[data-transition="reveal"]{transition:opacity .5s,clip-path .6s cubic-bezier(.16,1,.3,1)}
@@ -540,10 +540,10 @@ body{
 /* ==========================================================================
    Chat Bubble Mockup Components
    ========================================================================== */
-.m-chat-area{padding:10px 16px;display:flex;flex-direction:column;gap:8px;min-height:200px}
+.m-chat-area{padding:7px 11px;display:flex;flex-direction:column;gap:5px;min-height:133px}
 .m-chat-bubble{
-  max-width:70%;padding:10px 14px;border-radius:12px;
-  font-size:11px;line-height:1.5;position:relative;
+  max-width:70%;padding:7px 9px;border-radius:8px;
+  font-size:7px;line-height:1.5;position:relative;
 }
 .m-chat-bubble.user{
   align-self:flex-end;
@@ -557,40 +557,40 @@ body{
   border-bottom-left-radius:4px;
   border-left:3px solid var(--app-primary);
 }
-.m-chat-bubble .m-chat-label{font-size:8px;font-weight:600;color:var(--app-on-surface-variant);margin-bottom:3px}
+.m-chat-bubble .m-chat-label{font-size:5px;font-weight:600;color:var(--app-on-surface-variant);margin-bottom:2px}
 .m-chat-bubble.bot .m-chat-label{color:var(--app-primary)}
 .m-chat-typing{
-  align-self:flex-start;display:flex;gap:4px;padding:8px 14px;
-  background:var(--app-surface);border:1px solid var(--app-outline-variant);border-radius:12px;
+  align-self:flex-start;display:flex;gap:3px;padding:5px 9px;
+  background:var(--app-surface);border:1px solid var(--app-outline-variant);border-radius:8px;
 }
 .m-chat-typing span{
-  width:6px;height:6px;border-radius:50%;background:var(--app-on-surface-variant);
+  width:4px;height:4px;border-radius:50%;background:var(--app-on-surface-variant);
   animation:chatDotPulse 1.4s ease-in-out infinite;
 }
 .m-chat-typing span:nth-child(2){animation-delay:.2s}
 .m-chat-typing span:nth-child(3){animation-delay:.4s}
 @keyframes chatDotPulse{0%,60%,100%{opacity:.3;transform:scale(.8)}30%{opacity:1;transform:scale(1)}}
 .m-chat-input-bar{
-  display:flex;gap:6px;padding:8px 12px;
+  display:flex;gap:4px;padding:5px 8px;
   border-top:1px solid var(--app-outline-variant);
   background:var(--app-surface);align-items:center;
 }
 .m-chat-input-bar .m-chat-input{
-  flex:1;padding:6px 10px;border-radius:18px;
+  flex:1;padding:4px 7px;border-radius:12px;
   background:var(--app-surface-dim);border:1px solid var(--app-outline-variant);
-  font-size:10px;color:var(--app-on-surface);
+  font-size:7px;color:var(--app-on-surface);
 }
-.m-chat-input-bar .icon{font-size:18px;color:var(--app-on-surface-variant);cursor:pointer}
+.m-chat-input-bar .icon{font-size:12px;color:var(--app-on-surface-variant);cursor:pointer}
 .m-chat-input-bar .icon.send{color:var(--app-primary)}
 .m-chat-scheme-card{
-  margin-top:6px;padding:8px 10px;border-radius:8px;
+  margin-top:4px;padding:5px 7px;border-radius:5px;
   background:var(--app-primary-container-low);border:1px solid rgba(26,115,232,.15);
-  font-size:10px;
+  font-size:7px;
 }
 .m-chat-scheme-card .scheme-name{font-weight:600;color:var(--app-primary)}
-.m-chat-action-btns{display:flex;gap:6px;margin-top:6px}
-.m-chat-action-btns .m-btn{font-size:9px;padding:4px 10px}
-.m-lang-badge{display:inline-block;padding:1px 5px;border-radius:4px;font-size:7px;font-weight:600;background:rgba(255,255,255,.2);margin-left:6px}
+.m-chat-action-btns{display:flex;gap:4px;margin-top:4px}
+.m-chat-action-btns .m-btn{font-size:6px;padding:3px 7px}
+.m-lang-badge{display:inline-block;padding:1px 3px;border-radius:3px;font-size:5px;font-weight:600;background:rgba(255,255,255,.2);margin-left:4px}
 
 /* ==========================================================================
    Map Heatmap Components
@@ -612,7 +612,7 @@ body{
    ========================================================================== */
 .m-timeline{display:flex;align-items:center;width:100%;gap:0}
 .m-timeline-segment{
-  flex:1;height:8px;position:relative;
+  flex:1;height:5px;position:relative;
   transition:background .3s;
 }
 .m-timeline-segment.safe{background:var(--app-success)}
@@ -620,8 +620,8 @@ body{
 .m-timeline-segment.critical{background:var(--app-error)}
 .m-timeline-segment.breached{background:#B91C1C;animation:pulse 1s infinite}
 .m-timeline-label{
-  position:absolute;top:-16px;left:50%;transform:translateX(-50%);
-  font-size:7px;font-weight:600;color:var(--app-on-surface-variant);white-space:nowrap;
+  position:absolute;top:-11px;left:50%;transform:translateX(-50%);
+  font-size:5px;font-weight:600;color:var(--app-on-surface-variant);white-space:nowrap;
 }
 
 /* ==========================================================================
@@ -629,45 +629,45 @@ body{
    ========================================================================== */
 .compare-table{width:100%;border-collapse:separate;border-spacing:0;text-align:left}
 .compare-table th{
-  padding:12px 20px;font-size:14px;font-weight:700;
+  padding:9px 15px;font-size:11px;font-weight:700;
   border-bottom:2px solid var(--border);
 }
 .compare-table th.traditional{color:var(--text-muted)}
 .compare-table th.ours{background:var(--gradient-subtle);color:var(--primary-light);border-radius:var(--radius) var(--radius) 0 0}
 .compare-table td{
-  padding:10px 20px;font-size:13px;color:var(--text-secondary);
+  padding:8px 15px;font-size:10px;color:var(--text-secondary);
   border-bottom:1px solid var(--border);vertical-align:middle;
 }
-.compare-table td:first-child{color:var(--text-primary);font-weight:600;width:140px}
-.compare-table .compare-icon{font-size:18px;margin-right:6px;vertical-align:middle}
+.compare-table td:first-child{color:var(--text-primary);font-weight:600;width:105px}
+.compare-table .compare-icon{font-size:14px;margin-right:5px;vertical-align:middle}
 .compare-table .compare-icon.bad{color:var(--app-error)}
 .compare-table .compare-icon.good{color:#69f0ae}
 
 /* ==========================================================================
    Factor Bars (Impact Score)
    ========================================================================== */
-.factor-bar-row{display:flex;align-items:center;gap:10px;width:100%}
-.factor-bar-row .factor-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.factor-bar-row .factor-icon .icon{font-size:18px}
-.factor-bar-row .factor-info{flex:0 0 160px;display:flex;flex-direction:column}
-.factor-bar-row .factor-name{font-size:13px;font-weight:600;color:var(--text-primary)}
-.factor-bar-row .factor-weight{font-size:10px;color:var(--text-muted)}
-.factor-bar-track{flex:1;height:10px;background:var(--surface-bright);border-radius:5px;overflow:hidden}
-.factor-bar-fill{height:100%;border-radius:5px;transition:width 1.2s cubic-bezier(.16,1,.3,1)}
-.factor-bar-row .factor-score{width:36px;text-align:right;font-size:16px;font-weight:700;color:var(--text-primary)}
+.factor-bar-row{display:flex;align-items:center;gap:8px;width:100%}
+.factor-bar-row .factor-icon{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.factor-bar-row .factor-icon .icon{font-size:14px}
+.factor-bar-row .factor-info{flex:0 0 120px;display:flex;flex-direction:column}
+.factor-bar-row .factor-name{font-size:10px;font-weight:600;color:var(--text-primary)}
+.factor-bar-row .factor-weight{font-size:8px;color:var(--text-muted)}
+.factor-bar-track{flex:1;height:8px;background:var(--surface-bright);border-radius:4px;overflow:hidden}
+.factor-bar-fill{height:100%;border-radius:4px;transition:width 1.2s cubic-bezier(.16,1,.3,1)}
+.factor-bar-row .factor-score{width:28px;text-align:right;font-size:12px;font-weight:700;color:var(--text-primary)}
 
 /* ==========================================================================
    Anomaly Card
    ========================================================================== */
 .anomaly-card{
-  padding:14px 18px;border-radius:var(--radius);
+  padding:11px 14px;border-radius:var(--radius);
   background:var(--surface-raised);border:1px solid var(--border);
   border-left:3px solid var(--app-warning);
   display:flex;flex-direction:column;gap:4px;
 }
-.anomaly-card h4{font-size:14px;font-weight:600;color:var(--text-primary);display:flex;align-items:center;gap:6px}
-.anomaly-card h4 .icon{font-size:18px;color:var(--app-warning)}
-.anomaly-card p{font-size:12px;color:var(--text-secondary)}
+.anomaly-card h4{font-size:11px;font-weight:600;color:var(--text-primary);display:flex;align-items:center;gap:5px}
+.anomaly-card h4 .icon{font-size:14px;color:var(--app-warning)}
+.anomaly-card p{font-size:10px;color:var(--text-secondary)}
 .anomaly-card.red{border-left-color:var(--app-error)}
 .anomaly-card.red h4 .icon{color:var(--app-error)}
 
@@ -675,35 +675,35 @@ body{
    Role Cards (Demo slide)
    ========================================================================== */
 .role-card{
-  flex:1;padding:28px;border-radius:var(--radius-lg);
+  flex:1;padding:21px;border-radius:var(--radius-lg);
   background:var(--surface-raised);
   border:1px solid var(--border);
-  display:flex;flex-direction:column;align-items:center;gap:12px;
+  display:flex;flex-direction:column;align-items:center;gap:8px;
   text-align:center;
   transition:border-color .3s,box-shadow .3s;
 }
 .role-card:hover{border-color:rgba(26,115,232,.3);box-shadow:var(--shadow-glow)}
 .role-card .role-icon{
-  width:56px;height:56px;border-radius:50%;
+  width:42px;height:42px;border-radius:50%;
   background:var(--gradient-hero);
   display:flex;align-items:center;justify-content:center;
 }
-.role-card .role-icon .icon{font-size:28px;color:#fff}
-.role-card h3{font-size:18px;color:var(--text-primary)}
-.role-card .role-cred{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--primary-light);background:var(--surface-bright);padding:4px 12px;border-radius:6px}
-.role-card ul{list-style:none;text-align:left;font-size:13px;color:var(--text-secondary)}
-.role-card ul li{padding:2px 0;display:flex;align-items:center;gap:6px}
-.role-card ul li .icon{font-size:16px;color:var(--primary-light)}
+.role-card .role-icon .icon{font-size:21px;color:#fff}
+.role-card h3{font-size:14px;color:var(--text-primary)}
+.role-card .role-cred{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--primary-light);background:var(--surface-bright);padding:3px 9px;border-radius:5px}
+.role-card ul{list-style:none;text-align:left;font-size:10px;color:var(--text-secondary)}
+.role-card ul li{padding:2px 0;display:flex;align-items:center;gap:5px}
+.role-card ul li .icon{font-size:12px;color:var(--primary-light)}
 
 /* ==========================================================================
    SLA Alert Cards
    ========================================================================== */
 .sla-card{
-  flex:1;padding:16px;border-radius:var(--radius);text-align:center;
-  display:flex;flex-direction:column;align-items:center;gap:4px;
+  flex:1;padding:12px;border-radius:var(--radius);text-align:center;
+  display:flex;flex-direction:column;align-items:center;gap:3px;
 }
-.sla-card .sla-count{font-size:32px;font-weight:800}
-.sla-card .sla-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.sla-card .sla-count{font-size:24px;font-weight:800}
+.sla-card .sla-label{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
 .sla-card.breached{background:var(--app-error-container);color:#B91C1C}
 .sla-card.critical{background:var(--app-warning-container);color:#B45309}
 .sla-card.warning{background:var(--app-primary-container-low);color:#0842A0}
@@ -712,14 +712,14 @@ body{
    Mockup Notification Bell
    ========================================================================== */
 .m-bell{position:relative;display:inline-flex;align-items:center;cursor:pointer}
-.m-bell .icon{font-size:18px;color:var(--app-on-surface-variant)}
+.m-bell .icon{font-size:12px;color:var(--app-on-surface-variant)}
 .m-bell-badge{
-  position:absolute;top:-4px;right:-6px;
-  min-width:14px;height:14px;border-radius:7px;
+  position:absolute;top:-3px;right:-4px;
+  min-width:9px;height:9px;border-radius:5px;
   background:var(--app-error);color:#fff;
-  font-size:8px;font-weight:700;
+  font-size:5px;font-weight:700;
   display:flex;align-items:center;justify-content:center;
-  padding:0 3px;
+  padding:0 2px;
 }
 
 /* ==========================================================================
@@ -736,7 +736,7 @@ body{
 </head>
 <body>
 
-<!-- ===== SLIDE DECK (1920x1080) ===== -->
+<!-- ===== SLIDE DECK (1280x720) ===== -->
 <div class="deck" id="deck">
 
 <!-- ===== PROGRESS BAR ===== -->
@@ -745,21 +745,21 @@ body{
 <!-- slide-01-title.html -->
 <div class="slide active" data-slide="0">
   <div class="particles">
-    <span class="particle" style="width:4px;height:4px;left:12%;top:18%;background:#1A73E8;animation-duration:9s;animation-delay:0s"></span>
-    <span class="particle" style="width:3px;height:3px;left:88%;top:22%;background:#00BCD4;animation-duration:11s;animation-delay:1.2s"></span>
-    <span class="particle" style="width:5px;height:5px;left:25%;top:75%;background:#7C4DFF;animation-duration:7s;animation-delay:2.5s"></span>
-    <span class="particle" style="width:3px;height:3px;left:72%;top:68%;background:#1A73E8;animation-duration:14s;animation-delay:0.8s"></span>
-    <span class="particle" style="width:4px;height:4px;left:45%;top:12%;background:#00BCD4;animation-duration:10s;animation-delay:3s"></span>
-    <span class="particle" style="width:3px;height:3px;left:8%;top:55%;background:#7C4DFF;animation-duration:12s;animation-delay:1.5s"></span>
-    <span class="particle" style="width:5px;height:5px;left:92%;top:45%;background:#1A73E8;animation-duration:8s;animation-delay:0.3s"></span>
-    <span class="particle" style="width:3px;height:3px;left:55%;top:82%;background:#00BCD4;animation-duration:13s;animation-delay:2s"></span>
-    <span class="particle" style="width:4px;height:4px;left:35%;top:35%;background:#7C4DFF;animation-duration:9s;animation-delay:4s"></span>
-    <span class="particle" style="width:3px;height:3px;left:65%;top:28%;background:#1A73E8;animation-duration:11s;animation-delay:1s"></span>
-    <span class="particle" style="width:5px;height:5px;left:18%;top:88%;background:#00BCD4;animation-duration:7s;animation-delay:2.2s"></span>
-    <span class="particle" style="width:3px;height:3px;left:78%;top:8%;background:#7C4DFF;animation-duration:14s;animation-delay:0.5s"></span>
-    <span class="particle" style="width:4px;height:4px;left:5%;top:40%;background:#1A73E8;animation-duration:10s;animation-delay:3.2s"></span>
-    <span class="particle" style="width:3px;height:3px;left:95%;top:78%;background:#00BCD4;animation-duration:12s;animation-delay:1.8s"></span>
-    <span class="particle" style="width:5px;height:5px;left:50%;top:50%;background:#7C4DFF;animation-duration:8s;animation-delay:0.7s"></span>
+    <span class="particle" style="width:3px;height:3px;left:12%;top:18%;background:#1A73E8;animation-duration:9s;animation-delay:0s"></span>
+    <span class="particle" style="width:2px;height:2px;left:88%;top:22%;background:#00BCD4;animation-duration:11s;animation-delay:1.2s"></span>
+    <span class="particle" style="width:3px;height:3px;left:25%;top:75%;background:#7C4DFF;animation-duration:7s;animation-delay:2.5s"></span>
+    <span class="particle" style="width:2px;height:2px;left:72%;top:68%;background:#1A73E8;animation-duration:14s;animation-delay:0.8s"></span>
+    <span class="particle" style="width:3px;height:3px;left:45%;top:12%;background:#00BCD4;animation-duration:10s;animation-delay:3s"></span>
+    <span class="particle" style="width:2px;height:2px;left:8%;top:55%;background:#7C4DFF;animation-duration:12s;animation-delay:1.5s"></span>
+    <span class="particle" style="width:3px;height:3px;left:92%;top:45%;background:#1A73E8;animation-duration:8s;animation-delay:0.3s"></span>
+    <span class="particle" style="width:2px;height:2px;left:55%;top:82%;background:#00BCD4;animation-duration:13s;animation-delay:2s"></span>
+    <span class="particle" style="width:3px;height:3px;left:35%;top:35%;background:#7C4DFF;animation-duration:9s;animation-delay:4s"></span>
+    <span class="particle" style="width:2px;height:2px;left:65%;top:28%;background:#1A73E8;animation-duration:11s;animation-delay:1s"></span>
+    <span class="particle" style="width:3px;height:3px;left:18%;top:88%;background:#00BCD4;animation-duration:7s;animation-delay:2.2s"></span>
+    <span class="particle" style="width:2px;height:2px;left:78%;top:8%;background:#7C4DFF;animation-duration:14s;animation-delay:0.5s"></span>
+    <span class="particle" style="width:3px;height:3px;left:5%;top:40%;background:#1A73E8;animation-duration:10s;animation-delay:3.2s"></span>
+    <span class="particle" style="width:2px;height:2px;left:95%;top:78%;background:#00BCD4;animation-duration:12s;animation-delay:1.8s"></span>
+    <span class="particle" style="width:3px;height:3px;left:50%;top:50%;background:#7C4DFF;animation-duration:8s;animation-delay:0.7s"></span>
   </div>
   <div class="slide-inner" style="z-index:1">
     <div class="title-emblem animate a-d1" style="animation: pulseEmblem 2s ease-in-out infinite">
@@ -768,8 +768,8 @@ body{
     <p class="title-dept animate a-d2">Panchayati Raj &amp; Drinking Water Department &middot; Government of Odisha</p>
     <h1 class="animate a-d3">AI-Powered<br><span class="grad-text" style="background-size:200% auto;animation:shimmer 2.5s linear infinite">Grievance Redressal System</span></h1>
     <p class="lead animate a-d4">Transforming how citizens connect with their government &mdash; faster resolution, smarter triage, complete transparency.</p>
-    <div class="animate a-d5" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center">
-      <span class="title-version"><span class="icon" style="font-size:14px">new_releases</span> Version 2.2</span>
+    <div class="animate a-d5" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center">
+      <span class="title-version"><span class="icon" style="font-size:11px">new_releases</span> Version 2.2</span>
       <span class="tag tag-blue">February 2026</span>
     </div>
   </div>
@@ -781,7 +781,7 @@ body{
   <div class="slide-inner">
     <span class="tag tag-orange animate a-d1">The Challenge</span>
     <h2 class="animate a-d2">Why Traditional Systems Fail</h2>
-    <svg class="anim-trigger" viewBox="0 0 900 400" width="900" height="400" style="max-width:100%;margin-top:16px">
+    <svg class="anim-trigger" viewBox="0 0 900 400" width="900" height="400" style="max-width:100%;margin-top:11px">
       <defs>
         <filter id="nodeShadow" x="-20%" y="-20%" width="140%" height="140%">
           <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.2"/>
@@ -862,7 +862,7 @@ body{
       <span class="dept-badge">Infrastructure</span>
       <span class="dept-badge">General</span>
     </div>
-    <svg class="anim-trigger animate a-d6" viewBox="0 0 700 120" width="700" height="120" style="margin-top:20px">
+    <svg class="anim-trigger animate a-d6" viewBox="0 0 700 120" width="700" height="120" style="margin-top:13px">
       <defs>
         <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
           <feGaussianBlur stdDeviation="3" result="blur"/>
@@ -908,7 +908,7 @@ body{
   <div class="slide-inner">
     <span class="tag tag-cyan animate a-d1">Process</span>
     <h2 class="animate a-d2">End-to-End Flow</h2>
-    <svg class="anim-trigger" viewBox="0 0 1600 420" width="1600" height="420" style="max-width:100%;margin-top:8px">
+    <svg class="anim-trigger" viewBox="0 0 1600 420" width="1600" height="420" style="max-width:100%;margin-top:5px">
       <defs>
         <linearGradient id="stepGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" style="stop-color:#1A73E8"/>
@@ -1009,10 +1009,10 @@ body{
 
 <!-- slide-05-citizen-filing.html -->
 <div class="slide" data-slide="4">
-  <div class="slide-inner" style="flex-direction:row;text-align:left;gap:40px">
-    <div style="flex:0 0 480px">
+  <div class="slide-inner" style="flex-direction:row;text-align:left;gap:27px">
+    <div style="flex:0 0 360px">
       <span class="tag tag-cyan animate a-d1">Citizen Experience</span>
-      <h2 class="animate a-d2" style="font-size:32px">Built for Every Citizen</h2>
+      <h2 class="animate a-d2" style="font-size:24px">Built for Every Citizen</h2>
       <ul class="feature-list animate a-d3">
         <li><span class="icon filled">translate</span><div><strong>Multilingual Filing</strong><br>Submit in English, Odia, or Hindi</div></li>
         <li><span class="icon filled">attach_file</span><div><strong>Rich Attachments</strong><br>Photos, audio, video &mdash; 50 MB each</div></li>
@@ -1032,9 +1032,9 @@ body{
           </div>
           <div class="m-user-badge">Ramesh K &middot; citizen</div>
         </div>
-        <div style="padding:10px 12px 0">
-          <div style="font-size:14px;font-weight:700;color:var(--app-on-surface)">Welcome, Ramesh Kumar</div>
-          <div style="font-size:10px;color:var(--app-on-surface-variant)">Your grievance overview</div>
+        <div style="padding:7px 8px 0">
+          <div style="font-size:9px;font-weight:700;color:var(--app-on-surface)">Welcome, Ramesh Kumar</div>
+          <div style="font-size:7px;color:var(--app-on-surface-variant)">Your grievance overview</div>
         </div>
         <div class="m-metrics">
           <div class="m-metric-card"><div class="m-metric-icon blue"><span class="icon">description</span></div><div class="m-metric-val">12</div><div class="m-metric-lbl">Total Filed</div></div>
@@ -1071,8 +1071,8 @@ body{
 <div class="slide" data-slide="5" data-transition="reveal">
   <div class="slide-inner">
     <span class="tag tag-purple animate a-d1">AI Chatbot</span>
-    <h2 class="animate a-d2" style="font-size:32px">Meet <span class="grad-text">Seva</span> &mdash; Your AI Assistant</h2>
-    <div class="mockup-frame animate a-d3" style="max-width:1600px;width:100%;transform:none">
+    <h2 class="animate a-d2" style="font-size:24px">Meet <span class="grad-text">Seva</span> &mdash; Your AI Assistant</h2>
+    <div class="mockup-frame animate a-d3" style="max-width:550px;width:100%;transform:none">
       <div class="m-navbar">
         <div class="m-logo"><span class="icon filled">account_balance</span> PR&amp;DW Portal</div>
         <div class="m-nav-links">
@@ -1080,7 +1080,7 @@ body{
         </div>
         <div class="m-user-badge">Ramesh K &middot; citizen</div>
       </div>
-      <div class="m-chat-area" style="min-height:360px">
+      <div class="m-chat-area" style="min-height:240px">
         <div class="m-chat-bubble user animate a-d1">ଆମ ୱାର୍ଡ ୭, ପୁରୀରେ ୩ ସପ୍ତାହ ଧରି ପାନୀୟ ଜଳ ଯୋଗାଣ ନାହିଁ। ଏହା ଏକ ଜରୁରୀ ସମସ୍ୟା।<span class="m-lang-badge">ଓଡ଼ିଆ</span></div>
         <div class="m-chat-bubble bot animate a-d2">
           <div class="m-chat-label">Seva &middot; AI Assistant</div>
@@ -1096,7 +1096,7 @@ body{
           </div>
         </div>
         <div class="m-chat-bubble user animate a-d4">
-          <div style="border-radius:8px;width:60px;height:40px;background:#ddd;display:flex;align-items:center;justify-content:center;font-size:16px"><span class="icon">photo_camera</span></div>
+          <div style="border-radius:5px;width:40px;height:27px;background:#ddd;display:flex;align-items:center;justify-content:center;font-size:11px"><span class="icon">photo_camera</span></div>
         </div>
         <div class="m-chat-typing animate a-d5"><span></span><span></span><span></span></div>
       </div>
@@ -1113,10 +1113,10 @@ body{
 
 <!-- slide-07-self-resolution.html -->
 <div class="slide" data-slide="6">
-  <div class="slide-inner" style="flex-direction:row;text-align:left;gap:40px">
-    <div style="flex:0 0 500px">
+  <div class="slide-inner" style="flex-direction:row;text-align:left;gap:27px">
+    <div style="flex:0 0 375px">
       <span class="tag tag-green animate a-d1">Smart Resolution</span>
-      <h2 class="animate a-d2" style="font-size:32px">Three-Tier Resolution</h2>
+      <h2 class="animate a-d2" style="font-size:24px">Three-Tier Resolution</h2>
       <svg class="anim-trigger animate a-d3" viewBox="0 0 450 350" width="450" height="350" style="max-width:100%">
         <rect x="25" y="20" width="400" height="80" rx="8" fill="rgba(30,142,62,0.15)" stroke="#1E8E3E" stroke-width="1">
           <animate id="tier1" attributeName="width" from="0" to="400" dur="0.6s" fill="freeze" begin="indefinite"/>
@@ -1146,14 +1146,14 @@ body{
             <span>Dashboard</span><span>File</span><span class="active">Track</span><span>Chatbot</span><span>Schemes</span><span>Community</span>
           </div>
         </div>
-        <div style="padding:12px">
-          <div style="font-size:13px;font-weight:700;color:var(--app-on-surface);margin-bottom:8px">Track Your Grievance</div>
-          <div style="display:flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--app-outline-variant);border-radius:8px;background:var(--app-surface);margin-bottom:10px">
-            <span style="font-size:10px;color:var(--app-on-surface)">GRV-2026-000042</span>
-            <span class="icon" style="margin-left:auto;font-size:14px;color:var(--app-on-surface-variant)">search</span>
+        <div style="padding:8px">
+          <div style="font-size:9px;font-weight:700;color:var(--app-on-surface);margin-bottom:5px">Track Your Grievance</div>
+          <div style="display:flex;align-items:center;gap:4px;padding:4px 7px;border:1px solid var(--app-outline-variant);border-radius:5px;background:var(--app-surface);margin-bottom:7px">
+            <span style="font-size:7px;color:var(--app-on-surface)">GRV-2026-000042</span>
+            <span class="icon" style="margin-left:auto;font-size:9px;color:var(--app-on-surface-variant)">search</span>
           </div>
-          <div style="border:1px solid var(--app-outline-variant);border-radius:8px;padding:10px;background:var(--app-surface)">
-            <div class="m-badges" style="margin-bottom:8px">
+          <div style="border:1px solid var(--app-outline-variant);border-radius:5px;padding:7px;background:var(--app-surface)">
+            <div class="m-badges" style="margin-bottom:5px">
               <span class="m-badge m-badge-in_progress">In Progress</span>
               <span class="m-badge m-badge-dept">Rural Water Supply</span>
             </div>
@@ -1161,7 +1161,7 @@ body{
               <div class="m-ai-header"><span class="icon">auto_awesome</span> AI Guidance</div>
               <p>Based on similar cases, your issue can be resolved by contacting the Ward 7 water supply office directly. Expected resolution: 5&ndash;7 days.</p>
             </div>
-            <div class="m-chat-action-btns" style="margin-top:8px">
+            <div class="m-chat-action-btns" style="margin-top:5px">
               <span class="m-btn m-btn-success">Yes, this resolved it</span>
               <span class="m-btn m-btn-secondary">No, I need help</span>
             </div>
@@ -1175,7 +1175,7 @@ body{
 
 <!-- slide-08-community-schemes.html -->
 <div class="slide" data-slide="7">
-  <div class="slide-inner" style="flex-direction:row;text-align:left;gap:24px">
+  <div class="slide-inner" style="flex-direction:row;text-align:left;gap:16px">
     <div class="mockup-frame mockup-animate" style="flex:1;transform:none">
       <div class="m-navbar">
         <div class="m-logo"><span class="icon filled">account_balance</span> PR&amp;DW Portal</div>
@@ -1183,28 +1183,28 @@ body{
           <span>Dashboard</span><span>File</span><span>Track</span><span>Chatbot</span><span>Schemes</span><span class="active">Community</span>
         </div>
       </div>
-      <div style="padding:10px 12px">
-        <div class="m-section-header" style="margin-bottom:8px">
+      <div style="padding:7px 8px">
+        <div class="m-section-header" style="margin-bottom:5px">
           <h3>Community Grievances</h3>
-          <span class="m-distance-badge"><span class="icon" style="font-size:10px">location_on</span> Bhubaneswar &middot; 5 km radius</span>
+          <span class="m-distance-badge"><span class="icon" style="font-size:7px">location_on</span> Bhubaneswar &middot; 5 km radius</span>
         </div>
-        <div class="m-grievance-card status-pending" style="margin-bottom:8px">
+        <div class="m-grievance-card status-pending" style="margin-bottom:5px">
           <h4>Water contamination in Ward 3</h4>
           <div class="m-badges">
             <span class="m-badge m-badge-dept">Rural Water Supply</span>
-            <span class="m-vouch-count"><span class="icon" style="font-size:10px">thumb_up</span> 12 vouches</span>
+            <span class="m-vouch-count"><span class="icon" style="font-size:7px">thumb_up</span> 12 vouches</span>
             <span class="m-distance-badge">1.2 km</span>
           </div>
-          <span class="m-btn m-btn-secondary" style="margin-top:6px">Vouch</span>
+          <span class="m-btn m-btn-secondary" style="margin-top:4px">Vouch</span>
         </div>
         <div class="m-grievance-card status-in_progress">
           <h4>Broken road near market</h4>
           <div class="m-badges">
             <span class="m-badge m-badge-dept">Infrastructure</span>
-            <span class="m-vouch-count"><span class="icon" style="font-size:10px">thumb_up</span> 8 vouches</span>
+            <span class="m-vouch-count"><span class="icon" style="font-size:7px">thumb_up</span> 8 vouches</span>
             <span class="m-distance-badge">3.4 km</span>
           </div>
-          <span class="m-btn m-btn-secondary" style="margin-top:6px">Vouch</span>
+          <span class="m-btn m-btn-secondary" style="margin-top:4px">Vouch</span>
         </div>
       </div>
     </div>
@@ -1215,21 +1215,21 @@ body{
           <span>Dashboard</span><span>File</span><span>Track</span><span>Chatbot</span><span class="active">Schemes</span><span>Community</span>
         </div>
       </div>
-      <div style="padding:10px 12px">
-        <div class="m-section-header" style="margin-bottom:8px"><h3>Government Schemes</h3></div>
-        <div style="padding:6px 10px;border:1px solid var(--app-outline-variant);border-radius:8px;background:var(--app-surface);margin-bottom:10px;font-size:10px;color:var(--app-on-surface-variant)">Search schemes...</div>
-        <div class="m-grievance-card" style="margin-bottom:8px;border-left-color:var(--app-primary)">
+      <div style="padding:7px 8px">
+        <div class="m-section-header" style="margin-bottom:5px"><h3>Government Schemes</h3></div>
+        <div style="padding:4px 7px;border:1px solid var(--app-outline-variant);border-radius:5px;background:var(--app-surface);margin-bottom:7px;font-size:7px;color:var(--app-on-surface-variant)">Search schemes...</div>
+        <div class="m-grievance-card" style="margin-bottom:5px;border-left-color:var(--app-primary)">
           <h4>Jal Jeevan Mission</h4>
-          <div class="m-badges" style="margin-bottom:4px"><span class="m-badge m-badge-dept">Rural Water Supply</span></div>
-          <p style="font-size:10px;margin-bottom:4px">Tap water connection to every rural household</p>
-          <div style="font-size:9px;color:var(--app-on-surface-variant);margin-bottom:6px">3 documents</div>
+          <div class="m-badges" style="margin-bottom:3px"><span class="m-badge m-badge-dept">Rural Water Supply</span></div>
+          <p style="font-size:7px;margin-bottom:3px">Tap water connection to every rural household</p>
+          <div style="font-size:6px;color:var(--app-on-surface-variant);margin-bottom:4px">3 documents</div>
           <span class="m-btn m-btn-primary">Check Eligibility</span>
         </div>
         <div class="m-grievance-card" style="border-left-color:var(--app-primary)">
           <h4>PMAY-G</h4>
-          <div class="m-badges" style="margin-bottom:4px"><span class="m-badge m-badge-dept">Rural Housing</span></div>
-          <p style="font-size:10px;margin-bottom:4px">Affordable housing for rural families</p>
-          <div style="font-size:9px;color:var(--app-on-surface-variant);margin-bottom:6px">2 documents</div>
+          <div class="m-badges" style="margin-bottom:3px"><span class="m-badge m-badge-dept">Rural Housing</span></div>
+          <p style="font-size:7px;margin-bottom:3px">Affordable housing for rural families</p>
+          <div style="font-size:6px;color:var(--app-on-surface-variant);margin-bottom:4px">2 documents</div>
           <span class="m-btn m-btn-primary">Check Eligibility</span>
         </div>
       </div>
@@ -1244,7 +1244,7 @@ body{
     <span class="tag tag-blue animate a-d1">Core AI Engine</span>
     <h2 class="animate a-d2">Instant AI Classification</h2>
     <p class="lead animate a-d3">Every grievance is automatically classified across four dimensions in seconds</p>
-    <svg class="anim-trigger" viewBox="0 0 1600 420" width="100%" style="max-width:1600px">
+    <svg class="anim-trigger" viewBox="0 0 1600 420" width="100%" style="max-width:1067px">
       <defs>
         <pattern id="dotGrid" width="40" height="40" patternUnits="userSpaceOnUse">
           <circle cx="0" cy="0" r="1" fill="rgba(255,255,255,0.03)"/>
@@ -1347,21 +1347,21 @@ body{
   <div class="slide-inner">
     <span class="tag tag-orange animate a-d1">Intelligent Prioritization</span>
     <h2 class="animate a-d2">Citizen Impact Score</h2>
-    <p class="lead animate a-d3" style="font-size:16px">Replaces simple Low/Medium/High/Urgent with a data-driven 0&ndash;100 composite</p>
-    <div class="split" style="flex-direction:row;gap:60px;text-align:left;width:100%;max-width:1400px">
-      <div style="flex:0 0 340px;display:flex;flex-direction:column;align-items:center">
-        <svg width="280" height="280" viewBox="0 0 280 280" class="animate a-d1">
+    <p class="lead animate a-d3" style="font-size:11px">Replaces simple Low/Medium/High/Urgent with a data-driven 0&ndash;100 composite</p>
+    <div class="split" style="flex-direction:row;gap:40px;text-align:left;width:100%;max-width:933px">
+      <div style="flex:0 0 255px;display:flex;flex-direction:column;align-items:center">
+        <svg width="210" height="210" viewBox="0 0 280 280" class="animate a-d1">
           <circle cx="140" cy="140" r="110" fill="none" stroke="var(--surface-bright)" stroke-width="20"/>
           <circle cx="140" cy="140" r="110" fill="none" stroke="#FF7043" stroke-width="20" stroke-dasharray="691.15" stroke-linecap="round" transform="rotate(-90 140 140)" data-ring-pct="72" data-ring-circ="691.15"/>
           <text x="140" y="130" text-anchor="middle" font-size="40" font-weight="bold" fill="white"><tspan data-count-to="72">0</tspan></text>
           <text x="140" y="155" text-anchor="middle" font-size="14" fill="#8b949e">/100</text>
         </svg>
-        <div style="margin-top:8px;text-align:center">
-          <div style="font-size:16px;font-weight:bold;color:var(--text-primary)">Citizen Impact Score</div>
-          <div style="font-size:13px;color:var(--text-muted)">Composite weighted metric</div>
+        <div style="margin-top:5px;text-align:center">
+          <div style="font-size:11px;font-weight:bold;color:var(--text-primary)">Citizen Impact Score</div>
+          <div style="font-size:9px;color:var(--text-muted)">Composite weighted metric</div>
         </div>
       </div>
-      <div style="flex:1;display:flex;flex-direction:column;gap:16px">
+      <div style="flex:1;display:flex;flex-direction:column;gap:11px">
         <div class="factor-bar-row animate a-d1">
           <div class="factor-icon" style="background:rgba(217,48,37,.12)"><span class="icon" style="color:#ef9a9a">emergency</span></div>
           <div class="factor-info">
@@ -1418,7 +1418,7 @@ body{
   <div class="slide-inner">
     <span class="tag tag-cyan animate a-d1">RAG Architecture</span>
     <h2 class="animate a-d2">Knowledge-Augmented Resolution</h2>
-    <svg class="anim-trigger animate a-d1" viewBox="0 0 1600 360" width="100%" style="max-width:1600px">
+    <svg class="anim-trigger animate a-d1" viewBox="0 0 1600 360" width="100%" style="max-width:1067px">
       <defs>
         <filter id="ragGlow" x="-50%" y="-50%" width="200%" height="200%">
           <feGaussianBlur stdDeviation="4" result="blur"/>
@@ -1523,7 +1523,7 @@ body{
         <text x="1490" y="185" text-anchor="middle" font-size="14" font-weight="600" fill="#e6edf3">Draft Resolution</text>
       </g>
     </svg>
-    <div class="mockup-frame animate a-d2" style="max-width:700px;margin:0 auto;margin-top:16px">
+    <div class="mockup-frame animate a-d2" style="max-width:467px;margin:0 auto;margin-top:11px">
       <div class="m-ai-box">
         <div class="m-ai-header"><span class="icon">auto_awesome</span> AI-Generated Resolution</div>
         <p>1. Contact Rural Water Supply office at Ward 7, Puri. 2. Provide GRV-2026-000042 reference. 3. Request expedited inspection. Expected resolution: 5&ndash;7 days.</p>
@@ -1536,11 +1536,11 @@ body{
 
 <!-- slide-12-scheme-extract.html -->
 <div class="slide" data-slide="11">
-  <div class="slide-inner" style="flex-direction:row;text-align:left;gap:40px">
+  <div class="slide-inner" style="flex-direction:row;text-align:left;gap:27px">
     <div style="flex:1">
       <span class="tag tag-green animate a-d1">Knowledge Engine</span>
-      <h2 class="animate a-d2" style="font-size:32px">Scheme Matching &amp; Smart Extract</h2>
-      <svg class="anim-trigger animate a-d2" viewBox="0 0 600 400" width="100%" style="max-width:600px;margin:16px 0">
+      <h2 class="animate a-d2" style="font-size:24px">Scheme Matching &amp; Smart Extract</h2>
+      <svg class="anim-trigger animate a-d2" viewBox="0 0 600 400" width="100%" style="max-width:400px;margin:11px 0">
         <defs>
           <filter id="visionGlow" x="-50%" y="-50%" width="200%" height="200%">
             <feGaussianBlur stdDeviation="3" result="blur"/>
@@ -1602,7 +1602,7 @@ body{
       </svg>
       <p class="animate a-d3">AI matches grievances to relevant schemes and extracts scheme data from documents</p>
     </div>
-    <div class="mockup-animate" style="flex:0 0 550px">
+    <div class="mockup-animate" style="flex:0 0 412px">
       <div class="mockup-frame" style="width:100%">
         <div class="m-navbar">
           <div class="m-logo"><span class="icon filled">account_balance</span> PR&amp;DW Portal</div>
@@ -1618,17 +1618,17 @@ body{
         <div class="m-upload-zone">
           <span class="icon">upload_file</span>
           Drop PDF, DOCX, or Image
-          <div style="font-size:9px;margin-top:2px">Smart Extract powered by GPT-4o Vision</div>
+          <div style="font-size:6px;margin-top:1px">Smart Extract powered by GPT-4o Vision</div>
         </div>
         <div class="m-section-header"><h3>Extracted Scheme</h3></div>
-        <div class="m-grievance-card" style="margin:4px 12px;border-left-color:var(--app-primary)">
+        <div class="m-grievance-card" style="margin:3px 8px;border-left-color:var(--app-primary)">
           <h4>Jal Jeevan Mission</h4>
           <div class="m-detail-row"><span class="m-label">Dept:</span><span class="m-value">Rural Water Supply</span></div>
           <div class="m-detail-row"><span class="m-label">Eligibility:</span><span class="m-value">&quot;Rural households without tap water&quot;</span></div>
-          <div style="font-size:10px;font-weight:600;color:var(--app-on-surface);margin-top:8px">AI-Generated Questions:</div>
-          <div style="font-size:9px;color:var(--app-on-surface-variant);margin-top:4px">Is the household in a rural area? <span class="m-badge m-badge-dept" style="font-size:7px">Yes</span></div>
-          <div style="font-size:9px;color:var(--app-on-surface-variant);margin-top:2px">Does the household lack piped water? <span class="m-badge m-badge-dept" style="font-size:7px">Yes</span></div>
-          <div style="font-size:9px;color:var(--app-on-surface-variant);margin-top:2px">Is the applicant a BPL cardholder? <span class="m-badge m-badge-dept" style="font-size:7px">No</span></div>
+          <div style="font-size:7px;font-weight:600;color:var(--app-on-surface);margin-top:5px">AI-Generated Questions:</div>
+          <div style="font-size:6px;color:var(--app-on-surface-variant);margin-top:3px">Is the household in a rural area? <span class="m-badge m-badge-dept" style="font-size:5px">Yes</span></div>
+          <div style="font-size:6px;color:var(--app-on-surface-variant);margin-top:1px">Does the household lack piped water? <span class="m-badge m-badge-dept" style="font-size:5px">Yes</span></div>
+          <div style="font-size:6px;color:var(--app-on-surface-variant);margin-top:1px">Is the applicant a BPL cardholder? <span class="m-badge m-badge-dept" style="font-size:5px">No</span></div>
         </div>
       </div>
     </div>
@@ -1638,10 +1638,10 @@ body{
 
 <!-- slide-13-constellation.html -->
 <div class="slide" data-slide="12" data-transition="reveal">
-  <div class="slide-inner" style="flex-direction:row;text-align:left;gap:40px">
-    <div style="flex:0 0 55%;display:flex;flex-direction:column;gap:14px" class="animate a-d1">
+  <div class="slide-inner" style="flex-direction:row;text-align:left;gap:27px">
+    <div style="flex:0 0 55%;display:flex;flex-direction:column;gap:9px" class="animate a-d1">
       <span class="tag tag-purple">Systemic Issue Detection</span>
-      <h2 style="font-size:32px">The <span class="grad-text">Constellation Engine</span></h2>
+      <h2 style="font-size:24px">The <span class="grad-text">Constellation Engine</span></h2>
       <svg class="anim-trigger" viewBox="0 0 700 480" width="700" height="480" style="max-width:100%">
         <defs>
           <filter id="constGlowA" x="-50%" y="-50%" width="200%" height="200%">
@@ -1737,17 +1737,17 @@ body{
         </text>
       </svg>
     </div>
-    <div style="flex:1;display:flex;flex-direction:column;gap:14px">
+    <div style="flex:1;display:flex;flex-direction:column;gap:9px">
       <ul class="feature-list animate a-d2">
         <li><span class="icon">hub</span> <strong>Geographic + Semantic Clustering</strong> / Groups complaints by proximity and content</li>
         <li><span class="icon">psychology</span> <strong>AI Root-Cause Analysis</strong> / GPT-5 generates analysis for each cluster</li>
         <li><span class="icon">trending_up</span> <strong>Hidden Pattern Revelation</strong> / Surfaces systemic problems across cases</li>
         <li><span class="icon">assignment_ind</span> <strong>Systemic Assignment</strong> / Officers assigned to root issue</li>
       </ul>
-      <div class="animate a-d3" style="background:var(--surface-raised);border:1px solid var(--border);border-radius:12px;padding:16px">
-        <div style="font-size:14px;font-weight:700;color:var(--text-primary)">Contaminated Water Source — Puri District</div>
-        <p style="font-size:12px;color:var(--text-secondary);margin:8px 0 10px;line-height:1.5">Root Cause: Aging pipeline infrastructure in Wards 5-8 causing contamination during monsoon pressure surges</p>
-        <div style="font-size:11px;color:var(--text-muted)">12 linked grievances &middot; ~4,200 affected &middot; <span class="m-badge m-badge-in_progress">Investigating</span></div>
+      <div class="animate a-d3" style="background:var(--surface-raised);border:1px solid var(--border);border-radius:8px;padding:11px">
+        <div style="font-size:9px;font-weight:700;color:var(--text-primary)">Contaminated Water Source — Puri District</div>
+        <p style="font-size:8px;color:var(--text-secondary);margin:5px 0 7px;line-height:1.5">Root Cause: Aging pipeline infrastructure in Wards 5-8 causing contamination during monsoon pressure surges</p>
+        <div style="font-size:7px;color:var(--text-muted)">12 linked grievances &middot; ~4,200 affected &middot; <span class="m-badge m-badge-in_progress">Investigating</span></div>
       </div>
     </div>
   </div>
@@ -1756,17 +1756,17 @@ body{
 
 <!-- slide-14-forecasting.html -->
 <div class="slide" data-slide="13" data-transition="zoom">
-  <div class="slide-inner" style="flex-direction:row;text-align:left;gap:48px">
-    <div style="flex:0 0 400px;display:flex;flex-direction:column;gap:14px">
+  <div class="slide-inner" style="flex-direction:row;text-align:left;gap:32px">
+    <div style="flex:0 0 300px;display:flex;flex-direction:column;gap:9px">
       <span class="tag tag-orange">Predictive Intelligence</span>
-      <h2 style="font-size:32px">2-Week Forecasting</h2>
+      <h2 style="font-size:24px">2-Week Forecasting</h2>
       <ul class="feature-list animate a-d1">
         <li><span class="icon">history</span> <strong>Historical Baselines</strong> / Per district, department, and week</li>
         <li><span class="icon">cloud</span> <strong>Weather Integration</strong> / OpenWeatherMap rain &amp; temperature</li>
         <li><span class="icon">wb_sunny</span> <strong>Seasonal Rules</strong> / Monsoon, harvest, festivals</li>
         <li><span class="icon">auto_awesome</span> <strong>AI Recommendations</strong> / GPT-generated action items</li>
       </ul>
-      <p class="animate a-d2" style="font-size:14px;color:var(--text-secondary)">Predict grievance spikes before they happen and pre-position resources</p>
+      <p class="animate a-d2" style="font-size:9px;color:var(--text-secondary)">Predict grievance spikes before they happen and pre-position resources</p>
     </div>
     <div style="flex:1" class="animate a-d2">
       <svg class="anim-trigger" viewBox="0 0 800 400" width="100%">
@@ -1849,8 +1849,8 @@ body{
 <div class="slide" data-slide="14" data-transition="morph">
   <div class="slide-inner">
     <span class="tag tag-blue animate a-d1">Officer Command Center</span>
-    <h2 class="animate a-d1" style="font-size:32px">Officer Dashboard</h2>
-    <div class="mockup-frame animate a-d1" style="max-width:1600px;width:100%;transform:none">
+    <h2 class="animate a-d1" style="font-size:24px">Officer Dashboard</h2>
+    <div class="mockup-frame animate a-d1" style="max-width:900px;width:100%;transform:none">
       <div class="m-navbar">
         <div class="m-logo"><span class="icon filled">account_balance</span> PR&amp;DW Portal</div>
         <div class="m-nav-links">
@@ -1862,59 +1862,59 @@ body{
         </div>
         <div class="m-user-badge">BDO Sharma &middot; officer</div>
       </div>
-      <div style="padding:8px 12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-        <div style="display:flex;gap:4px">
+      <div style="padding:5px 8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <div style="display:flex;gap:3px">
           <span class="m-btn m-btn-primary" style="background:var(--app-primary);color:#fff">My Department</span>
           <span class="m-btn m-btn-secondary">All Departments</span>
         </div>
-        <span style="font-size:11px;font-weight:600;color:var(--app-on-surface)">Rural Water Supply Department</span>
+        <span style="font-size:7px;font-weight:600;color:var(--app-on-surface)">Rural Water Supply Department</span>
       </div>
-      <div class="m-metrics" style="flex-wrap:wrap;padding:8px 12px;gap:6px">
-        <div class="m-metric-card" style="flex:1;min-width:100px">
+      <div class="m-metrics" style="flex-wrap:wrap;padding:5px 8px;gap:4px">
+        <div class="m-metric-card" style="flex:1;min-width:67px">
           <div class="m-metric-icon blue"><span class="icon">assignment</span></div>
           <div class="m-metric-val">47</div>
           <div class="m-metric-lbl">Total Assigned</div>
         </div>
-        <div class="m-metric-card" style="flex:1;min-width:100px">
+        <div class="m-metric-card" style="flex:1;min-width:67px">
           <div class="m-metric-icon green"><span class="icon">check_circle</span></div>
           <div class="m-metric-val">8</div>
           <div class="m-metric-lbl">Resolved Today</div>
         </div>
-        <div class="m-metric-card" style="flex:1;min-width:100px">
+        <div class="m-metric-card" style="flex:1;min-width:67px">
           <div class="m-metric-icon amber"><span class="icon">schedule</span></div>
           <div class="m-metric-val">23</div>
           <div class="m-metric-lbl">Pending</div>
         </div>
-        <div class="m-metric-card" style="flex:1;min-width:100px">
+        <div class="m-metric-card" style="flex:1;min-width:67px">
           <div class="m-metric-icon blue"><span class="icon">sync</span></div>
           <div class="m-metric-val">16</div>
           <div class="m-metric-lbl">In Progress</div>
         </div>
-        <div class="m-metric-card" style="flex:1;min-width:100px">
+        <div class="m-metric-card" style="flex:1;min-width:67px">
           <div class="m-metric-icon blue"><span class="icon">schedule</span></div>
           <div class="m-metric-val">3.2d</div>
           <div class="m-metric-lbl">Avg Response</div>
         </div>
-        <div class="m-metric-card" style="flex:1;min-width:100px">
+        <div class="m-metric-card" style="flex:1;min-width:67px">
           <div class="m-metric-icon green"><span class="icon">verified</span></div>
           <div class="m-metric-val">87%</div>
           <div class="m-metric-lbl">SLA Compliance</div>
         </div>
-        <div class="m-metric-card" style="flex:1;min-width:100px">
+        <div class="m-metric-card" style="flex:1;min-width:67px">
           <div class="m-metric-icon" style="background:#F3E8FD;color:#7C4DFF"><span class="icon">hub</span></div>
           <div class="m-metric-val">3</div>
           <div class="m-metric-lbl">Systemic Issues</div>
         </div>
-        <div class="m-metric-card" style="flex:1;min-width:100px">
+        <div class="m-metric-card" style="flex:1;min-width:67px">
           <div class="m-metric-icon" style="background:#FEF7E0;color:#E37400"><span class="icon">trending_up</span></div>
           <div class="m-metric-val">2</div>
           <div class="m-metric-lbl">Forecast Alerts</div>
         </div>
       </div>
-      <div class="m-two-col" style="padding:8px 12px">
+      <div class="m-two-col" style="padding:5px 8px">
         <div class="m-col-main" style="flex:3">
-          <div style="font-size:10px;font-weight:700;color:var(--app-on-surface);margin-bottom:6px">Grievance Density by District</div>
-          <svg viewBox="0 0 400 350" width="100%" style="max-height:280px">
+          <div style="font-size:7px;font-weight:700;color:var(--app-on-surface);margin-bottom:4px">Grievance Density by District</div>
+          <svg viewBox="0 0 400 350" width="100%" style="max-height:187px">
             <rect class="m-map-district heat-1" x="80" y="40" width="90" height="70" rx="4"/>
             <text x="125" y="78" text-anchor="middle" font-size="9" fill="var(--app-on-surface-variant)">Puri</text>
             <circle class="m-map-pulse" cx="125" cy="75" r="5"/>
@@ -1934,29 +1934,29 @@ body{
         </div>
         <div class="m-col-side" style="flex:1">
           <div class="m-section-header"><h3>Systemic Issues</h3></div>
-          <div class="m-grievance-card" style="margin:4px 0;padding:8px 10px">
-            <h4 style="font-size:10px">Water Contamination — Puri</h4>
-            <div class="m-badges" style="margin-top:4px">
+          <div class="m-grievance-card" style="margin:3px 0;padding:5px 7px">
+            <h4 style="font-size:7px">Water Contamination — Puri</h4>
+            <div class="m-badges" style="margin-top:3px">
               <span class="m-badge m-badge-dept">Water Supply</span>
-              <span style="font-size:8px;color:var(--app-on-surface-variant)">6 grievances</span>
+              <span style="font-size:5px;color:var(--app-on-surface-variant)">6 grievances</span>
               <span class="m-badge m-badge-in_progress">Investigating</span>
             </div>
           </div>
-          <div class="m-grievance-card" style="margin:4px 0;padding:8px 10px">
-            <h4 style="font-size:10px">Road Damage — Ganjam</h4>
-            <div class="m-badges" style="margin-top:4px">
+          <div class="m-grievance-card" style="margin:3px 0;padding:5px 7px">
+            <h4 style="font-size:7px">Road Damage — Ganjam</h4>
+            <div class="m-badges" style="margin-top:3px">
               <span class="m-badge m-badge-dept">Infrastructure</span>
-              <span style="font-size:8px;color:var(--app-on-surface-variant)">4 grievances</span>
+              <span style="font-size:5px;color:var(--app-on-surface-variant)">4 grievances</span>
               <span class="m-badge m-badge-pending">New</span>
             </div>
           </div>
-          <div class="m-section-header" style="margin-top:8px"><h3>Predictive Briefing</h3></div>
-          <div class="m-grievance-card" style="margin:4px 0;padding:8px 10px;border-left-color:var(--app-warning)">
-            <div style="display:flex;align-items:flex-start;gap:6px">
-              <span class="icon" style="font-size:14px;color:var(--app-warning)">warning</span>
-              <span style="font-size:10px;color:var(--app-on-surface)">Water supply spike expected in Puri next week</span>
+          <div class="m-section-header" style="margin-top:5px"><h3>Predictive Briefing</h3></div>
+          <div class="m-grievance-card" style="margin:3px 0;padding:5px 7px;border-left-color:var(--app-warning)">
+            <div style="display:flex;align-items:flex-start;gap:4px">
+              <span class="icon" style="font-size:9px;color:var(--app-warning)">warning</span>
+              <span style="font-size:7px;color:var(--app-on-surface)">Water supply spike expected in Puri next week</span>
             </div>
-            <span class="m-btn m-btn-secondary" style="margin-top:6px">View Forecast</span>
+            <span class="m-btn m-btn-secondary" style="margin-top:4px">View Forecast</span>
           </div>
         </div>
       </div>
@@ -1967,7 +1967,7 @@ body{
 
 <!-- slide-16-queue-detail.html -->
 <div class="slide" data-slide="15">
-  <div class="slide-inner" style="flex-direction:row;text-align:left;gap:20px">
+  <div class="slide-inner" style="flex-direction:row;text-align:left;gap:13px">
     <div class="mockup-frame mockup-animate" style="flex:1;transform:none">
       <div class="m-navbar">
         <div class="m-logo"><span class="icon filled">account_balance</span> PR&amp;DW Portal</div>
@@ -1986,35 +1986,35 @@ body{
         <span class="icon">today</span> Today
         <span class="count">3 grievances</span>
       </div>
-      <div class="m-grievance-card status-escalated" style="margin:4px 12px">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <div class="m-impact-circle" style="width:28px;height:28px;border-radius:50%;background:#D93025;color:white;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">85</div>
+      <div class="m-grievance-card status-escalated" style="margin:3px 8px">
+        <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+          <div class="m-impact-circle" style="width:19px;height:19px;border-radius:50%;background:#D93025;color:white;font-size:7px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">85</div>
           <h4 style="flex:1">Water supply failure — Puri Ward 7</h4>
         </div>
-        <div class="m-badges" style="margin-top:6px">
+        <div class="m-badges" style="margin-top:4px">
           <span class="m-badge m-badge-escalated">Escalated</span>
           <span class="m-badge m-badge-dept">Water Supply</span>
           <span class="m-badge m-badge-priority-high">High</span>
-          <span style="font-size:7px;background:var(--app-error-container);color:#B91C1C;padding:1px 4px;border-radius:3px;animation:pulse 1s infinite">SLA BREACH</span>
+          <span style="font-size:5px;background:var(--app-error-container);color:#B91C1C;padding:1px 3px;border-radius:2px;animation:pulse 1s infinite">SLA BREACH</span>
         </div>
       </div>
-      <div class="m-grievance-card status-in_progress" style="margin:4px 12px">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <div class="m-impact-circle" style="width:28px;height:28px;border-radius:50%;background:#E37400;color:white;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">54</div>
+      <div class="m-grievance-card status-in_progress" style="margin:3px 8px">
+        <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+          <div class="m-impact-circle" style="width:19px;height:19px;border-radius:50%;background:#E37400;color:white;font-size:7px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">54</div>
           <h4 style="flex:1">Road repairs delayed — Ganjam</h4>
         </div>
-        <div class="m-badges" style="margin-top:6px">
+        <div class="m-badges" style="margin-top:4px">
           <span class="m-badge m-badge-in_progress">In Progress</span>
           <span class="m-badge m-badge-dept">Infrastructure</span>
           <span class="m-badge m-badge-priority-medium">Medium</span>
         </div>
       </div>
-      <div class="m-grievance-card status-pending" style="margin:4px 12px">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <div class="m-impact-circle" style="width:28px;height:28px;border-radius:50%;background:#1E8E3E;color:white;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">28</div>
+      <div class="m-grievance-card status-pending" style="margin:3px 8px">
+        <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+          <div class="m-impact-circle" style="width:19px;height:19px;border-radius:50%;background:#1E8E3E;color:white;font-size:7px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">28</div>
           <h4 style="flex:1">Drainage issue — Khordha</h4>
         </div>
-        <div class="m-badges" style="margin-top:6px">
+        <div class="m-badges" style="margin-top:4px">
           <span class="m-badge m-badge-pending">Pending</span>
           <span class="m-badge m-badge-dept">Sanitation</span>
           <span class="m-badge m-badge-priority-low">Low</span>
@@ -2028,20 +2028,20 @@ body{
           <span>Dashboard</span><span>Queue</span><span class="active">Grievance Detail</span>
         </div>
       </div>
-      <div class="m-two-col" style="padding:8px 12px">
+      <div class="m-two-col" style="padding:5px 8px">
         <div class="m-col-main">
-          <div style="font-size:12px;font-weight:700;color:var(--app-on-surface);margin-bottom:4px">GRV-2026-000042</div>
-          <div style="font-size:11px;color:var(--app-on-surface-variant);margin-bottom:10px">Water supply failure in Ward 7</div>
+          <div style="font-size:8px;font-weight:700;color:var(--app-on-surface);margin-bottom:3px">GRV-2026-000042</div>
+          <div style="font-size:7px;color:var(--app-on-surface-variant);margin-bottom:7px">Water supply failure in Ward 7</div>
           <div class="m-detail-row"><span class="m-label">Status</span><span class="m-value">In Progress</span></div>
           <div class="m-detail-row"><span class="m-label">Department</span><span class="m-value">Rural Water Supply</span></div>
           <div class="m-detail-row"><span class="m-label">Priority</span><span class="m-value">High</span></div>
           <div class="m-detail-row"><span class="m-label">Impact</span><span class="m-value">72</span></div>
           <div class="m-detail-row"><span class="m-label">Location</span><span class="m-value">Puri Ward 7</span></div>
           <div class="m-detail-row"><span class="m-label">Filed</span><span class="m-value">14 Feb 2026</span></div>
-          <div class="m-section-header" style="margin-top:12px"><h3>Attachments</h3></div>
-          <div style="display:flex;gap:8px;margin-top:4px">
-            <div style="width:40px;height:30px;border-radius:4px;background:#ddd"></div>
-            <div style="width:40px;height:30px;border-radius:4px;background:#ddd"></div>
+          <div class="m-section-header" style="margin-top:8px"><h3>Attachments</h3></div>
+          <div style="display:flex;gap:5px;margin-top:3px">
+            <div style="width:27px;height:20px;border-radius:3px;background:#ddd"></div>
+            <div style="width:27px;height:20px;border-radius:3px;background:#ddd"></div>
           </div>
         </div>
         <div class="m-col-side">
@@ -2050,15 +2050,15 @@ body{
             <p>1. Contact Ward 7 office... 2. Arrange temporary tanker...</p>
           </div>
           <div class="m-section-header"><h3>Sub-Tasks</h3></div>
-          <div style="margin:4px 0;padding:6px 8px;background:var(--app-surface);border-radius:6px;border:1px solid var(--app-outline-variant);font-size:10px">
+          <div style="margin:3px 0;padding:4px 5px;background:var(--app-surface);border-radius:4px;border:1px solid var(--app-outline-variant);font-size:7px">
             Water restoration <span class="m-badge m-badge-resolved">Resolved</span>
           </div>
-          <div style="margin:4px 0;padding:6px 8px;background:var(--app-surface);border-radius:6px;border:1px solid var(--app-outline-variant);font-size:10px">
+          <div style="margin:3px 0;padding:4px 5px;background:var(--app-surface);border-radius:4px;border:1px solid var(--app-outline-variant);font-size:7px">
             Pipe inspection <span class="m-badge m-badge-in_progress">In Progress</span>
           </div>
-          <div class="m-section-header" style="margin-top:8px"><h3>Notes</h3></div>
-          <div style="font-size:9px;color:var(--app-on-surface-variant);margin-top:4px">Officer assigned — 15 Feb 10:30</div>
-          <div style="font-size:9px;color:var(--app-on-surface-variant);margin-top:2px">Site inspection completed — 16 Feb 14:20</div>
+          <div class="m-section-header" style="margin-top:5px"><h3>Notes</h3></div>
+          <div style="font-size:6px;color:var(--app-on-surface-variant);margin-top:3px">Officer assigned — 15 Feb 10:30</div>
+          <div style="font-size:6px;color:var(--app-on-surface-variant);margin-top:1px">Site inspection completed — 16 Feb 14:20</div>
         </div>
       </div>
     </div>
@@ -2068,10 +2068,10 @@ body{
 
 <!-- slide-17-cross-dept-sla.html -->
 <div class="slide" data-slide="16">
-  <div class="slide-inner" style="flex-direction:row;text-align:left;gap:48px">
+  <div class="slide-inner" style="flex-direction:row;text-align:left;gap:32px">
     <div style="flex:1" class="animate">
       <span class="tag tag-cyan">Cross-Department</span>
-      <h2 style="font-size:32px">Sub-Task Decomposition &amp; SLA</h2>
+      <h2 style="font-size:24px">Sub-Task Decomposition &amp; SLA</h2>
       <svg class="anim-trigger" viewBox="0 0 560 420" width="100%">
         <animate id="slaTreeMaster" attributeName="opacity" from="1" to="1" dur="0.01s" fill="freeze" begin="indefinite"/>
         <!-- Primary grievance node -->
@@ -2128,8 +2128,8 @@ body{
         </g>
       </svg>
     </div>
-    <div style="flex:0 0 480px;display:flex;flex-direction:column;gap:20px">
-      <div class="animate a-d1" style="font-size:16px;font-weight:600;color:var(--text-primary)">SLA Deadlines by Priority</div>
+    <div style="flex:0 0 360px;display:flex;flex-direction:column;gap:13px">
+      <div class="animate a-d1" style="font-size:11px;font-weight:600;color:var(--text-primary)">SLA Deadlines by Priority</div>
       <table class="tech-table animate a-d2">
         <thead>
           <tr><th>Priority</th><th>Deadline</th></tr>
@@ -2177,8 +2177,8 @@ body{
 <div class="slide" data-slide="17">
   <div class="slide-inner">
     <span class="tag tag-orange animate a-d1">Administration</span>
-    <h2 class="animate a-d1" style="font-size:32px">Admin Command Center</h2>
-    <div class="mockup-frame animate a-d1" style="max-width:1600px;width:100%;transform:none">
+    <h2 class="animate a-d1" style="font-size:24px">Admin Command Center</h2>
+    <div class="mockup-frame animate a-d1" style="max-width:900px;width:100%;transform:none">
       <div class="m-navbar">
         <div class="m-logo"><span class="icon filled">account_balance</span> PR&amp;DW Portal</div>
         <div class="m-nav-links">
@@ -2190,7 +2190,7 @@ body{
         </div>
         <div class="m-user-badge">Admin &middot; admin</div>
       </div>
-      <div style="display:flex;gap:8px;padding:10px 12px">
+      <div style="display:flex;gap:5px;padding:7px 8px">
         <div class="sla-card breached" style="flex:1">
           <span class="sla-count">4</span>
           <span class="sla-label">Breached</span>
@@ -2204,61 +2204,61 @@ body{
           <span class="sla-label">Warning &lt;48h</span>
         </div>
       </div>
-      <div style="padding:0 12px 8px">
+      <div style="padding:0 8px 5px">
         <div class="m-tabs">
           <span class="m-tab">Citizens</span>
           <span class="m-tab active">Officers</span>
           <span class="m-tab">Admins</span>
         </div>
-        <table style="width:100%;border-collapse:collapse;font-size:10px">
+        <table style="width:100%;border-collapse:collapse;font-size:7px">
           <thead>
-            <tr style="font-size:8px;font-weight:bold;color:var(--app-on-surface-variant);border-bottom:1px solid var(--app-outline-variant)">
-              <th style="padding:6px 8px;text-align:left">Name</th>
-              <th style="padding:6px 8px;text-align:left">Department</th>
-              <th style="padding:6px 8px;text-align:left">Status</th>
-              <th style="padding:6px 8px;text-align:left">Actions</th>
+            <tr style="font-size:5px;font-weight:bold;color:var(--app-on-surface-variant);border-bottom:1px solid var(--app-outline-variant)">
+              <th style="padding:4px 5px;text-align:left">Name</th>
+              <th style="padding:4px 5px;text-align:left">Department</th>
+              <th style="padding:4px 5px;text-align:left">Status</th>
+              <th style="padding:4px 5px;text-align:left">Actions</th>
             </tr>
           </thead>
           <tbody>
             <tr style="border-bottom:1px solid var(--app-outline-variant)">
-              <td style="padding:6px 8px;color:var(--app-on-surface)">BDO Sharma</td>
-              <td style="padding:6px 8px;color:var(--app-on-surface-variant)">Rural Water Supply</td>
-              <td style="padding:6px 8px"><span style="display:inline-flex;align-items:center;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:#1E8E3E"></span>Active</span></td>
-              <td style="padding:6px 8px"><span class="m-btn m-btn-secondary">Edit</span></td>
+              <td style="padding:4px 5px;color:var(--app-on-surface)">BDO Sharma</td>
+              <td style="padding:4px 5px;color:var(--app-on-surface-variant)">Rural Water Supply</td>
+              <td style="padding:4px 5px"><span style="display:inline-flex;align-items:center;gap:3px"><span style="width:4px;height:4px;border-radius:50%;background:#1E8E3E"></span>Active</span></td>
+              <td style="padding:4px 5px"><span class="m-btn m-btn-secondary">Edit</span></td>
             </tr>
             <tr style="border-bottom:1px solid var(--app-outline-variant)">
-              <td style="padding:6px 8px;color:var(--app-on-surface)">JE Patel</td>
-              <td style="padding:6px 8px;color:var(--app-on-surface-variant)">Infrastructure</td>
-              <td style="padding:6px 8px"><span style="display:inline-flex;align-items:center;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:#1E8E3E"></span>Active</span></td>
-              <td style="padding:6px 8px"><span class="m-btn m-btn-secondary">Edit</span></td>
+              <td style="padding:4px 5px;color:var(--app-on-surface)">JE Patel</td>
+              <td style="padding:4px 5px;color:var(--app-on-surface-variant)">Infrastructure</td>
+              <td style="padding:4px 5px"><span style="display:inline-flex;align-items:center;gap:3px"><span style="width:4px;height:4px;border-radius:50%;background:#1E8E3E"></span>Active</span></td>
+              <td style="padding:4px 5px"><span class="m-btn m-btn-secondary">Edit</span></td>
             </tr>
             <tr style="border-bottom:1px solid var(--app-outline-variant)">
-              <td style="padding:6px 8px;color:var(--app-on-surface)">BDO Das</td>
-              <td style="padding:6px 8px;color:var(--app-on-surface-variant)">MGNREGS</td>
-              <td style="padding:6px 8px"><span style="display:inline-flex;align-items:center;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:#D93025"></span>Blocked</span></td>
-              <td style="padding:6px 8px"><span class="m-btn m-btn-secondary">Edit</span></td>
+              <td style="padding:4px 5px;color:var(--app-on-surface)">BDO Das</td>
+              <td style="padding:4px 5px;color:var(--app-on-surface-variant)">MGNREGS</td>
+              <td style="padding:4px 5px"><span style="display:inline-flex;align-items:center;gap:3px"><span style="width:4px;height:4px;border-radius:50%;background:#D93025"></span>Blocked</span></td>
+              <td style="padding:4px 5px"><span class="m-btn m-btn-secondary">Edit</span></td>
             </tr>
             <tr>
-              <td style="padding:6px 8px;color:var(--app-on-surface)">Sanitary Insp.</td>
-              <td style="padding:6px 8px;color:var(--app-on-surface-variant)">Sanitation</td>
-              <td style="padding:6px 8px"><span style="display:inline-flex;align-items:center;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:#1E8E3E"></span>Active</span></td>
-              <td style="padding:6px 8px"><span class="m-btn m-btn-secondary">Edit</span></td>
+              <td style="padding:4px 5px;color:var(--app-on-surface)">Sanitary Insp.</td>
+              <td style="padding:4px 5px;color:var(--app-on-surface-variant)">Sanitation</td>
+              <td style="padding:4px 5px"><span style="display:inline-flex;align-items:center;gap:3px"><span style="width:4px;height:4px;border-radius:50%;background:#1E8E3E"></span>Active</span></td>
+              <td style="padding:4px 5px"><span class="m-btn m-btn-secondary">Edit</span></td>
             </tr>
           </tbody>
         </table>
       </div>
-      <div style="display:flex;gap:8px;padding:8px 12px">
-        <div style="flex:1;background:var(--app-surface);border:1px solid var(--app-outline-variant);border-radius:8px;padding:10px;text-align:center">
-          <span class="icon" style="font-size:20px;color:var(--app-primary);display:block;margin-bottom:4px">timeline</span>
-          <span style="font-size:10px;font-weight:600;color:var(--app-on-surface)">Generate Forecast</span>
+      <div style="display:flex;gap:5px;padding:5px 8px">
+        <div style="flex:1;background:var(--app-surface);border:1px solid var(--app-outline-variant);border-radius:5px;padding:7px;text-align:center">
+          <span class="icon" style="font-size:13px;color:var(--app-primary);display:block;margin-bottom:3px">timeline</span>
+          <span style="font-size:7px;font-weight:600;color:var(--app-on-surface)">Generate Forecast</span>
         </div>
-        <div style="flex:1;background:var(--app-surface);border:1px solid var(--app-outline-variant);border-radius:8px;padding:10px;text-align:center">
-          <span class="icon" style="font-size:20px;color:var(--app-primary);display:block;margin-bottom:4px">assessment</span>
-          <span style="font-size:10px;font-weight:600;color:var(--app-on-surface)">View Reports</span>
+        <div style="flex:1;background:var(--app-surface);border:1px solid var(--app-outline-variant);border-radius:5px;padding:7px;text-align:center">
+          <span class="icon" style="font-size:13px;color:var(--app-primary);display:block;margin-bottom:3px">assessment</span>
+          <span style="font-size:7px;font-weight:600;color:var(--app-on-surface)">View Reports</span>
         </div>
-        <div style="flex:1;background:var(--app-surface);border:1px solid var(--app-outline-variant);border-radius:8px;padding:10px;text-align:center">
-          <span class="icon" style="font-size:20px;color:var(--app-primary);display:block;margin-bottom:4px">shield</span>
-          <span style="font-size:10px;font-weight:600;color:var(--app-on-surface)">Review Spam</span>
+        <div style="flex:1;background:var(--app-surface);border:1px solid var(--app-outline-variant);border-radius:5px;padding:7px;text-align:center">
+          <span class="icon" style="font-size:13px;color:var(--app-primary);display:block;margin-bottom:3px">shield</span>
+          <span style="font-size:7px;font-weight:600;color:var(--app-on-surface)">Review Spam</span>
         </div>
       </div>
     </div>
@@ -2268,10 +2268,10 @@ body{
 
 <!-- slide-19-spam-accountability.html -->
 <div class="slide" data-slide="18">
-  <div class="slide-inner" style="flex-direction:row;text-align:left;gap:40px">
+  <div class="slide-inner" style="flex-direction:row;text-align:left;gap:27px">
     <div style="flex:1">
       <span class="tag tag-orange animate a-d1">Anti-Fraud</span>
-      <h2 class="animate a-d1" style="font-size:28px">Spam Detection</h2>
+      <h2 class="animate a-d1" style="font-size:21px">Spam Detection</h2>
       <svg class="anim-trigger animate a-d1" viewBox="0 0 500 200" width="100%">
         <defs>
           <linearGradient id="spamGrad19" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#E37400"/><stop offset="1" stop-color="#D93025"/></linearGradient>
@@ -2324,17 +2324,17 @@ body{
           <animate attributeName="width" from="0" to="50" dur="0.5s" fill="freeze" begin="spamMaster.begin+1s"/>
         </rect>
       </svg>
-      <div class="animate a-d2" style="background:var(--app-surface-dim);border-radius:10px;padding:14px;color:var(--app-on-surface);margin-top:12px;border:1px solid var(--app-outline-variant)">
-        <div class="m-badges" style="margin-bottom:8px">
+      <div class="animate a-d2" style="background:var(--app-surface-dim);border-radius:7px;padding:9px;color:var(--app-on-surface);margin-top:8px;border:1px solid var(--app-outline-variant)">
+        <div class="m-badges" style="margin-bottom:5px">
           <span class="m-badge" style="background:var(--app-error-container);color:#B91C1C">DUPLICATE</span>
           <span class="m-badge" style="background:var(--app-warning-container);color:#B45309">RAPID</span>
           <span class="m-badge" style="background:#FEF3E0;color:#E65100">SIMILAR</span>
         </div>
-        <div class="m-gauge-track" style="margin-top:8px">
+        <div class="m-gauge-track" style="margin-top:5px">
           <div class="m-gauge-fill" style="width:78%;background:linear-gradient(90deg,#E37400,#D93025)"></div>
         </div>
-        <div style="margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <span style="font-size:10px;color:var(--app-on-surface-variant)">Photo ID: Pending Review</span>
+        <div style="margin-top:5px;display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+          <span style="font-size:7px;color:var(--app-on-surface-variant)">Photo ID: Pending Review</span>
           <span class="m-btn m-btn-success">Approve</span>
           <span class="m-btn" style="background:var(--app-error-container);color:#B91C1C">Reject</span>
         </div>
@@ -2342,8 +2342,8 @@ body{
     </div>
     <div style="flex:1">
       <span class="tag tag-purple animate a-d1">Accountability</span>
-      <h2 class="animate a-d2" style="font-size:28px">Officer Anomalies</h2>
-      <div style="display:flex;flex-direction:column;gap:10px">
+      <h2 class="animate a-d2" style="font-size:21px">Officer Anomalies</h2>
+      <div style="display:flex;flex-direction:column;gap:7px">
         <div class="anomaly-card anomaly-card.red animate a-d3">
           <h4><span class="icon">warning</span> Rubber-Stamping</h4>
           <p>15 grievances resolved in 20 minutes</p>
@@ -2357,7 +2357,7 @@ body{
           <p>Avg 12 words per resolution &mdash; copy-paste detected</p>
         </div>
       </div>
-      <p class="animate a-d6" style="font-size:13px;color:var(--text-muted);margin-top:12px">Anomalies are auto-flagged for admin review and can be dismissed with justification</p>
+      <p class="animate a-d6" style="font-size:9px;color:var(--text-muted);margin-top:8px">Anomalies are auto-flagged for admin review and can be dismissed with justification</p>
     </div>
   </div>
 </div>
@@ -2368,8 +2368,8 @@ body{
 <div class="slide" data-slide="19">
   <div class="slide-inner">
     <span class="tag tag-blue animate">Analytics</span>
-    <h2 class="animate a-d1" style="font-size:32px">System-Wide Intelligence</h2>
-    <div class="animate a-d2 mockup-animate" style="width:100%;max-width:1600px">
+    <h2 class="animate a-d1" style="font-size:24px">System-Wide Intelligence</h2>
+    <div class="animate a-d2 mockup-animate" style="width:100%;max-width:950px">
       <div class="mockup-frame" style="width:100%;transform:none">
         <div class="m-navbar">
           <div class="m-logo"><span class="icon filled">account_balance</span> PR&amp;DW Portal</div>
@@ -2379,13 +2379,13 @@ body{
           <div class="m-user-badge">Admin &middot; admin</div>
         </div>
         <!-- Period selector -->
-        <div style="padding:8px 12px;display:flex;gap:4px">
-          <span style="padding:4px 12px;border-radius:14px;font-size:10px;font-weight:600;background:var(--app-primary-container);color:#0842A0">7 days</span>
-          <span style="padding:4px 12px;border-radius:14px;font-size:10px;font-weight:500;background:var(--app-surface-container);color:var(--app-on-surface-variant)">30 days</span>
-          <span style="padding:4px 12px;border-radius:14px;font-size:10px;font-weight:500;background:var(--app-surface-container);color:var(--app-on-surface-variant)">90 days</span>
+        <div style="padding:5px 8px;display:flex;gap:3px">
+          <span style="padding:3px 8px;border-radius:9px;font-size:7px;font-weight:600;background:var(--app-primary-container);color:#0842A0">7 days</span>
+          <span style="padding:3px 8px;border-radius:9px;font-size:7px;font-weight:500;background:var(--app-surface-container);color:var(--app-on-surface-variant)">30 days</span>
+          <span style="padding:3px 8px;border-radius:9px;font-size:7px;font-weight:500;background:var(--app-surface-container);color:var(--app-on-surface-variant)">90 days</span>
         </div>
         <!-- KPI Metrics -->
-        <div class="m-metrics" style="padding-bottom:4px">
+        <div class="m-metrics" style="padding-bottom:3px">
           <div class="m-metric-card"><div class="m-metric-icon blue"><span class="icon">assignment</span></div><div class="m-metric-val">1,247</div><div class="m-metric-lbl">Total Grievances</div></div>
           <div class="m-metric-card"><div class="m-metric-icon green"><span class="icon">check_circle</span></div><div class="m-metric-val">68%</div><div class="m-metric-lbl">Resolution Rate</div></div>
           <div class="m-metric-card"><div class="m-metric-icon amber"><span class="icon">schedule</span></div><div class="m-metric-val">4.2d</div><div class="m-metric-lbl">Avg Response</div></div>
@@ -2393,10 +2393,10 @@ body{
           <div class="m-metric-card"><div class="m-metric-icon green"><span class="icon">verified</span></div><div class="m-metric-val">82%</div><div class="m-metric-lbl">SLA Compliance</div></div>
         </div>
         <!-- Charts row -->
-        <div style="display:flex;gap:10px;padding:10px 12px">
+        <div style="display:flex;gap:7px;padding:7px 8px">
           <!-- Bar Chart -->
-          <div style="flex:1;background:var(--app-surface);border:1px solid var(--app-outline-variant);border-radius:8px;padding:12px">
-            <div style="font-size:11px;font-weight:700;color:var(--app-on-surface);margin-bottom:8px">Department Breakdown</div>
+          <div style="flex:1;background:var(--app-surface);border:1px solid var(--app-outline-variant);border-radius:5px;padding:8px">
+            <div style="font-size:7px;font-weight:700;color:var(--app-on-surface);margin-bottom:5px">Department Breakdown</div>
             <svg class="anim-trigger" width="100%" viewBox="0 0 500 170" xmlns="http://www.w3.org/2000/svg">
               <text x="0" y="16" fill="#44474E" font-size="10" font-family="Inter">Water Supply</text>
               <rect x="110" y="6" width="0" height="16" rx="2" fill="#1A73E8"><animate attributeName="width" from="0" to="230" dur="1s" begin="0.3s" fill="freeze"/></rect>
@@ -2428,8 +2428,8 @@ body{
             </svg>
           </div>
           <!-- Donut Chart -->
-          <div style="flex:0 0 240px;background:var(--app-surface);border:1px solid var(--app-outline-variant);border-radius:8px;padding:12px;display:flex;flex-direction:column;align-items:center">
-            <div style="font-size:11px;font-weight:700;color:var(--app-on-surface);margin-bottom:8px;align-self:flex-start">Status Distribution</div>
+          <div style="flex:0 0 240px;background:var(--app-surface);border:1px solid var(--app-outline-variant);border-radius:5px;padding:8px;display:flex;flex-direction:column;align-items:center">
+            <div style="font-size:7px;font-weight:700;color:var(--app-on-surface);margin-bottom:5px;align-self:flex-start">Status Distribution</div>
             <svg class="anim-trigger" width="160" height="160" viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
               <circle cx="80" cy="80" r="55" fill="none" stroke="#ECEEF3" stroke-width="18"/>
               <circle cx="80" cy="80" r="55" fill="none" stroke="#1E8E3E" stroke-width="18"
@@ -2454,17 +2454,17 @@ body{
               <text x="80" y="76" text-anchor="middle" fill="#1A1C1E" font-size="20" font-weight="700" font-family="Inter">1,247</text>
               <text x="80" y="92" text-anchor="middle" fill="#44474E" font-size="9" font-family="Inter">total</text>
             </svg>
-            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;justify-content:center">
-              <span style="font-size:8px;display:flex;align-items:center;gap:3px"><span style="width:6px;height:6px;border-radius:50%;background:#1E8E3E"></span>Resolved</span>
-              <span style="font-size:8px;display:flex;align-items:center;gap:3px"><span style="width:6px;height:6px;border-radius:50%;background:#E37400"></span>Pending</span>
-              <span style="font-size:8px;display:flex;align-items:center;gap:3px"><span style="width:6px;height:6px;border-radius:50%;background:#1A73E8"></span>In Progress</span>
-              <span style="font-size:8px;display:flex;align-items:center;gap:3px"><span style="width:6px;height:6px;border-radius:50%;background:#D93025"></span>Escalated</span>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;justify-content:center">
+              <span style="font-size:5px;display:flex;align-items:center;gap:2px"><span style="width:4px;height:4px;border-radius:50%;background:#1E8E3E"></span>Resolved</span>
+              <span style="font-size:5px;display:flex;align-items:center;gap:2px"><span style="width:4px;height:4px;border-radius:50%;background:#E37400"></span>Pending</span>
+              <span style="font-size:5px;display:flex;align-items:center;gap:2px"><span style="width:4px;height:4px;border-radius:50%;background:#1A73E8"></span>In Progress</span>
+              <span style="font-size:5px;display:flex;align-items:center;gap:2px"><span style="width:4px;height:4px;border-radius:50%;background:#D93025"></span>Escalated</span>
             </div>
           </div>
         </div>
         <!-- Bottom CTA -->
-        <div style="padding:4px 12px 8px;text-align:center">
-          <span class="m-btn m-btn-primary" style="padding:5px 14px"><span class="icon" style="font-size:12px">auto_awesome</span> Generate AI Executive Summary</span>
+        <div style="padding:3px 8px 5px;text-align:center">
+          <span class="m-btn m-btn-primary" style="padding:3px 9px"><span class="icon" style="font-size:8px">auto_awesome</span> Generate AI Executive Summary</span>
         </div>
       </div>
     </div>
@@ -2476,8 +2476,8 @@ body{
 <div class="slide" data-slide="20">
   <div class="slide-inner">
     <span class="tag tag-purple animate a-d1">Architecture</span>
-    <h2 class="animate a-d1" style="font-size:32px">System Architecture</h2>
-    <svg class="anim-trigger animate a-d1" viewBox="0 0 1600 520" width="100%" style="max-width:1600px">
+    <h2 class="animate a-d1" style="font-size:24px">System Architecture</h2>
+    <svg class="anim-trigger animate a-d1" viewBox="0 0 1600 520" width="100%" style="max-width:1067px">
       <defs>
         <pattern id="dotGrid" width="40" height="40" patternUnits="userSpaceOnUse">
           <circle cx="20" cy="20" r="1" fill="rgba(255,255,255,0.03)"/>
@@ -2571,10 +2571,10 @@ body{
 
 <!-- slide-22-security.html -->
 <div class="slide" data-slide="21">
-  <div class="slide-inner" style="flex-direction:row;text-align:left;gap:48px">
-    <div style="flex:0 0 480px;display:flex;flex-direction:column;align-items:center;gap:16px">
+  <div class="slide-inner" style="flex-direction:row;text-align:left;gap:32px">
+    <div style="flex:0 0 360px;display:flex;flex-direction:column;align-items:center;gap:11px">
       <span class="tag tag-green animate">Security</span>
-      <h2 class="animate a-d1" style="font-size:28px">Defense in Depth</h2>
+      <h2 class="animate a-d1" style="font-size:21px">Defense in Depth</h2>
       <svg class="anim-trigger animate a-d2" viewBox="0 0 420 420" width="400">
         <!-- Arc 1 - Security Headers -->
         <g opacity="0">
@@ -2629,47 +2629,47 @@ body{
       </svg>
     </div>
     <div style="flex:1">
-      <h3 class="animate a-d1" style="font-size:20px">Tech Stack</h3>
-      <div class="animate a-d2" style="display:flex;flex-direction:column;gap:8px">
-        <div style="display:flex;gap:10px;align-items:center;padding:8px 14px;background:var(--surface-raised);border:1px solid var(--border);border-radius:8px">
-          <span class="icon" style="font-size:20px;color:#4da3ff">bolt</span>
-          <span style="font-size:12px;color:var(--text-muted);width:100px">Framework</span>
-          <span style="font-size:14px;font-weight:700;color:var(--text-primary)">FastAPI</span>
+      <h3 class="animate a-d1" style="font-size:13px">Tech Stack</h3>
+      <div class="animate a-d2" style="display:flex;flex-direction:column;gap:5px">
+        <div style="display:flex;gap:7px;align-items:center;padding:5px 9px;background:var(--surface-raised);border:1px solid var(--border);border-radius:5px">
+          <span class="icon" style="font-size:13px;color:#4da3ff">bolt</span>
+          <span style="font-size:8px;color:var(--text-muted);width:67px">Framework</span>
+          <span style="font-size:9px;font-weight:700;color:var(--text-primary)">FastAPI</span>
         </div>
-        <div style="display:flex;gap:10px;align-items:center;padding:8px 14px;background:var(--surface-raised);border:1px solid var(--border);border-radius:8px">
-          <span class="icon" style="font-size:20px;color:#69f0ae">database</span>
-          <span style="font-size:12px;color:var(--text-muted);width:100px">Database</span>
-          <span style="font-size:14px;font-weight:700;color:var(--text-primary)">MongoDB + GridFS</span>
+        <div style="display:flex;gap:7px;align-items:center;padding:5px 9px;background:var(--surface-raised);border:1px solid var(--border);border-radius:5px">
+          <span class="icon" style="font-size:13px;color:#69f0ae">database</span>
+          <span style="font-size:8px;color:var(--text-muted);width:67px">Database</span>
+          <span style="font-size:9px;font-weight:700;color:var(--text-primary)">MongoDB + GridFS</span>
         </div>
-        <div style="display:flex;gap:10px;align-items:center;padding:8px 14px;background:var(--surface-raised);border:1px solid var(--border);border-radius:8px">
-          <span class="icon" style="font-size:20px;color:#4dd0e1">search</span>
-          <span style="font-size:12px;color:var(--text-muted);width:100px">Vector DB</span>
-          <span style="font-size:14px;font-weight:700;color:var(--text-primary)">Qdrant</span>
+        <div style="display:flex;gap:7px;align-items:center;padding:5px 9px;background:var(--surface-raised);border:1px solid var(--border);border-radius:5px">
+          <span class="icon" style="font-size:13px;color:#4dd0e1">search</span>
+          <span style="font-size:8px;color:var(--text-muted);width:67px">Vector DB</span>
+          <span style="font-size:9px;font-weight:700;color:var(--text-primary)">Qdrant</span>
         </div>
-        <div style="display:flex;gap:10px;align-items:center;padding:8px 14px;background:var(--surface-raised);border:1px solid var(--border);border-radius:8px">
-          <span class="icon" style="font-size:20px;color:#b388ff">psychology</span>
-          <span style="font-size:12px;color:var(--text-muted);width:100px">AI</span>
-          <span style="font-size:14px;font-weight:700;color:var(--text-primary)">OpenAI GPT-5 + Embeddings</span>
+        <div style="display:flex;gap:7px;align-items:center;padding:5px 9px;background:var(--surface-raised);border:1px solid var(--border);border-radius:5px">
+          <span class="icon" style="font-size:13px;color:#b388ff">psychology</span>
+          <span style="font-size:8px;color:var(--text-muted);width:67px">AI</span>
+          <span style="font-size:9px;font-weight:700;color:var(--text-primary)">OpenAI GPT-5 + Embeddings</span>
         </div>
-        <div style="display:flex;gap:10px;align-items:center;padding:8px 14px;background:var(--surface-raised);border:1px solid var(--border);border-radius:8px">
-          <span class="icon" style="font-size:20px;color:#ffb74d">lock</span>
-          <span style="font-size:12px;color:var(--text-muted);width:100px">Auth</span>
-          <span style="font-size:14px;font-weight:700;color:var(--text-primary)">JWT + bcrypt + face-api.js</span>
+        <div style="display:flex;gap:7px;align-items:center;padding:5px 9px;background:var(--surface-raised);border:1px solid var(--border);border-radius:5px">
+          <span class="icon" style="font-size:13px;color:#ffb74d">lock</span>
+          <span style="font-size:8px;color:var(--text-muted);width:67px">Auth</span>
+          <span style="font-size:9px;font-weight:700;color:var(--text-primary)">JWT + bcrypt + face-api.js</span>
         </div>
-        <div style="display:flex;gap:10px;align-items:center;padding:8px 14px;background:var(--surface-raised);border:1px solid var(--border);border-radius:8px">
-          <span class="icon" style="font-size:20px;color:#4da3ff">code</span>
-          <span style="font-size:12px;color:var(--text-muted);width:100px">Frontend</span>
-          <span style="font-size:14px;font-weight:700;color:var(--text-primary)">Jinja2 + Vanilla JS</span>
+        <div style="display:flex;gap:7px;align-items:center;padding:5px 9px;background:var(--surface-raised);border:1px solid var(--border);border-radius:5px">
+          <span class="icon" style="font-size:13px;color:#4da3ff">code</span>
+          <span style="font-size:8px;color:var(--text-muted);width:67px">Frontend</span>
+          <span style="font-size:9px;font-weight:700;color:var(--text-primary)">Jinja2 + Vanilla JS</span>
         </div>
-        <div style="display:flex;gap:10px;align-items:center;padding:8px 14px;background:var(--surface-raised);border:1px solid var(--border);border-radius:8px">
-          <span class="icon" style="font-size:20px;color:#69f0ae">security</span>
-          <span style="font-size:12px;color:var(--text-muted);width:100px">Security</span>
-          <span style="font-size:14px;font-weight:700;color:var(--text-primary)">SlowAPI + CSP + DOMPurify</span>
+        <div style="display:flex;gap:7px;align-items:center;padding:5px 9px;background:var(--surface-raised);border:1px solid var(--border);border-radius:5px">
+          <span class="icon" style="font-size:13px;color:#69f0ae">security</span>
+          <span style="font-size:8px;color:var(--text-muted);width:67px">Security</span>
+          <span style="font-size:9px;font-weight:700;color:var(--text-primary)">SlowAPI + CSP + DOMPurify</span>
         </div>
-        <div style="display:flex;gap:10px;align-items:center;padding:8px 14px;background:var(--surface-raised);border:1px solid var(--border);border-radius:8px">
-          <span class="icon" style="font-size:20px;color:#ffb74d">cloud</span>
-          <span style="font-size:12px;color:var(--text-muted);width:100px">Weather</span>
-          <span style="font-size:14px;font-weight:700;color:var(--text-primary)">OpenWeatherMap API</span>
+        <div style="display:flex;gap:7px;align-items:center;padding:5px 9px;background:var(--surface-raised);border:1px solid var(--border);border-radius:5px">
+          <span class="icon" style="font-size:13px;color:#ffb74d">cloud</span>
+          <span style="font-size:8px;color:var(--text-muted);width:67px">Weather</span>
+          <span style="font-size:9px;font-weight:700;color:var(--text-primary)">OpenWeatherMap API</span>
         </div>
       </div>
     </div>
@@ -2682,10 +2682,10 @@ body{
   <div class="slide-inner">
     <span class="tag tag-green animate">Differentiation</span>
     <h2 class="animate a-d1">What Sets Us Apart</h2>
-    <table class="compare-table animate a-d2" style="width:100%;max-width:1400px;margin:0 auto">
+    <table class="compare-table animate a-d2" style="width:100%;max-width:933px;margin:0 auto">
       <thead>
         <tr>
-          <th style="width:160px">Feature</th>
+          <th style="width:107px">Feature</th>
           <th class="traditional">Traditional Portal</th>
           <th class="ours">PR&amp;DW Portal</th>
         </tr>
@@ -2743,8 +2743,8 @@ body{
         </tr>
       </tbody>
     </table>
-    <p class="animate a-d14" style="text-align:center;margin-top:16px">
-      <span style="background:var(--gradient-subtle);border:1px solid rgba(26,115,232,.2);padding:8px 24px;border-radius:100px;font-size:15px;font-weight:600;color:var(--primary-light)">10 capabilities no traditional portal offers</span>
+    <p class="animate a-d14" style="text-align:center;margin-top:11px">
+      <span style="background:var(--gradient-subtle);border:1px solid rgba(26,115,232,.2);padding:5px 16px;border-radius:67px;font-size:10px;font-weight:600;color:var(--primary-light)">10 capabilities no traditional portal offers</span>
     </p>
   </div>
 </div>
@@ -2756,7 +2756,7 @@ body{
     <span class="tag tag-cyan animate">Live Demo</span>
     <h2 class="animate a-d1">Experience It Live</h2>
     <p class="lead animate a-d2">Three roles, one platform &mdash; log in and explore</p>
-    <div class="animate a-d3" style="display:flex;gap:24px;width:100%;max-width:1200px">
+    <div class="animate a-d3" style="display:flex;gap:16px;width:100%;max-width:800px">
       <div class="role-card">
         <div class="role-icon"><span class="icon filled">person</span></div>
         <h3>Citizen</h3>
@@ -2791,11 +2791,11 @@ body{
         </ul>
       </div>
     </div>
-    <div class="cta-box animate a-d4" style="margin-top:16px">
-      <span style="display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace">
+    <div class="cta-box animate a-d4" style="margin-top:11px">
+      <span style="display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace">
         <span class="icon">terminal</span>http://localhost:8000
       </span>
-      <span style="font-size:12px;color:var(--text-muted)">Start the server with python demo/ticketer.py</span>
+      <span style="font-size:8px;color:var(--text-muted)">Start the server with python demo/ticketer.py</span>
     </div>
   </div>
 </div>
@@ -2804,21 +2804,21 @@ body{
 <!-- slide-25-thankyou.html -->
 <div class="slide" data-slide="24">
   <div class="particles">
-    <span class="particle" style="width:4px;height:4px;left:12%;top:18%;background:#1A73E8;animation-duration:9s;animation-delay:0s"></span>
-    <span class="particle" style="width:3px;height:3px;left:88%;top:22%;background:#00BCD4;animation-duration:11s;animation-delay:1.2s"></span>
-    <span class="particle" style="width:5px;height:5px;left:25%;top:75%;background:#7C4DFF;animation-duration:7s;animation-delay:2.5s"></span>
-    <span class="particle" style="width:3px;height:3px;left:72%;top:68%;background:#1A73E8;animation-duration:14s;animation-delay:0.8s"></span>
-    <span class="particle" style="width:4px;height:4px;left:45%;top:12%;background:#00BCD4;animation-duration:10s;animation-delay:3s"></span>
-    <span class="particle" style="width:3px;height:3px;left:8%;top:55%;background:#7C4DFF;animation-duration:12s;animation-delay:1.5s"></span>
-    <span class="particle" style="width:5px;height:5px;left:92%;top:45%;background:#1A73E8;animation-duration:8s;animation-delay:0.3s"></span>
-    <span class="particle" style="width:3px;height:3px;left:55%;top:82%;background:#00BCD4;animation-duration:13s;animation-delay:2s"></span>
-    <span class="particle" style="width:4px;height:4px;left:35%;top:35%;background:#7C4DFF;animation-duration:9s;animation-delay:4s"></span>
-    <span class="particle" style="width:3px;height:3px;left:65%;top:28%;background:#1A73E8;animation-duration:11s;animation-delay:1s"></span>
-    <span class="particle" style="width:5px;height:5px;left:18%;top:88%;background:#00BCD4;animation-duration:7s;animation-delay:2.2s"></span>
-    <span class="particle" style="width:3px;height:3px;left:78%;top:8%;background:#7C4DFF;animation-duration:14s;animation-delay:0.5s"></span>
-    <span class="particle" style="width:4px;height:4px;left:5%;top:40%;background:#1A73E8;animation-duration:10s;animation-delay:3.2s"></span>
-    <span class="particle" style="width:3px;height:3px;left:95%;top:78%;background:#00BCD4;animation-duration:12s;animation-delay:1.8s"></span>
-    <span class="particle" style="width:5px;height:5px;left:50%;top:50%;background:#7C4DFF;animation-duration:8s;animation-delay:0.7s"></span>
+    <span class="particle" style="width:3px;height:3px;left:12%;top:18%;background:#1A73E8;animation-duration:9s;animation-delay:0s"></span>
+    <span class="particle" style="width:2px;height:2px;left:88%;top:22%;background:#00BCD4;animation-duration:11s;animation-delay:1.2s"></span>
+    <span class="particle" style="width:3px;height:3px;left:25%;top:75%;background:#7C4DFF;animation-duration:7s;animation-delay:2.5s"></span>
+    <span class="particle" style="width:2px;height:2px;left:72%;top:68%;background:#1A73E8;animation-duration:14s;animation-delay:0.8s"></span>
+    <span class="particle" style="width:3px;height:3px;left:45%;top:12%;background:#00BCD4;animation-duration:10s;animation-delay:3s"></span>
+    <span class="particle" style="width:2px;height:2px;left:8%;top:55%;background:#7C4DFF;animation-duration:12s;animation-delay:1.5s"></span>
+    <span class="particle" style="width:3px;height:3px;left:92%;top:45%;background:#1A73E8;animation-duration:8s;animation-delay:0.3s"></span>
+    <span class="particle" style="width:2px;height:2px;left:55%;top:82%;background:#00BCD4;animation-duration:13s;animation-delay:2s"></span>
+    <span class="particle" style="width:3px;height:3px;left:35%;top:35%;background:#7C4DFF;animation-duration:9s;animation-delay:4s"></span>
+    <span class="particle" style="width:2px;height:2px;left:65%;top:28%;background:#1A73E8;animation-duration:11s;animation-delay:1s"></span>
+    <span class="particle" style="width:3px;height:3px;left:18%;top:88%;background:#00BCD4;animation-duration:7s;animation-delay:2.2s"></span>
+    <span class="particle" style="width:2px;height:2px;left:78%;top:8%;background:#7C4DFF;animation-duration:14s;animation-delay:0.5s"></span>
+    <span class="particle" style="width:3px;height:3px;left:5%;top:40%;background:#1A73E8;animation-duration:10s;animation-delay:3.2s"></span>
+    <span class="particle" style="width:2px;height:2px;left:95%;top:78%;background:#00BCD4;animation-duration:12s;animation-delay:1.8s"></span>
+    <span class="particle" style="width:3px;height:3px;left:50%;top:50%;background:#7C4DFF;animation-duration:8s;animation-delay:0.7s"></span>
   </div>
   <div class="slide-inner" style="z-index:1">
     <div class="title-emblem animate" style="animation:pulseEmblem 2s ease-in-out infinite">
@@ -2832,8 +2832,8 @@ body{
       <div class="stat"><span class="num" data-count-to="25">0</span><span class="lbl">AI Features</span></div>
     </div>
     <p class="lead animate a-d3">Questions?</p>
-    <div class="animate a-d4" style="display:flex;gap:12px;align-items:center">
-      <span class="title-version"><span class="icon" style="font-size:14px">play_circle</span>Live Demo Available</span>
+    <div class="animate a-d4" style="display:flex;gap:8px;align-items:center">
+      <span class="title-version"><span class="icon" style="font-size:9px">play_circle</span>Live Demo Available</span>
       <span class="tag tag-blue">February 2026</span>
     </div>
   </div>
@@ -2864,10 +2864,10 @@ body{
   var deck = document.getElementById('deck');
   function scaleDeck(){
     var sw = window.innerWidth, sh = window.innerHeight;
-    var scale = Math.min(sw / 1920, sh / 1080);
+    var scale = Math.min(sw / 1280, sh / 720);
     deck.style.transform = 'scale(' + scale + ')';
-    deck.style.left = ((sw - 1920 * scale) / 2) + 'px';
-    deck.style.top = ((sh - 1080 * scale) / 2) + 'px';
+    deck.style.left = ((sw - 1280 * scale) / 2) + 'px';
+    deck.style.top = ((sh - 720 * scale) / 2) + 'px';
   }
   scaleDeck();
   window.addEventListener('resize', scaleDeck);
