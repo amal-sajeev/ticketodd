@@ -1,0 +1,118 @@
+<div class="slide" data-slide="10" data-transition="zoom">
+  <div class="slide-inner">
+    <span class="tag tag-cyan animate a-d1">RAG Architecture</span>
+    <h2 class="animate a-d2">Knowledge-Augmented Resolution</h2>
+    <svg class="anim-trigger animate a-d1" viewBox="0 0 1600 360" width="100%" style="max-width:1600px">
+      <defs>
+        <filter id="ragGlow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="4" result="blur"/>
+          <feMerge>
+            <feMergeNode in="blur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+      <animate id="ragMaster" attributeName="opacity" from="1" to="1" dur="0.01s" fill="freeze" begin="indefinite"/>
+      <!-- Node 1: Incoming Grievance -->
+      <g opacity="0">
+        <animate attributeName="opacity" from="0" to="1" dur="0.4s" fill="freeze" begin="ragMaster.begin"/>
+        <rect x="20" y="100" width="220" height="160" rx="12" fill="#1c2333" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+        <text x="130" y="135" text-anchor="middle" font-family="'Material Symbols Outlined'" font-size="28" fill="#e6edf3">description</text>
+        <text x="130" y="165" text-anchor="middle" font-size="14" font-weight="600" fill="#e6edf3">Incoming Grievance</text>
+        <text x="130" y="185" text-anchor="middle" font-size="12" fill="#8b949e">Text + Context</text>
+      </g>
+      <!-- Arrow 1->2 -->
+      <path d="M 240 180 L 380 180" stroke="rgba(255,255,255,0.3)" stroke-width="2" stroke-dasharray="8 4" fill="none">
+        <animate attributeName="stroke-dashoffset" from="200" to="0" dur="0.5s" fill="freeze" begin="ragMaster.begin+0.3s"/>
+      </path>
+      <circle r="3" fill="#4da3ff">
+        <animateMotion dur="0.8s" path="M 240 180 L 380 180" begin="ragMaster.begin+0.3s" repeatCount="indefinite"/>
+      </circle>
+      <!-- Node 2: Embedding -->
+      <g opacity="0">
+        <animate attributeName="opacity" from="0" to="1" dur="0.4s" fill="freeze" begin="ragMaster.begin+0.4s"/>
+        <rect x="380" y="115" width="200" height="130" rx="12" fill="#1c2333" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+        <text x="480" y="155" text-anchor="middle" font-family="'Material Symbols Outlined'" font-size="28" fill="#e6edf3">token</text>
+        <text x="480" y="185" text-anchor="middle" font-size="14" font-weight="600" fill="#e6edf3">Embedding</text>
+        <text x="480" y="205" text-anchor="middle" font-size="12" fill="#8b949e">3072-dim vector</text>
+      </g>
+      <!-- Arrows 2->3 (split to 3) -->
+      <path d="M 580 150 L 640 60" stroke="rgba(255,255,255,0.3)" stroke-width="2" stroke-dasharray="8 4" fill="none">
+        <animate attributeName="stroke-dashoffset" from="150" to="0" dur="0.4s" fill="freeze" begin="ragMaster.begin+0.8s"/>
+      </path>
+      <path d="M 580 180 L 640 160" stroke="rgba(255,255,255,0.3)" stroke-width="2" stroke-dasharray="8 4" fill="none">
+        <animate attributeName="stroke-dashoffset" from="150" to="0" dur="0.4s" fill="freeze" begin="ragMaster.begin+0.9s"/>
+      </path>
+      <path d="M 580 210 L 640 260" stroke="rgba(255,255,255,0.3)" stroke-width="2" stroke-dasharray="8 4" fill="none">
+        <animate attributeName="stroke-dashoffset" from="150" to="0" dur="0.4s" fill="freeze" begin="ragMaster.begin+1.0s"/>
+      </path>
+      <!-- Node 3a: Documentation -->
+      <g opacity="0">
+        <animate attributeName="opacity" from="0" to="1" dur="0.3s" fill="freeze" begin="ragMaster.begin+1.0s"/>
+        <line x1="643" y1="20" x2="643" y2="100" stroke="#1A73E8" stroke-width="3"/><rect x="643" y="20" width="217" height="80" rx="10" fill="#1c2333" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+        <text x="750" y="55" text-anchor="middle" font-size="14" font-weight="600" fill="#e6edf3">Documentation</text>
+        <text x="750" y="75" text-anchor="middle" font-size="12" fill="#8b949e">15 docs</text>
+      </g>
+      <!-- Node 3b: Service Memory -->
+      <g opacity="0">
+        <animate attributeName="opacity" from="0" to="1" dur="0.3s" fill="freeze" begin="ragMaster.begin+1.3s"/>
+        <line x1="643" y1="120" x2="643" y2="200" stroke="#00BCD4" stroke-width="3"/><rect x="643" y="120" width="217" height="80" rx="10" fill="#1c2333" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+        <text x="750" y="155" text-anchor="middle" font-size="14" font-weight="600" fill="#e6edf3">Service Memory</text>
+        <text x="750" y="175" text-anchor="middle" font-size="12" fill="#8b949e">16 past cases</text>
+      </g>
+      <!-- Node 3c: Schemes -->
+      <g opacity="0">
+        <animate attributeName="opacity" from="0" to="1" dur="0.3s" fill="freeze" begin="ragMaster.begin+1.6s"/>
+        <line x1="643" y1="220" x2="643" y2="300" stroke="#7C4DFF" stroke-width="3"/><rect x="643" y="220" width="217" height="80" rx="10" fill="#1c2333" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+        <text x="750" y="255" text-anchor="middle" font-size="14" font-weight="600" fill="#e6edf3">Schemes</text>
+        <text x="750" y="275" text-anchor="middle" font-size="12" fill="#8b949e">12 schemes</text>
+      </g>
+      <!-- Arrows 3->4 (merge) -->
+      <path d="M 860 160 L 920 180" stroke="rgba(255,255,255,0.3)" stroke-width="2" stroke-dasharray="8 4" fill="none">
+        <animate attributeName="stroke-dashoffset" from="150" to="0" dur="0.4s" fill="freeze" begin="ragMaster.begin+1.5s"/>
+      </path>
+      <!-- Node 4: RAG Context -->
+      <g opacity="0">
+        <animate attributeName="opacity" from="0" to="1" dur="0.4s" fill="freeze" begin="ragMaster.begin+1.8s"/>
+        <rect x="920" y="115" width="180" height="130" rx="12" fill="#1c2333" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+        <text x="1010" y="155" text-anchor="middle" font-family="'Material Symbols Outlined'" font-size="28" fill="#e6edf3">layers</text>
+        <text x="1010" y="185" text-anchor="middle" font-size="14" font-weight="600" fill="#e6edf3">RAG Context</text>
+      </g>
+      <!-- Arrow 4->5 -->
+      <path d="M 1100 180 L 1140 180" stroke="rgba(255,255,255,0.3)" stroke-width="2" stroke-dasharray="8 4" fill="none">
+        <animate attributeName="stroke-dashoffset" from="100" to="0" dur="0.4s" fill="freeze" begin="ragMaster.begin+2.0s"/>
+      </path>
+      <circle r="3" fill="#4da3ff">
+        <animateMotion dur="0.6s" path="M 1100 180 L 1140 180" begin="ragMaster.begin+2.0s" repeatCount="indefinite"/>
+      </circle>
+      <!-- Node 5: GPT-5 -->
+      <g opacity="0">
+        <animate attributeName="opacity" from="0" to="1" dur="0.4s" fill="freeze" begin="ragMaster.begin+2.0s"/>
+        <rect x="1140" y="100" width="200" height="160" rx="16" fill="#1c2333" stroke="rgba(26,115,232,0.4)" stroke-width="1" filter="url(#ragGlow)"/>
+        <text x="1240" y="155" text-anchor="middle" font-family="'Material Symbols Outlined'" font-size="40" fill="#4da3ff">psychology</text>
+        <text x="1240" y="195" text-anchor="middle" font-size="16" font-weight="600" fill="#e6edf3">GPT-5</text>
+      </g>
+      <!-- Arrow 5->6 -->
+      <path d="M 1340 180 L 1400 180" stroke="rgba(255,255,255,0.3)" stroke-width="2" stroke-dasharray="8 4" fill="none">
+        <animate attributeName="stroke-dashoffset" from="100" to="0" dur="0.4s" fill="freeze" begin="ragMaster.begin+2.2s"/>
+      </path>
+      <circle r="3" fill="#4da3ff">
+        <animateMotion dur="0.6s" path="M 1340 180 L 1400 180" begin="ragMaster.begin+2.2s" repeatCount="indefinite"/>
+      </circle>
+      <!-- Node 6: Draft Resolution -->
+      <g opacity="0">
+        <animate attributeName="opacity" from="0" to="1" dur="0.4s" fill="freeze" begin="ragMaster.begin+2.4s"/>
+        <line x1="1403" y1="115" x2="1403" y2="245" stroke="#1E8E3E" stroke-width="3"/><rect x="1403" y="115" width="177" height="130" rx="12" fill="#1c2333" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+        <text x="1490" y="155" text-anchor="middle" font-family="'Material Symbols Outlined'" font-size="28" fill="#69f0ae">task_alt</text>
+        <text x="1490" y="185" text-anchor="middle" font-size="14" font-weight="600" fill="#e6edf3">Draft Resolution</text>
+      </g>
+    </svg>
+    <div class="mockup-frame animate a-d2" style="max-width:700px;margin:0 auto;margin-top:16px">
+      <div class="m-ai-box">
+        <div class="m-ai-header"><span class="icon">auto_awesome</span> AI-Generated Resolution</div>
+        <p>1. Contact Rural Water Supply office at Ward 7, Puri. 2. Provide GRV-2026-000042 reference. 3. Request expedited inspection. Expected resolution: 5&ndash;7 days.</p>
+        <span class="m-btn m-btn-primary">Approve Draft</span>
+      </div>
+    </div>
+  </div>
+</div>

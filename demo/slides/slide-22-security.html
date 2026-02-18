@@ -1,0 +1,105 @@
+<div class="slide" data-slide="21">
+  <div class="slide-inner" style="flex-direction:row;text-align:left;gap:48px">
+    <div style="flex:0 0 480px;display:flex;flex-direction:column;align-items:center;gap:16px">
+      <span class="tag tag-green animate">Security</span>
+      <h2 class="animate a-d1" style="font-size:28px">Defense in Depth</h2>
+      <svg class="anim-trigger animate a-d2" viewBox="0 0 420 420" width="400">
+        <!-- Arc 1 - Security Headers -->
+        <g opacity="0">
+          <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="0.3s" fill="freeze"/>
+          <circle cx="210" cy="210" r="190" fill="none" stroke="rgba(26,115,232,.3)" stroke-width="12" stroke-dasharray="320 80" transform="rotate(-30 210 210)"/>
+          <g transform="translate(350 120)">
+            <text text-anchor="middle" font-size="10" font-weight="700" fill="#4da3ff">Security Headers</text>
+            <text y="14" text-anchor="middle" font-size="8" fill="#8b949e">CSP &middot; X-Frame &middot; XSS</text>
+          </g>
+        </g>
+        <!-- Arc 2 - Rate Limiting -->
+        <g opacity="0">
+          <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="0.6s" fill="freeze"/>
+          <circle cx="210" cy="210" r="160" fill="none" stroke="rgba(0,188,212,.3)" stroke-width="12" stroke-dasharray="260 80" transform="rotate(20 210 210)"/>
+          <g transform="translate(320 80)">
+            <text text-anchor="middle" font-size="10" font-weight="700" fill="#4dd0e1">Rate Limiting</text>
+            <text y="14" text-anchor="middle" font-size="8" fill="#8b949e">SlowAPI</text>
+          </g>
+        </g>
+        <!-- Arc 3 - Authentication -->
+        <g opacity="0">
+          <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="0.9s" fill="freeze"/>
+          <circle cx="210" cy="210" r="130" fill="none" stroke="rgba(124,77,255,.3)" stroke-width="12" stroke-dasharray="220 80" transform="rotate(-10 210 210)"/>
+          <g transform="translate(300 100)">
+            <text text-anchor="middle" font-size="10" font-weight="700" fill="#b388ff">Authentication</text>
+            <text y="14" text-anchor="middle" font-size="8" fill="#8b949e">JWT &middot; bcrypt</text>
+          </g>
+        </g>
+        <!-- Arc 4 - Biometric -->
+        <g opacity="0">
+          <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="1.2s" fill="freeze"/>
+          <circle cx="210" cy="210" r="100" fill="none" stroke="rgba(30,142,62,.3)" stroke-width="12" stroke-dasharray="180 80" transform="rotate(40 210 210)"/>
+          <g transform="translate(280 140)">
+            <text text-anchor="middle" font-size="10" font-weight="700" fill="#69f0ae">Biometric</text>
+            <text y="14" text-anchor="middle" font-size="8" fill="#8b949e">face-api.js</text>
+          </g>
+        </g>
+        <!-- Arc 5 - Data Safety -->
+        <g opacity="0">
+          <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="1.5s" fill="freeze"/>
+          <circle cx="210" cy="210" r="70" fill="none" stroke="rgba(227,116,0,.3)" stroke-width="12" stroke-dasharray="140 80" transform="rotate(-20 210 210)"/>
+          <g transform="translate(250 170)">
+            <text text-anchor="middle" font-size="10" font-weight="700" fill="#ffb74d">Data Safety</text>
+            <text y="14" text-anchor="middle" font-size="8" fill="#8b949e">GridFS &middot; DOMPurify</text>
+          </g>
+        </g>
+        <!-- Center shield -->
+        <g opacity="0">
+          <animate attributeName="opacity" from="0" to="1" dur="0.4s" begin="1.8s" fill="freeze"/>
+          <text x="210" y="225" text-anchor="middle" font-family="'Material Symbols Outlined'" font-size="32" fill="#69f0ae">shield_with_heart</text>
+        </g>
+      </svg>
+    </div>
+    <div style="flex:1">
+      <h3 class="animate a-d1" style="font-size:20px">Tech Stack</h3>
+      <div class="animate a-d2" style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;gap:10px;align-items:center;padding:8px 14px;background:var(--surface-raised);border:1px solid var(--border);border-radius:8px">
+          <span class="icon" style="font-size:20px;color:#4da3ff">bolt</span>
+          <span style="font-size:12px;color:var(--text-muted);width:100px">Framework</span>
+          <span style="font-size:14px;font-weight:700;color:var(--text-primary)">FastAPI</span>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;padding:8px 14px;background:var(--surface-raised);border:1px solid var(--border);border-radius:8px">
+          <span class="icon" style="font-size:20px;color:#69f0ae">database</span>
+          <span style="font-size:12px;color:var(--text-muted);width:100px">Database</span>
+          <span style="font-size:14px;font-weight:700;color:var(--text-primary)">MongoDB + GridFS</span>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;padding:8px 14px;background:var(--surface-raised);border:1px solid var(--border);border-radius:8px">
+          <span class="icon" style="font-size:20px;color:#4dd0e1">search</span>
+          <span style="font-size:12px;color:var(--text-muted);width:100px">Vector DB</span>
+          <span style="font-size:14px;font-weight:700;color:var(--text-primary)">Qdrant</span>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;padding:8px 14px;background:var(--surface-raised);border:1px solid var(--border);border-radius:8px">
+          <span class="icon" style="font-size:20px;color:#b388ff">psychology</span>
+          <span style="font-size:12px;color:var(--text-muted);width:100px">AI</span>
+          <span style="font-size:14px;font-weight:700;color:var(--text-primary)">OpenAI GPT-5 + Embeddings</span>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;padding:8px 14px;background:var(--surface-raised);border:1px solid var(--border);border-radius:8px">
+          <span class="icon" style="font-size:20px;color:#ffb74d">lock</span>
+          <span style="font-size:12px;color:var(--text-muted);width:100px">Auth</span>
+          <span style="font-size:14px;font-weight:700;color:var(--text-primary)">JWT + bcrypt + face-api.js</span>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;padding:8px 14px;background:var(--surface-raised);border:1px solid var(--border);border-radius:8px">
+          <span class="icon" style="font-size:20px;color:#4da3ff">code</span>
+          <span style="font-size:12px;color:var(--text-muted);width:100px">Frontend</span>
+          <span style="font-size:14px;font-weight:700;color:var(--text-primary)">Jinja2 + Vanilla JS</span>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;padding:8px 14px;background:var(--surface-raised);border:1px solid var(--border);border-radius:8px">
+          <span class="icon" style="font-size:20px;color:#69f0ae">security</span>
+          <span style="font-size:12px;color:var(--text-muted);width:100px">Security</span>
+          <span style="font-size:14px;font-weight:700;color:var(--text-primary)">SlowAPI + CSP + DOMPurify</span>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;padding:8px 14px;background:var(--surface-raised);border:1px solid var(--border);border-radius:8px">
+          <span class="icon" style="font-size:20px;color:#ffb74d">cloud</span>
+          <span style="font-size:12px;color:var(--text-muted);width:100px">Weather</span>
+          <span style="font-size:14px;font-weight:700;color:var(--text-primary)">OpenWeatherMap API</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

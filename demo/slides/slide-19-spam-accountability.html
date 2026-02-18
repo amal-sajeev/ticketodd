@@ -1,0 +1,94 @@
+<div class="slide" data-slide="18">
+  <div class="slide-inner" style="flex-direction:row;text-align:left;gap:40px">
+    <div style="flex:1">
+      <span class="tag tag-orange animate a-d1">Anti-Fraud</span>
+      <h2 class="animate a-d1" style="font-size:28px">Spam Detection</h2>
+      <svg class="anim-trigger animate a-d1" viewBox="0 0 500 200" width="100%">
+        <defs>
+          <linearGradient id="spamGrad19" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#E37400"/><stop offset="1" stop-color="#D93025"/></linearGradient>
+        </defs>
+        <animate id="spamMaster" attributeName="opacity" from="1" to="1" dur="0.01s" fill="freeze" begin="indefinite"/>
+        <!-- Frequency -->
+        <rect x="10" y="75" width="80" height="50" rx="8" fill="#1c2333" stroke="var(--border)" stroke-width="1">
+          <animate attributeName="opacity" from="0" to="1" dur="0.3s" fill="freeze" begin="spamMaster.begin"/>
+        </rect>
+        <text x="50" y="55" text-anchor="middle" font-family="'Material Symbols Outlined'" font-size="12" fill="#8b949e">schedule</text>
+        <text x="50" y="102" text-anchor="middle" font-size="10" fill="#e6edf3">Frequency</text>
+        <line x1="90" y1="100" x2="105" y2="100" stroke="#4da3ff" stroke-width="1" stroke-dasharray="4 2">
+          <animate attributeName="stroke-dashoffset" from="30" to="0" dur="0.3s" fill="freeze" begin="spamMaster.begin+0.2s"/>
+        </line>
+        <!-- Duplicate -->
+        <rect x="110" y="75" width="80" height="50" rx="8" fill="#1c2333" stroke="var(--border)" stroke-width="1">
+          <animate attributeName="opacity" from="0" to="1" dur="0.3s" fill="freeze" begin="spamMaster.begin+0.2s"/>
+        </rect>
+        <text x="150" y="55" text-anchor="middle" font-family="'Material Symbols Outlined'" font-size="12" fill="#8b949e">content_copy</text>
+        <text x="150" y="102" text-anchor="middle" font-size="10" fill="#e6edf3">Duplicate</text>
+        <line x1="190" y1="100" x2="205" y2="100" stroke="#4da3ff" stroke-width="1" stroke-dasharray="4 2">
+          <animate attributeName="stroke-dashoffset" from="30" to="0" dur="0.3s" fill="freeze" begin="spamMaster.begin+0.4s"/>
+        </line>
+        <!-- Similarity -->
+        <rect x="210" y="75" width="80" height="50" rx="8" fill="#1c2333" stroke="var(--border)" stroke-width="1">
+          <animate attributeName="opacity" from="0" to="1" dur="0.3s" fill="freeze" begin="spamMaster.begin+0.4s"/>
+        </rect>
+        <text x="250" y="55" text-anchor="middle" font-family="'Material Symbols Outlined'" font-size="12" fill="#8b949e">compare</text>
+        <text x="250" y="102" text-anchor="middle" font-size="10" fill="#e6edf3">Similarity</text>
+        <line x1="290" y1="100" x2="305" y2="100" stroke="#4da3ff" stroke-width="1" stroke-dasharray="4 2">
+          <animate attributeName="stroke-dashoffset" from="30" to="0" dur="0.3s" fill="freeze" begin="spamMaster.begin+0.6s"/>
+        </line>
+        <!-- IP Check -->
+        <rect x="310" y="75" width="80" height="50" rx="8" fill="#1c2333" stroke="var(--border)" stroke-width="1">
+          <animate attributeName="opacity" from="0" to="1" dur="0.3s" fill="freeze" begin="spamMaster.begin+0.6s"/>
+        </rect>
+        <text x="350" y="55" text-anchor="middle" font-family="'Material Symbols Outlined'" font-size="12" fill="#8b949e">language</text>
+        <text x="350" y="102" text-anchor="middle" font-size="10" fill="#e6edf3">IP Check</text>
+        <line x1="390" y1="100" x2="405" y2="100" stroke="#4da3ff" stroke-width="1" stroke-dasharray="4 2">
+          <animate attributeName="stroke-dashoffset" from="30" to="0" dur="0.3s" fill="freeze" begin="spamMaster.begin+0.8s"/>
+        </line>
+        <!-- Score -->
+        <rect x="410" y="75" width="80" height="50" rx="8" fill="#1c2333" stroke="#D93025" stroke-width="1">
+          <animate attributeName="opacity" from="0" to="1" dur="0.3s" fill="freeze" begin="spamMaster.begin+0.8s"/>
+        </rect>
+        <text x="450" y="55" text-anchor="middle" font-family="'Material Symbols Outlined'" font-size="12" fill="#8b949e">shield</text>
+        <text x="450" y="102" text-anchor="middle" font-size="10" fill="#e6edf3">Score</text>
+        <rect x="418" y="115" width="64" height="4" rx="2" fill="#1c2333"/>
+        <rect x="418" y="115" width="50" height="4" rx="2" fill="url(#spamGrad19)">
+          <animate attributeName="width" from="0" to="50" dur="0.5s" fill="freeze" begin="spamMaster.begin+1s"/>
+        </rect>
+      </svg>
+      <div class="animate a-d2" style="background:var(--app-surface-dim);border-radius:10px;padding:14px;color:var(--app-on-surface);margin-top:12px;border:1px solid var(--app-outline-variant)">
+        <div class="m-badges" style="margin-bottom:8px">
+          <span class="m-badge" style="background:var(--app-error-container);color:#B91C1C">DUPLICATE</span>
+          <span class="m-badge" style="background:var(--app-warning-container);color:#B45309">RAPID</span>
+          <span class="m-badge" style="background:#FEF3E0;color:#E65100">SIMILAR</span>
+        </div>
+        <div class="m-gauge-track" style="margin-top:8px">
+          <div class="m-gauge-fill" style="width:78%;background:linear-gradient(90deg,#E37400,#D93025)"></div>
+        </div>
+        <div style="margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-size:10px;color:var(--app-on-surface-variant)">Photo ID: Pending Review</span>
+          <span class="m-btn m-btn-success">Approve</span>
+          <span class="m-btn" style="background:var(--app-error-container);color:#B91C1C">Reject</span>
+        </div>
+      </div>
+    </div>
+    <div style="flex:1">
+      <span class="tag tag-purple animate a-d1">Accountability</span>
+      <h2 class="animate a-d2" style="font-size:28px">Officer Anomalies</h2>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="anomaly-card anomaly-card.red animate a-d3">
+          <h4><span class="icon">warning</span> Rubber-Stamping</h4>
+          <p>15 grievances resolved in 20 minutes</p>
+        </div>
+        <div class="anomaly-card animate a-d4">
+          <h4><span class="icon">warning</span> Cherry-Picking</h4>
+          <p>90% of resolved cases were low-priority only</p>
+        </div>
+        <div class="anomaly-card animate a-d5">
+          <h4><span class="icon">warning</span> Generic Resolutions</h4>
+          <p>Avg 12 words per resolution &mdash; copy-paste detected</p>
+        </div>
+      </div>
+      <p class="animate a-d6" style="font-size:13px;color:var(--text-muted);margin-top:12px">Anomalies are auto-flagged for admin review and can be dismissed with justification</p>
+    </div>
+  </div>
+</div>

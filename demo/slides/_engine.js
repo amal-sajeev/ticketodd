@@ -3,10 +3,10 @@
   var deck = document.getElementById('deck');
   function scaleDeck(){
     var sw = window.innerWidth, sh = window.innerHeight;
-    var scale = Math.min(sw / 1280, sh / 720);
+    var scale = Math.min(sw / 1920, sh / 1080);
     deck.style.transform = 'scale(' + scale + ')';
-    deck.style.left = ((sw - 1280 * scale) / 2) + 'px';
-    deck.style.top = ((sh - 720 * scale) / 2) + 'px';
+    deck.style.left = ((sw - 1920 * scale) / 2) + 'px';
+    deck.style.top = ((sh - 1080 * scale) / 2) + 'px';
   }
   scaleDeck();
   window.addEventListener('resize', scaleDeck);

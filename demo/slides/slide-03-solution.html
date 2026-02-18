@@ -1,16 +1,15 @@
-<!-- SLIDE 3 — OUR SOLUTION -->
 <div class="slide" data-slide="2" data-transition="zoom">
   <div class="slide-inner">
-    <span class="tag tag-green animate">Our Solution</span>
-    <h2 class="animate a-d1"><span class="grad-text">PR&amp;DW Grievance Portal</span></h2>
-    <p class="lead animate a-d2">A unified, AI-powered platform where every grievance is intelligently classified, prioritized, and tracked from filing to resolution.</p>
-    <div class="stats animate a-d3">
-      <div class="stat"><span class="num grad-text" data-count-to="8">0</span><span class="lbl">Departments</span></div>
-      <div class="stat"><span class="num grad-text" data-count-to="30">0</span><span class="lbl">Districts</span></div>
-      <div class="stat"><span class="num grad-text" data-count-to="73">0</span><span class="lbl">API Endpoints</span></div>
-      <div class="stat"><span class="num grad-text" data-count-to="3">0</span><span class="lbl">User Roles</span></div>
+    <span class="tag tag-blue animate a-d1">The Solution</span>
+    <h2 class="animate a-d2">PR&amp;DW <span class="grad-text">Grievance Portal</span></h2>
+    <p class="lead animate a-d3">An AI-powered platform purpose-built for Odisha&apos;s Panchayati Raj &amp; Drinking Water Department</p>
+    <div class="stats animate a-d4">
+      <div class="stat"><span class="num" data-count-to="8">0</span><span class="lbl">Departments</span></div>
+      <div class="stat"><span class="num" data-count-to="30">0</span><span class="lbl">Districts</span></div>
+      <div class="stat"><span class="num" data-count-to="73">0</span><span class="lbl">API Endpoints</span></div>
+      <div class="stat"><span class="num" data-count-to="3">0</span><span class="lbl">User Roles</span></div>
     </div>
-    <div class="dept-badges animate a-d4">
+    <div class="dept-badges animate a-d5">
       <span class="dept-badge">Panchayati Raj</span>
       <span class="dept-badge">Rural Water Supply</span>
       <span class="dept-badge">MGNREGS</span>
@@ -20,5 +19,42 @@
       <span class="dept-badge">Infrastructure</span>
       <span class="dept-badge">General</span>
     </div>
+    <svg class="anim-trigger animate a-d6" viewBox="0 0 700 120" width="700" height="120" style="margin-top:20px">
+      <defs>
+        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="3" result="blur"/>
+          <feMerge>
+            <feMergeNode in="blur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+      <!-- Circle 1: Citizen -->
+      <circle cx="100" cy="50" r="36" fill="var(--surface-raised)" stroke="var(--border)" stroke-width="2"/>
+      <text x="100" y="56" text-anchor="middle" font-family="'Material Symbols Outlined'" font-size="28" fill="var(--primary-light)">person</text>
+      <text x="100" y="95" text-anchor="middle" font-size="14" fill="var(--text-secondary)">Citizen</text>
+      <!-- Arrow 1->2 -->
+      <path d="M 136 50 L 314 50" stroke="var(--border)" stroke-width="2" stroke-dasharray="8 4" fill="none">
+        <animate id="solMaster" attributeName="stroke-dashoffset" from="200" to="0" dur="0.6s" fill="freeze" begin="indefinite"/>
+      </path>
+      <circle r="4" fill="var(--primary)">
+        <animateMotion dur="1.2s" repeatCount="indefinite" path="M 136 50 L 314 50"/>
+      </circle>
+      <!-- Circle 2: AI Portal -->
+      <circle cx="350" cy="50" r="36" fill="var(--surface-raised)" stroke="var(--primary)" stroke-width="2" filter="url(#glow)"/>
+      <text x="350" y="56" text-anchor="middle" font-family="'Material Symbols Outlined'" font-size="28" fill="var(--primary-light)">auto_awesome</text>
+      <text x="350" y="95" text-anchor="middle" font-size="14" fill="var(--text-secondary)">AI Portal</text>
+      <!-- Arrow 2->3 -->
+      <path d="M 386 50 L 564 50" stroke="var(--border)" stroke-width="2" stroke-dasharray="8 4" fill="none">
+        <animate attributeName="stroke-dashoffset" from="200" to="0" dur="0.6s" fill="freeze" begin="solMaster.begin"/>
+      </path>
+      <circle r="4" fill="var(--primary)">
+        <animateMotion dur="1.2s" repeatCount="indefinite" path="M 386 50 L 564 50" begin="solMaster.begin+0.3s"/>
+      </circle>
+      <!-- Circle 3: Resolution -->
+      <circle cx="600" cy="50" r="36" fill="var(--surface-raised)" stroke="var(--border)" stroke-width="2"/>
+      <text x="600" y="56" text-anchor="middle" font-family="'Material Symbols Outlined'" font-size="28" fill="#69f0ae">check_circle</text>
+      <text x="600" y="95" text-anchor="middle" font-size="14" fill="var(--text-secondary)">Resolution</text>
+    </svg>
   </div>
 </div>

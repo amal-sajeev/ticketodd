@@ -1,0 +1,104 @@
+<div class="slide" data-slide="16">
+  <div class="slide-inner" style="flex-direction:row;text-align:left;gap:48px">
+    <div style="flex:1" class="animate">
+      <span class="tag tag-cyan">Cross-Department</span>
+      <h2 style="font-size:32px">Sub-Task Decomposition &amp; SLA</h2>
+      <svg class="anim-trigger" viewBox="0 0 560 420" width="100%">
+        <animate id="slaTreeMaster" attributeName="opacity" from="1" to="1" dur="0.01s" fill="freeze" begin="indefinite"/>
+        <!-- Primary grievance node -->
+        <g>
+          <animate attributeName="opacity" from="0" to="1" dur="0.4s" fill="freeze" begin="slaTreeMaster.begin"/>
+          <rect x="140" y="10" width="280" height="60" rx="12" fill="#1c2333" stroke="rgba(255,255,255,.08)" stroke-width="1"/>
+          <text x="280" y="45" text-anchor="middle" font-size="13" font-weight="bold" fill="#e6edf3">Water &amp; Road Damage &mdash; Puri</text>
+        </g>
+        <!-- Arrow to sub-task 1 -->
+        <line x1="280" y1="70" x2="95" y2="140" stroke="#4da3ff" stroke-width="1.5" stroke-dasharray="6 3" fill="none">
+          <animate attributeName="stroke-dashoffset" from="150" to="0" dur="0.4s" fill="freeze" begin="slaTreeMaster.begin+0.5s"/>
+        </line>
+        <!-- Arrow to sub-task 2 -->
+        <line x1="280" y1="70" x2="280" y2="260" stroke="#4da3ff" stroke-width="1.5" stroke-dasharray="6 3" fill="none">
+          <animate attributeName="stroke-dashoffset" from="150" to="0" dur="0.4s" fill="freeze" begin="slaTreeMaster.begin+0.7s"/>
+        </line>
+        <!-- Arrow to sub-task 3 -->
+        <line x1="280" y1="70" x2="465" y2="140" stroke="#4da3ff" stroke-width="1.5" stroke-dasharray="6 3" fill="none">
+          <animate attributeName="stroke-dashoffset" from="150" to="0" dur="0.4s" fill="freeze" begin="slaTreeMaster.begin+0.9s"/>
+        </line>
+        <!-- Sub-task 1 -->
+        <g>
+          <animate attributeName="opacity" from="0" to="1" dur="0.3s" fill="freeze" begin="slaTreeMaster.begin+0.6s"/>
+          <rect x="10" y="140" width="170" height="90" rx="10" fill="#1c2333" stroke="rgba(26,115,232,.3)" stroke-width="1"/>
+          <rect x="10" y="140" width="3" height="90" fill="#1A73E8"/>
+          <text x="96" y="165" text-anchor="middle" font-size="11" font-weight="bold" fill="#e6edf3">Water Supply Restoration</text>
+          <text x="96" y="182" text-anchor="middle" font-size="9" fill="#8b949e">BDO Sharma</text>
+          <circle cx="165" cy="155" r="5" fill="#1E8E3E"/>
+        </g>
+        <!-- Sub-task 2 -->
+        <g>
+          <animate attributeName="opacity" from="0" to="1" dur="0.3s" fill="freeze" begin="slaTreeMaster.begin+0.8s"/>
+          <rect x="195" y="260" width="170" height="90" rx="10" fill="#1c2333" stroke="rgba(0,188,212,.3)" stroke-width="1"/>
+          <rect x="195" y="260" width="3" height="90" fill="#00BCD4"/>
+          <text x="280" y="285" text-anchor="middle" font-size="11" font-weight="bold" fill="#e6edf3">Road Repair Assessment</text>
+          <text x="280" y="302" text-anchor="middle" font-size="9" fill="#8b949e">JE Patel</text>
+          <circle cx="350" cy="275" r="5" fill="#E37400"/>
+        </g>
+        <!-- Sub-task 3 -->
+        <g>
+          <animate attributeName="opacity" from="0" to="1" dur="0.3s" fill="freeze" begin="slaTreeMaster.begin+1.0s"/>
+          <rect x="380" y="140" width="170" height="90" rx="10" fill="#1c2333" stroke="rgba(124,77,255,.3)" stroke-width="1"/>
+          <rect x="380" y="140" width="3" height="90" fill="#7C4DFF"/>
+          <text x="465" y="165" text-anchor="middle" font-size="11" font-weight="bold" fill="#e6edf3">Sanitation Check</text>
+          <text x="465" y="182" text-anchor="middle" font-size="9" fill="#8b949e">Unassigned</text>
+          <circle cx="535" cy="155" r="5" fill="#6e7681"/>
+        </g>
+        <!-- Dependency arrow sub-task 1 -> sub-task 2 -->
+        <g>
+          <path d="M 95 230 Q 187 245 280 260" stroke="rgba(255,255,255,.2)" stroke-width="1" stroke-dasharray="4 3" fill="none">
+            <animate attributeName="stroke-dashoffset" from="100" to="0" dur="0.3s" fill="freeze" begin="slaTreeMaster.begin+1.3s"/>
+          </path>
+          <text x="187" y="248" text-anchor="middle" font-size="8" fill="#6e7681">blocked by</text>
+        </g>
+      </svg>
+    </div>
+    <div style="flex:0 0 480px;display:flex;flex-direction:column;gap:20px">
+      <div class="animate a-d1" style="font-size:16px;font-weight:600;color:var(--text-primary)">SLA Deadlines by Priority</div>
+      <table class="tech-table animate a-d2">
+        <thead>
+          <tr><th>Priority</th><th>Deadline</th></tr>
+        </thead>
+        <tbody>
+          <tr><td style="border-left:3px solid #D93025">Urgent</td><td>24 hours</td></tr>
+          <tr><td style="border-left:3px solid #E37400">High</td><td>72 hours</td></tr>
+          <tr><td style="border-left:3px solid #1A73E8">Medium</td><td>168 hours (7 days)</td></tr>
+          <tr><td style="border-left:3px solid #1E8E3E">Low</td><td>360 hours (15 days)</td></tr>
+        </tbody>
+      </table>
+      <svg class="anim-trigger animate a-d3" viewBox="0 0 450 80" width="100%">
+        <defs>
+          <marker id="slaArrow17" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><polygon points="0 0, 6 3, 0 6" fill="#6e7681"/></marker>
+        </defs>
+        <animate id="timelineMaster" attributeName="opacity" from="1" to="1" dur="0.01s" fill="freeze" begin="indefinite"/>
+        <rect x="25" y="40" width="100" height="12" rx="4" fill="#1E8E3E">
+          <animate attributeName="opacity" from="0" to="1" dur="0.3s" fill="freeze" begin="timelineMaster.begin+0.3s"/>
+        </rect>
+        <rect x="125" y="40" width="100" height="12" rx="0" fill="#E37400">
+          <animate attributeName="opacity" from="0" to="1" dur="0.3s" fill="freeze" begin="timelineMaster.begin+0.7s"/>
+        </rect>
+        <rect x="225" y="40" width="100" height="12" rx="0" fill="#D93025">
+          <animate attributeName="opacity" from="0" to="1" dur="0.3s" fill="freeze" begin="timelineMaster.begin+1.1s"/>
+        </rect>
+        <rect x="325" y="40" width="75" height="12" rx="4" fill="#B91C1C">
+          <animate attributeName="opacity" values="1;0.5;1" dur="1.2s" repeatCount="indefinite" begin="timelineMaster.begin+1.5s"/>
+        </rect>
+        <text x="75" y="32" text-anchor="middle" font-size="9" fill="#8b949e">Safe</text>
+        <text x="175" y="32" text-anchor="middle" font-size="9" fill="#8b949e">Warning</text>
+        <text x="275" y="32" text-anchor="middle" font-size="9" fill="#8b949e">Critical</text>
+        <text x="362" y="32" text-anchor="middle" font-size="9" fill="#8b949e">Breach</text>
+        <g>
+          <animate attributeName="opacity" values="1;0.5;1" dur="1.2s" repeatCount="indefinite" begin="timelineMaster.begin+1.5s"/>
+          <text x="420" y="45" font-family="'Material Symbols Outlined'" font-size="18" fill="#D93025">notifications</text>
+        </g>
+        <path d="M 200 65 L 250 65" stroke="#6e7681" stroke-width="1" fill="none" marker-end="url(#slaArrow17)"/>
+      </svg>
+    </div>
+  </div>
+</div>

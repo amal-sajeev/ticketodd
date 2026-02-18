@@ -60,7 +60,7 @@ def main():
 </head>
 <body>
 
-<!-- ===== SLIDE DECK (1280x720) ===== -->
+<!-- ===== SLIDE DECK (1920x1080) ===== -->
 <div class="deck" id="deck">
 
 <!-- ===== PROGRESS BAR ===== -->

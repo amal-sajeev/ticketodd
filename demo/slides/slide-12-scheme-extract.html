@@ -1,0 +1,99 @@
+<div class="slide" data-slide="11">
+  <div class="slide-inner" style="flex-direction:row;text-align:left;gap:40px">
+    <div style="flex:1">
+      <span class="tag tag-green animate a-d1">Knowledge Engine</span>
+      <h2 class="animate a-d2" style="font-size:32px">Scheme Matching &amp; Smart Extract</h2>
+      <svg class="anim-trigger animate a-d2" viewBox="0 0 600 400" width="100%" style="max-width:600px;margin:16px 0">
+        <defs>
+          <filter id="visionGlow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <animate id="schemeMaster" attributeName="opacity" from="1" to="1" dur="0.01s" fill="freeze" begin="indefinite"/>
+        <!-- FLOW A: Grievance -> Scheme Vector Search -> Matched -->
+        <g opacity="0">
+          <animate attributeName="opacity" from="0" to="1" dur="0.4s" fill="freeze" begin="schemeMaster.begin"/>
+          <rect x="20" y="30" width="140" height="60" rx="10" fill="#1c2333" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+          <text x="90" y="55" text-anchor="middle" font-size="12" font-weight="600" fill="#e6edf3">Open Grievance</text>
+        </g>
+        <path d="M 160 60 L 220 60" stroke="#4da3ff" stroke-width="2" stroke-dasharray="8 4" fill="none">
+          <animate attributeName="stroke-dashoffset" from="100" to="0" dur="0.5s" fill="freeze" begin="schemeMaster.begin+0.3s"/>
+        </path>
+        <circle r="3" fill="#4da3ff"><animateMotion dur="0.8s" path="M 160 60 L 220 60" begin="schemeMaster.begin+0.3s" repeatCount="indefinite"/></circle>
+        <g opacity="0">
+          <animate attributeName="opacity" from="0" to="1" dur="0.4s" fill="freeze" begin="schemeMaster.begin+0.5s"/>
+          <rect x="220" y="30" width="160" height="60" rx="10" fill="#1c2333" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+          <text x="300" y="55" text-anchor="middle" font-size="12" font-weight="600" fill="#e6edf3">Scheme Vector Search</text>
+        </g>
+        <path d="M 380 60 L 440 60" stroke="#4da3ff" stroke-width="2" stroke-dasharray="8 4" fill="none">
+          <animate attributeName="stroke-dashoffset" from="100" to="0" dur="0.5s" fill="freeze" begin="schemeMaster.begin+0.8s"/>
+        </path>
+        <circle r="3" fill="#4da3ff"><animateMotion dur="0.8s" path="M 380 60 L 440 60" begin="schemeMaster.begin+0.8s" repeatCount="indefinite"/></circle>
+        <g opacity="0">
+          <animate attributeName="opacity" from="0" to="1" dur="0.4s" fill="freeze" begin="schemeMaster.begin+1.0s"/>
+          <rect x="440" y="35" width="150" height="50" rx="25" fill="#1E8E3E"/>
+          <text x="515" y="62" text-anchor="middle" font-size="11" font-weight="bold" fill="white">Matched: Jal Jeevan Mission</text>
+          <text x="515" y="78" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.9)">87% relevance</text>
+        </g>
+        <!-- FLOW B: PDF Upload -> GPT-4o Vision -> Extracted Metadata -->
+        <g opacity="0">
+          <animate attributeName="opacity" from="0" to="1" dur="0.4s" fill="freeze" begin="schemeMaster.begin+1.2s"/>
+          <rect x="20" y="230" width="140" height="70" rx="10" fill="#1c2333" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+          <text x="90" y="255" text-anchor="middle" font-family="'Material Symbols Outlined'" font-size="24" fill="#e6edf3">description</text>
+          <text x="90" y="280" text-anchor="middle" font-size="12" font-weight="600" fill="#e6edf3">PDF Upload</text>
+        </g>
+        <path d="M 160 265 L 220 265" stroke="#4da3ff" stroke-width="2" stroke-dasharray="8 4" fill="none">
+          <animate attributeName="stroke-dashoffset" from="100" to="0" dur="0.5s" fill="freeze" begin="schemeMaster.begin+1.5s"/>
+        </path>
+        <circle r="3" fill="#4da3ff"><animateMotion dur="0.8s" path="M 160 265 L 220 265" begin="schemeMaster.begin+1.5s" repeatCount="indefinite"/></circle>
+        <g opacity="0">
+          <animate attributeName="opacity" from="0" to="1" dur="0.4s" fill="freeze" begin="schemeMaster.begin+1.7s"/>
+          <rect x="220" y="235" width="140" height="60" rx="10" fill="#1c2333" stroke="rgba(26,115,232,0.3)" stroke-width="1" filter="url(#visionGlow)"/>
+          <text x="290" y="265" text-anchor="middle" font-size="12" font-weight="600" fill="#4da3ff">GPT-4o Vision</text>
+        </g>
+        <path d="M 360 265 L 420 265" stroke="#4da3ff" stroke-width="2" stroke-dasharray="8 4" fill="none">
+          <animate attributeName="stroke-dashoffset" from="100" to="0" dur="0.5s" fill="freeze" begin="schemeMaster.begin+2.0s"/>
+        </path>
+        <circle r="3" fill="#4da3ff"><animateMotion dur="0.8s" path="M 360 265 L 420 265" begin="schemeMaster.begin+2.0s" repeatCount="indefinite"/></circle>
+        <g opacity="0">
+          <animate attributeName="opacity" from="0" to="1" dur="0.4s" fill="freeze" begin="schemeMaster.begin+2.2s"/>
+          <rect x="420" y="220" width="170" height="110" rx="10" fill="#1c2333" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+          <text x="505" y="245" text-anchor="middle" font-size="12" font-weight="600" fill="#e6edf3">Extracted Metadata</text>
+          <text x="430" y="265" font-size="10" fill="#8b949e">name, eligibility, dept</text>
+        </g>
+      </svg>
+      <p class="animate a-d3">AI matches grievances to relevant schemes and extracts scheme data from documents</p>
+    </div>
+    <div class="mockup-animate" style="flex:0 0 550px">
+      <div class="mockup-frame" style="width:100%">
+        <div class="m-navbar">
+          <div class="m-logo"><span class="icon filled">account_balance</span> PR&amp;DW Portal</div>
+          <div class="m-nav-links">
+            <span>Dashboard</span><span>File</span><span>Track</span><span>Chatbot</span><span class="active">Knowledge</span>
+          </div>
+        </div>
+        <div class="m-tabs">
+          <span class="m-tab">Documentation</span>
+          <span class="m-tab">Service Memory</span>
+          <span class="m-tab active">Schemes</span>
+        </div>
+        <div class="m-upload-zone">
+          <span class="icon">upload_file</span>
+          Drop PDF, DOCX, or Image
+          <div style="font-size:9px;margin-top:2px">Smart Extract powered by GPT-4o Vision</div>
+        </div>
+        <div class="m-section-header"><h3>Extracted Scheme</h3></div>
+        <div class="m-grievance-card" style="margin:4px 12px;border-left-color:var(--app-primary)">
+          <h4>Jal Jeevan Mission</h4>
+          <div class="m-detail-row"><span class="m-label">Dept:</span><span class="m-value">Rural Water Supply</span></div>
+          <div class="m-detail-row"><span class="m-label">Eligibility:</span><span class="m-value">&quot;Rural households without tap water&quot;</span></div>
+          <div style="font-size:10px;font-weight:600;color:var(--app-on-surface);margin-top:8px">AI-Generated Questions:</div>
+          <div style="font-size:9px;color:var(--app-on-surface-variant);margin-top:4px">Is the household in a rural area? <span class="m-badge m-badge-dept" style="font-size:7px">Yes</span></div>
+          <div style="font-size:9px;color:var(--app-on-surface-variant);margin-top:2px">Does the household lack piped water? <span class="m-badge m-badge-dept" style="font-size:7px">Yes</span></div>
+          <div style="font-size:9px;color:var(--app-on-surface-variant);margin-top:2px">Is the applicant a BPL cardholder? <span class="m-badge m-badge-dept" style="font-size:7px">No</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

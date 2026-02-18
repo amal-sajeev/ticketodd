@@ -1,6 +1,6 @@
 /* ==========================================================================
    PR&DW Grievance Portal — Presentation Base Styles
-   1280x720 fixed-frame design
+   1920x1080 fixed-frame design
    ========================================================================== */
 
 /* --- Reset --- */
@@ -60,12 +60,12 @@ body{
 .icon.filled{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
 
 /* ==========================================================================
-   Deck & Slides — 1280x720 fixed frame
+   Deck & Slides — 1920x1080 fixed frame
    ========================================================================== */
 .deck{
   position:absolute;
   top:0;left:0;
-  width:1280px;height:720px;
+  width:1920px;height:1080px;
   overflow:hidden;
   background:var(--surface);
   border-radius:8px;
@@ -74,18 +74,18 @@ body{
 }
 .slide{
   position:absolute;
-  width:1280px;height:720px;
+  width:1920px;height:1080px;
   overflow:hidden;
-  padding:48px 64px 56px;
+  padding:60px 80px 72px;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   opacity:0;pointer-events:none;z-index:0;
   will-change:transform,opacity;
 }
 .slide.active{opacity:1;pointer-events:auto;z-index:2}
 .slide-inner{
-  width:100%;max-width:1152px;height:100%;
+  width:100%;max-width:1760px;height:100%;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  text-align:center;gap:20px;
+  text-align:center;gap:24px;
   position:relative;
   overflow:hidden;
 }
@@ -135,16 +135,16 @@ body{
 .nav-btn .icon{font-size:18px}
 
 /* ==========================================================================
-   Typography (px-based for 1280x720)
+   Typography (px-based for 1920x1080)
    ========================================================================== */
-.slide h1{font-size:44px;font-weight:800;line-height:1.12;letter-spacing:-.5px}
-.slide h2{font-size:32px;font-weight:700;line-height:1.2;letter-spacing:-.3px}
-.slide h3{font-size:18px;font-weight:600;line-height:1.3}
-.slide p,.slide li{font-size:15px;line-height:1.6;color:var(--text-secondary)}
-.slide .lead{font-size:17px;color:var(--text-secondary);max-width:700px}
+.slide h1{font-size:56px;font-weight:800;line-height:1.12;letter-spacing:-.5px}
+.slide h2{font-size:40px;font-weight:700;line-height:1.2;letter-spacing:-.3px}
+.slide h3{font-size:22px;font-weight:600;line-height:1.3}
+.slide p,.slide li{font-size:18px;line-height:1.6;color:var(--text-secondary)}
+.slide .lead{font-size:21px;color:var(--text-secondary);max-width:900px}
 
 /* --- Tags --- */
-.tag{display:inline-block;padding:4px 14px;border-radius:100px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.tag{display:inline-block;padding:6px 18px;border-radius:100px;font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
 .tag-blue{background:rgba(26,115,232,.15);color:var(--primary-light)}
 .tag-cyan{background:rgba(0,188,212,.12);color:#4dd0e1}
 .tag-purple{background:rgba(124,77,255,.12);color:#b388ff}
@@ -157,14 +157,14 @@ body{
 /* ==========================================================================
    Card Grid
    ========================================================================== */
-.cards{display:grid;gap:16px;width:100%;text-align:left}
+.cards{display:grid;gap:20px;width:100%;text-align:left}
 .cards-2{grid-template-columns:1fr 1fr}
 .cards-3{grid-template-columns:1fr 1fr 1fr}
 .cards-4{grid-template-columns:1fr 1fr 1fr 1fr}
 .card{
   background:var(--surface-raised);border:1px solid var(--border);
-  border-radius:var(--radius);padding:20px;
-  display:flex;flex-direction:column;gap:8px;
+  border-radius:var(--radius);padding:24px;
+  display:flex;flex-direction:column;gap:10px;
   transition:border-color .25s,box-shadow .25s;
 }
 .card:hover{border-color:rgba(26,115,232,.25);box-shadow:var(--shadow-glow)}
@@ -180,36 +180,36 @@ body{
 .card-icon-green{background:rgba(30,142,62,.12);color:#69f0ae}
 .card-icon-orange{background:rgba(227,116,0,.12);color:#ffb74d}
 .card-icon-red{background:rgba(217,48,37,.12);color:#ef9a9a}
-.card h3{font-size:15px;color:var(--text-primary)}
-.card p{font-size:13px;line-height:1.55;color:var(--text-secondary)}
+.card h3{font-size:17px;color:var(--text-primary)}
+.card p{font-size:15px;line-height:1.55;color:var(--text-secondary)}
 
 /* ==========================================================================
    Split Layout
    ========================================================================== */
-.split{display:flex;gap:40px;align-items:center;width:100%;text-align:left}
+.split{display:flex;gap:48px;align-items:center;width:100%;text-align:left}
 .split-text{flex:1;display:flex;flex-direction:column;gap:14px}
 .split-visual{flex:0 0 auto;display:flex;align-items:center;justify-content:center}
 
 /* ==========================================================================
    Feature List
    ========================================================================== */
-.feature-list{list-style:none;text-align:left;display:flex;flex-direction:column;gap:10px}
-.feature-list li{display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--text-secondary)}
-.feature-list .icon{color:var(--primary-light);font-size:20px;flex-shrink:0;margin-top:1px}
+.feature-list{list-style:none;text-align:left;display:flex;flex-direction:column;gap:12px}
+.feature-list li{display:flex;align-items:flex-start;gap:12px;font-size:16px;color:var(--text-secondary)}
+.feature-list .icon{color:var(--primary-light);font-size:22px;flex-shrink:0;margin-top:2px}
 
 /* ==========================================================================
    Stats
    ========================================================================== */
-.stats{display:flex;gap:40px;justify-content:center;flex-wrap:wrap}
+.stats{display:flex;gap:56px;justify-content:center;flex-wrap:wrap}
 .stat{display:flex;flex-direction:column;align-items:center;gap:2px}
-.stat .num{font-size:42px;font-weight:800}
-.stat .lbl{font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
+.stat .num{font-size:54px;font-weight:800}
+.stat .lbl{font-size:14px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
 
 /* ==========================================================================
    Department Badges
    ========================================================================== */
-.dept-badges{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:900px}
-.dept-badge{padding:5px 12px;border-radius:100px;font-size:12px;font-weight:500;background:var(--surface-raised);border:1px solid var(--border);color:var(--text-secondary)}
+.dept-badges{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;max-width:1200px}
+.dept-badge{padding:6px 16px;border-radius:100px;font-size:14px;font-weight:500;background:var(--surface-raised);border:1px solid var(--border);color:var(--text-secondary)}
 
 /* ==========================================================================
    Flow Diagram (non-SVG fallback elements)
@@ -258,13 +258,13 @@ body{
    Title Slide Specials
    ========================================================================== */
 .title-emblem{
-  width:72px;height:72px;border-radius:50%;
+  width:88px;height:88px;border-radius:50%;
   background:var(--gradient-hero);
   display:flex;align-items:center;justify-content:center;
-  box-shadow:0 0 40px var(--primary-glow);
+  box-shadow:0 0 50px var(--primary-glow);
 }
-.title-emblem .icon{font-size:38px;color:#fff}
-.title-dept{font-size:13px;font-weight:500;color:var(--text-muted);letter-spacing:.06em;text-transform:uppercase}
+.title-emblem .icon{font-size:46px;color:#fff}
+.title-dept{font-size:15px;font-weight:500;color:var(--text-muted);letter-spacing:.06em;text-transform:uppercase}
 .title-version{
   display:inline-flex;align-items:center;gap:5px;
   padding:5px 14px;border-radius:100px;
@@ -527,3 +527,198 @@ body{
 
 /* Pulse animation (used for SLA breach badges etc.) */
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+/* ==========================================================================
+   Chat Bubble Mockup Components
+   ========================================================================== */
+.m-chat-area{padding:10px 16px;display:flex;flex-direction:column;gap:8px;min-height:200px}
+.m-chat-bubble{
+  max-width:70%;padding:10px 14px;border-radius:12px;
+  font-size:11px;line-height:1.5;position:relative;
+}
+.m-chat-bubble.user{
+  align-self:flex-end;
+  background:var(--app-primary);color:#fff;
+  border-bottom-right-radius:4px;
+}
+.m-chat-bubble.bot{
+  align-self:flex-start;
+  background:var(--app-surface);color:var(--app-on-surface);
+  border:1px solid var(--app-outline-variant);
+  border-bottom-left-radius:4px;
+  border-left:3px solid var(--app-primary);
+}
+.m-chat-bubble .m-chat-label{font-size:8px;font-weight:600;color:var(--app-on-surface-variant);margin-bottom:3px}
+.m-chat-bubble.bot .m-chat-label{color:var(--app-primary)}
+.m-chat-typing{
+  align-self:flex-start;display:flex;gap:4px;padding:8px 14px;
+  background:var(--app-surface);border:1px solid var(--app-outline-variant);border-radius:12px;
+}
+.m-chat-typing span{
+  width:6px;height:6px;border-radius:50%;background:var(--app-on-surface-variant);
+  animation:chatDotPulse 1.4s ease-in-out infinite;
+}
+.m-chat-typing span:nth-child(2){animation-delay:.2s}
+.m-chat-typing span:nth-child(3){animation-delay:.4s}
+@keyframes chatDotPulse{0%,60%,100%{opacity:.3;transform:scale(.8)}30%{opacity:1;transform:scale(1)}}
+.m-chat-input-bar{
+  display:flex;gap:6px;padding:8px 12px;
+  border-top:1px solid var(--app-outline-variant);
+  background:var(--app-surface);align-items:center;
+}
+.m-chat-input-bar .m-chat-input{
+  flex:1;padding:6px 10px;border-radius:18px;
+  background:var(--app-surface-dim);border:1px solid var(--app-outline-variant);
+  font-size:10px;color:var(--app-on-surface);
+}
+.m-chat-input-bar .icon{font-size:18px;color:var(--app-on-surface-variant);cursor:pointer}
+.m-chat-input-bar .icon.send{color:var(--app-primary)}
+.m-chat-scheme-card{
+  margin-top:6px;padding:8px 10px;border-radius:8px;
+  background:var(--app-primary-container-low);border:1px solid rgba(26,115,232,.15);
+  font-size:10px;
+}
+.m-chat-scheme-card .scheme-name{font-weight:600;color:var(--app-primary)}
+.m-chat-action-btns{display:flex;gap:6px;margin-top:6px}
+.m-chat-action-btns .m-btn{font-size:9px;padding:4px 10px}
+.m-lang-badge{display:inline-block;padding:1px 5px;border-radius:4px;font-size:7px;font-weight:600;background:rgba(255,255,255,.2);margin-left:6px}
+
+/* ==========================================================================
+   Map Heatmap Components
+   ========================================================================== */
+.m-map-district{
+  stroke:var(--app-outline-variant);stroke-width:.5;cursor:pointer;
+  transition:opacity .2s;
+}
+.m-map-district:hover{opacity:.8;stroke-width:1.5;stroke:var(--app-on-surface)}
+.m-map-district.heat-1{fill:#D3E3FD}
+.m-map-district.heat-2{fill:#7BAAF7}
+.m-map-district.heat-3{fill:#E37400}
+.m-map-district.heat-4{fill:#D93025}
+@keyframes mapPulse{0%,100%{r:4;opacity:.8}50%{r:7;opacity:1}}
+.m-map-pulse{fill:var(--app-error);animation:mapPulse 2s ease-in-out infinite}
+
+/* ==========================================================================
+   Timeline Component
+   ========================================================================== */
+.m-timeline{display:flex;align-items:center;width:100%;gap:0}
+.m-timeline-segment{
+  flex:1;height:8px;position:relative;
+  transition:background .3s;
+}
+.m-timeline-segment.safe{background:var(--app-success)}
+.m-timeline-segment.warning{background:var(--app-warning)}
+.m-timeline-segment.critical{background:var(--app-error)}
+.m-timeline-segment.breached{background:#B91C1C;animation:pulse 1s infinite}
+.m-timeline-label{
+  position:absolute;top:-16px;left:50%;transform:translateX(-50%);
+  font-size:7px;font-weight:600;color:var(--app-on-surface-variant);white-space:nowrap;
+}
+
+/* ==========================================================================
+   Comparison Table
+   ========================================================================== */
+.compare-table{width:100%;border-collapse:separate;border-spacing:0;text-align:left}
+.compare-table th{
+  padding:12px 20px;font-size:14px;font-weight:700;
+  border-bottom:2px solid var(--border);
+}
+.compare-table th.traditional{color:var(--text-muted)}
+.compare-table th.ours{background:var(--gradient-subtle);color:var(--primary-light);border-radius:var(--radius) var(--radius) 0 0}
+.compare-table td{
+  padding:10px 20px;font-size:13px;color:var(--text-secondary);
+  border-bottom:1px solid var(--border);vertical-align:middle;
+}
+.compare-table td:first-child{color:var(--text-primary);font-weight:600;width:140px}
+.compare-table .compare-icon{font-size:18px;margin-right:6px;vertical-align:middle}
+.compare-table .compare-icon.bad{color:var(--app-error)}
+.compare-table .compare-icon.good{color:#69f0ae}
+
+/* ==========================================================================
+   Factor Bars (Impact Score)
+   ========================================================================== */
+.factor-bar-row{display:flex;align-items:center;gap:10px;width:100%}
+.factor-bar-row .factor-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.factor-bar-row .factor-icon .icon{font-size:18px}
+.factor-bar-row .factor-info{flex:0 0 160px;display:flex;flex-direction:column}
+.factor-bar-row .factor-name{font-size:13px;font-weight:600;color:var(--text-primary)}
+.factor-bar-row .factor-weight{font-size:10px;color:var(--text-muted)}
+.factor-bar-track{flex:1;height:10px;background:var(--surface-bright);border-radius:5px;overflow:hidden}
+.factor-bar-fill{height:100%;border-radius:5px;transition:width 1.2s cubic-bezier(.16,1,.3,1)}
+.factor-bar-row .factor-score{width:36px;text-align:right;font-size:16px;font-weight:700;color:var(--text-primary)}
+
+/* ==========================================================================
+   Anomaly Card
+   ========================================================================== */
+.anomaly-card{
+  padding:14px 18px;border-radius:var(--radius);
+  background:var(--surface-raised);border:1px solid var(--border);
+  border-left:3px solid var(--app-warning);
+  display:flex;flex-direction:column;gap:4px;
+}
+.anomaly-card h4{font-size:14px;font-weight:600;color:var(--text-primary);display:flex;align-items:center;gap:6px}
+.anomaly-card h4 .icon{font-size:18px;color:var(--app-warning)}
+.anomaly-card p{font-size:12px;color:var(--text-secondary)}
+.anomaly-card.red{border-left-color:var(--app-error)}
+.anomaly-card.red h4 .icon{color:var(--app-error)}
+
+/* ==========================================================================
+   Role Cards (Demo slide)
+   ========================================================================== */
+.role-card{
+  flex:1;padding:28px;border-radius:var(--radius-lg);
+  background:var(--surface-raised);
+  border:1px solid var(--border);
+  display:flex;flex-direction:column;align-items:center;gap:12px;
+  text-align:center;
+  transition:border-color .3s,box-shadow .3s;
+}
+.role-card:hover{border-color:rgba(26,115,232,.3);box-shadow:var(--shadow-glow)}
+.role-card .role-icon{
+  width:56px;height:56px;border-radius:50%;
+  background:var(--gradient-hero);
+  display:flex;align-items:center;justify-content:center;
+}
+.role-card .role-icon .icon{font-size:28px;color:#fff}
+.role-card h3{font-size:18px;color:var(--text-primary)}
+.role-card .role-cred{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--primary-light);background:var(--surface-bright);padding:4px 12px;border-radius:6px}
+.role-card ul{list-style:none;text-align:left;font-size:13px;color:var(--text-secondary)}
+.role-card ul li{padding:2px 0;display:flex;align-items:center;gap:6px}
+.role-card ul li .icon{font-size:16px;color:var(--primary-light)}
+
+/* ==========================================================================
+   SLA Alert Cards
+   ========================================================================== */
+.sla-card{
+  flex:1;padding:16px;border-radius:var(--radius);text-align:center;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+}
+.sla-card .sla-count{font-size:32px;font-weight:800}
+.sla-card .sla-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.sla-card.breached{background:var(--app-error-container);color:#B91C1C}
+.sla-card.critical{background:var(--app-warning-container);color:#B45309}
+.sla-card.warning{background:var(--app-primary-container-low);color:#0842A0}
+
+/* ==========================================================================
+   Mockup Notification Bell
+   ========================================================================== */
+.m-bell{position:relative;display:inline-flex;align-items:center;cursor:pointer}
+.m-bell .icon{font-size:18px;color:var(--app-on-surface-variant)}
+.m-bell-badge{
+  position:absolute;top:-4px;right:-6px;
+  min-width:14px;height:14px;border-radius:7px;
+  background:var(--app-error);color:#fff;
+  font-size:8px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  padding:0 3px;
+}
+
+/* ==========================================================================
+   Additional Stagger Delays (for comparison rows etc.)
+   ========================================================================== */
+.slide.active .a-d9{animation-delay:.72s}
+.slide.active .a-d10{animation-delay:.80s}
+.slide.active .a-d11{animation-delay:.88s}
+.slide.active .a-d12{animation-delay:.96s}
+.slide.active .a-d13{animation-delay:1.04s}
+.slide.active .a-d14{animation-delay:1.12s}

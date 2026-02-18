@@ -1,0 +1,68 @@
+<div class="slide" data-slide="9" data-transition="zoom">
+  <div class="slide-inner">
+    <span class="tag tag-orange animate a-d1">Intelligent Prioritization</span>
+    <h2 class="animate a-d2">Citizen Impact Score</h2>
+    <p class="lead animate a-d3" style="font-size:16px">Replaces simple Low/Medium/High/Urgent with a data-driven 0&ndash;100 composite</p>
+    <div class="split" style="flex-direction:row;gap:60px;text-align:left;width:100%;max-width:1400px">
+      <div style="flex:0 0 340px;display:flex;flex-direction:column;align-items:center">
+        <svg width="280" height="280" viewBox="0 0 280 280" class="animate a-d1">
+          <circle cx="140" cy="140" r="110" fill="none" stroke="var(--surface-bright)" stroke-width="20"/>
+          <circle cx="140" cy="140" r="110" fill="none" stroke="#FF7043" stroke-width="20" stroke-dasharray="691.15" stroke-linecap="round" transform="rotate(-90 140 140)" data-ring-pct="72" data-ring-circ="691.15"/>
+          <text x="140" y="130" text-anchor="middle" font-size="40" font-weight="bold" fill="white"><tspan data-count-to="72">0</tspan></text>
+          <text x="140" y="155" text-anchor="middle" font-size="14" fill="#8b949e">/100</text>
+        </svg>
+        <div style="margin-top:8px;text-align:center">
+          <div style="font-size:16px;font-weight:bold;color:var(--text-primary)">Citizen Impact Score</div>
+          <div style="font-size:13px;color:var(--text-muted)">Composite weighted metric</div>
+        </div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:16px">
+        <div class="factor-bar-row animate a-d1">
+          <div class="factor-icon" style="background:rgba(217,48,37,.12)"><span class="icon" style="color:#ef9a9a">emergency</span></div>
+          <div class="factor-info">
+            <span class="factor-name">Survival Necessity</span>
+            <span class="factor-weight">Weight: 30%</span>
+          </div>
+          <div class="factor-bar-track"><div class="factor-bar-fill" data-bar-width="85%" style="background:linear-gradient(90deg,#D93025,#FF7043)"></div></div>
+          <span class="factor-score" data-count-to="85">0</span>
+        </div>
+        <div class="factor-bar-row animate a-d2">
+          <div class="factor-icon" style="background:rgba(227,116,0,.12)"><span class="icon" style="color:#ffb74d">location_on</span></div>
+          <div class="factor-info">
+            <span class="factor-name">District Vulnerability</span>
+            <span class="factor-weight">Weight: 25%</span>
+          </div>
+          <div class="factor-bar-track"><div class="factor-bar-fill" data-bar-width="62%" style="background:linear-gradient(90deg,#E37400,#FFB74D)"></div></div>
+          <span class="factor-score" data-count-to="62">0</span>
+        </div>
+        <div class="factor-bar-row animate a-d3">
+          <div class="factor-icon" style="background:rgba(26,115,232,.12)"><span class="icon" style="color:#4da3ff">schedule</span></div>
+          <div class="factor-info">
+            <span class="factor-name">Duration Pending</span>
+            <span class="factor-weight">Weight: 20%</span>
+          </div>
+          <div class="factor-bar-track"><div class="factor-bar-fill" data-bar-width="78%" style="background:linear-gradient(90deg,#1A73E8,#4da3ff)"></div></div>
+          <span class="factor-score" data-count-to="78">0</span>
+        </div>
+        <div class="factor-bar-row animate a-d4">
+          <div class="factor-icon" style="background:rgba(124,77,255,.12)"><span class="icon" style="color:#b388ff">replay</span></div>
+          <div class="factor-info">
+            <span class="factor-name">Recurrence Factor</span>
+            <span class="factor-weight">Weight: 15%</span>
+          </div>
+          <div class="factor-bar-track"><div class="factor-bar-fill" data-bar-width="45%" style="background:linear-gradient(90deg,#7C4DFF,#b388ff)"></div></div>
+          <span class="factor-score" data-count-to="45">0</span>
+        </div>
+        <div class="factor-bar-row animate a-d5">
+          <div class="factor-icon" style="background:rgba(0,188,212,.12)"><span class="icon" style="color:#4dd0e1">wb_sunny</span></div>
+          <div class="factor-info">
+            <span class="factor-name">Seasonal Urgency</span>
+            <span class="factor-weight">Weight: 10%</span>
+          </div>
+          <div class="factor-bar-track"><div class="factor-bar-fill" data-bar-width="90%" style="background:linear-gradient(90deg,#00BCD4,#4dd0e1)"></div></div>
+          <span class="factor-score" data-count-to="90">0</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

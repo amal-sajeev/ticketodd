@@ -1,0 +1,115 @@
+<div class="slide" data-slide="12" data-transition="reveal">
+  <div class="slide-inner" style="flex-direction:row;text-align:left;gap:40px">
+    <div style="flex:0 0 55%;display:flex;flex-direction:column;gap:14px" class="animate a-d1">
+      <span class="tag tag-purple">Systemic Issue Detection</span>
+      <h2 style="font-size:32px">The <span class="grad-text">Constellation Engine</span></h2>
+      <svg class="anim-trigger" viewBox="0 0 700 480" width="700" height="480" style="max-width:100%">
+        <defs>
+          <filter id="constGlowA" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur id="blurA" stdDeviation="2" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <animate href="#blurA" attributeName="stdDeviation" values="2;5;2" dur="2.5s" repeatCount="indefinite"/>
+          <filter id="constGlowB" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur id="blurB" stdDeviation="2" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <animate href="#blurB" attributeName="stdDeviation" values="2;5;2" dur="2.5s" repeatCount="indefinite" begin="0.3s"/>
+        </defs>
+        <animate id="constMaster" attributeName="opacity" from="1" to="1" dur="0.01s" fill="freeze" begin="indefinite"/>
+        <!-- Outer boundary -->
+        <circle cx="350" cy="240" r="220" fill="none" stroke="rgba(26,115,232,0.1)" stroke-dasharray="10 5"/>
+        <!-- CLUSTER A: Water Supply (blue) -->
+        <ellipse cx="180" cy="140" rx="120" ry="90" fill="none" stroke="rgba(26,115,232,0.12)" stroke-dasharray="6 4"/>
+        <!-- Cluster A connection lines -->
+        <path d="M 120 100 L 200 130" stroke="rgba(26,115,232,0.25)" stroke-width="1" fill="none" stroke-dasharray="8 4">
+          <animate attributeName="stroke-dashoffset" from="100" to="0" dur="0.8s" fill="freeze" begin="constMaster.begin"/>
+        </path>
+        <path d="M 200 130 L 150 80" stroke="rgba(26,115,232,0.25)" stroke-width="1" fill="none" stroke-dasharray="8 4">
+          <animate attributeName="stroke-dashoffset" from="100" to="0" dur="0.8s" fill="freeze" begin="constMaster.begin+0.1s"/>
+        </path>
+        <path d="M 150 80 L 230 100" stroke="rgba(26,115,232,0.25)" stroke-width="1" fill="none" stroke-dasharray="8 4">
+          <animate attributeName="stroke-dashoffset" from="100" to="0" dur="0.8s" fill="freeze" begin="constMaster.begin+0.2s"/>
+        </path>
+        <path d="M 230 100 L 170 160" stroke="rgba(26,115,232,0.25)" stroke-width="1" fill="none" stroke-dasharray="8 4">
+          <animate attributeName="stroke-dashoffset" from="100" to="0" dur="0.8s" fill="freeze" begin="constMaster.begin+0.3s"/>
+        </path>
+        <path d="M 170 160 L 140 140" stroke="rgba(26,115,232,0.25)" stroke-width="1" fill="none" stroke-dasharray="8 4">
+          <animate attributeName="stroke-dashoffset" from="100" to="0" dur="0.8s" fill="freeze" begin="constMaster.begin+0.4s"/>
+        </path>
+        <!-- Cluster A nodes -->
+        <circle cx="120" cy="100" r="9" fill="#1A73E8" filter="url(#constGlowA)">
+          <animate attributeName="cx" values="120;122;119;120" dur="4s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="200" cy="130" r="8" fill="#1A73E8" filter="url(#constGlowA)">
+          <animate attributeName="cx" values="200;202;199;200" dur="4s" repeatCount="indefinite" begin="0.2s"/>
+        </circle>
+        <circle cx="150" cy="80" r="7" fill="#1A73E8" filter="url(#constGlowA)">
+          <animate attributeName="cx" values="150;152;149;150" dur="4s" repeatCount="indefinite" begin="0.4s"/>
+        </circle>
+        <circle cx="230" cy="100" r="6" fill="#1A73E8" filter="url(#constGlowA)">
+          <animate attributeName="cx" values="230;232;229;230" dur="4s" repeatCount="indefinite" begin="0.6s"/>
+        </circle>
+        <circle cx="170" cy="160" r="7" fill="#1A73E8" filter="url(#constGlowA)">
+          <animate attributeName="cx" values="170;172;169;170" dur="4s" repeatCount="indefinite" begin="0.8s"/>
+        </circle>
+        <circle cx="140" cy="140" r="6" fill="#1A73E8" filter="url(#constGlowA)">
+          <animate attributeName="cx" values="140;142;139;140" dur="4s" repeatCount="indefinite" begin="1s"/>
+        </circle>
+        <text x="180" y="250" text-anchor="middle" font-size="10" fill="#4da3ff" opacity="0">
+          <animate attributeName="opacity" from="0" to="1" dur="0.3s" fill="freeze" begin="constMaster.begin+1s"/>
+          Water Supply &middot; 6 grievances
+        </text>
+        <!-- CLUSTER B: Housing (purple) -->
+        <ellipse cx="480" cy="320" rx="110" ry="80" fill="none" stroke="rgba(124,77,255,0.12)" stroke-dasharray="6 4"/>
+        <path d="M 440 300 L 510 340" stroke="rgba(124,77,255,0.25)" stroke-width="1" fill="none" stroke-dasharray="8 4">
+          <animate attributeName="stroke-dashoffset" from="100" to="0" dur="0.8s" fill="freeze" begin="constMaster.begin+0.5s"/>
+        </path>
+        <path d="M 510 340 L 470 280" stroke="rgba(124,77,255,0.25)" stroke-width="1" fill="none" stroke-dasharray="8 4">
+          <animate attributeName="stroke-dashoffset" from="100" to="0" dur="0.8s" fill="freeze" begin="constMaster.begin+0.6s"/>
+        </path>
+        <path d="M 470 280 L 530 310" stroke="rgba(124,77,255,0.25)" stroke-width="1" fill="none" stroke-dasharray="8 4">
+          <animate attributeName="stroke-dashoffset" from="100" to="0" dur="0.8s" fill="freeze" begin="constMaster.begin+0.7s"/>
+        </path>
+        <path d="M 530 310 L 490 360" stroke="rgba(124,77,255,0.25)" stroke-width="1" fill="none" stroke-dasharray="8 4">
+          <animate attributeName="stroke-dashoffset" from="100" to="0" dur="0.8s" fill="freeze" begin="constMaster.begin+0.8s"/>
+        </path>
+        <circle cx="440" cy="300" r="8" fill="#7C4DFF" filter="url(#constGlowB)"/>
+        <circle cx="510" cy="340" r="7" fill="#7C4DFF" filter="url(#constGlowB)"/>
+        <circle cx="470" cy="280" r="6" fill="#7C4DFF" filter="url(#constGlowB)"/>
+        <circle cx="530" cy="310" r="7" fill="#7C4DFF" filter="url(#constGlowB)"/>
+        <circle cx="490" cy="360" r="6" fill="#7C4DFF" filter="url(#constGlowB)"/>
+        <text x="480" y="420" text-anchor="middle" font-size="10" fill="#b388ff" opacity="0">
+          <animate attributeName="opacity" from="0" to="1" dur="0.3s" fill="freeze" begin="constMaster.begin+1.5s"/>
+          Housing &middot; 5 grievances
+        </text>
+        <!-- Scattered singles -->
+        <circle cx="550" cy="100" r="5" fill="#00BCD4" opacity="0.5"/>
+        <circle cx="100" cy="340" r="5" fill="#E37400" opacity="0.5"/>
+        <circle cx="580" cy="220" r="4" fill="#1E8E3E" opacity="0.5"/>
+        <circle cx="300" cy="380" r="4" fill="#8b949e" opacity="0.3"/>
+        <!-- Cross-cluster link -->
+        <path d="M 180 140 L 480 320" stroke="rgba(255,255,255,0.15)" stroke-dasharray="6 4" stroke-width="1" fill="none">
+          <animate attributeName="stroke-dashoffset" from="300" to="0" dur="1s" fill="freeze" begin="constMaster.begin+2s"/>
+        </path>
+        <text x="330" y="230" text-anchor="middle" font-family="'Material Symbols Outlined'" font-size="20" fill="#b388ff" opacity="0">
+          <animate attributeName="opacity" from="0" to="1" dur="0.3s" fill="freeze" begin="constMaster.begin+2.5s"/>
+          psychology
+        </text>
+      </svg>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:14px">
+      <ul class="feature-list animate a-d2">
+        <li><span class="icon">hub</span> <strong>Geographic + Semantic Clustering</strong> / Groups complaints by proximity and content</li>
+        <li><span class="icon">psychology</span> <strong>AI Root-Cause Analysis</strong> / GPT-5 generates analysis for each cluster</li>
+        <li><span class="icon">trending_up</span> <strong>Hidden Pattern Revelation</strong> / Surfaces systemic problems across cases</li>
+        <li><span class="icon">assignment_ind</span> <strong>Systemic Assignment</strong> / Officers assigned to root issue</li>
+      </ul>
+      <div class="animate a-d3" style="background:var(--surface-raised);border:1px solid var(--border);border-radius:12px;padding:16px">
+        <div style="font-size:14px;font-weight:700;color:var(--text-primary)">Contaminated Water Source — Puri District</div>
+        <p style="font-size:12px;color:var(--text-secondary);margin:8px 0 10px;line-height:1.5">Root Cause: Aging pipeline infrastructure in Wards 5-8 causing contamination during monsoon pressure surges</p>
+        <div style="font-size:11px;color:var(--text-muted)">12 linked grievances &middot; ~4,200 affected &middot; <span class="m-badge m-badge-in_progress">Investigating</span></div>
+      </div>
+    </div>
+  </div>
+</div>

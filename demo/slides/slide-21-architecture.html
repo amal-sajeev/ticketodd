@@ -1,0 +1,94 @@
+<div class="slide" data-slide="20">
+  <div class="slide-inner">
+    <span class="tag tag-purple animate a-d1">Architecture</span>
+    <h2 class="animate a-d1" style="font-size:32px">System Architecture</h2>
+    <svg class="anim-trigger animate a-d1" viewBox="0 0 1600 520" width="100%" style="max-width:1600px">
+      <defs>
+        <pattern id="dotGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+          <circle cx="20" cy="20" r="1" fill="rgba(255,255,255,0.03)"/>
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#dotGrid)"/>
+      <!-- Block 1 - CITIZEN -->
+      <g opacity="0">
+        <animate attributeName="opacity" from="0" to="1" dur="0.4s" begin="0s" fill="freeze"/>
+        <rect x="40" y="180" width="220" height="160" rx="14" fill="#1c2333" stroke="rgba(255,255,255,.08)"/>
+        <text x="150" y="220" text-anchor="middle" font-family="'Material Symbols Outlined'" font-size="24" fill="#4da3ff">devices</text>
+        <text x="150" y="250" text-anchor="middle" font-size="14" font-weight="700" fill="#e6edf3">Citizen Browser</text>
+        <text x="150" y="270" text-anchor="middle" font-size="10" fill="#8b949e">Jinja2 + Vanilla JS</text>
+      </g>
+      <!-- Arrow 1->2 -->
+      <path id="arr12" d="M 260 260 L 440 260" stroke="#4da3ff" stroke-width="2" fill="none" stroke-dasharray="8 4">
+        <animate attributeName="stroke-dashoffset" from="200" to="0" dur="0.6s" begin="0.3s" fill="freeze"/>
+      </path>
+      <circle r="3" fill="#4da3ff"><animateMotion dur="0.6s" begin="0.3s" fill="freeze" path="M 260 260 L 440 260"/></circle>
+      <!-- Block 2 - FASTAPI -->
+      <g opacity="0">
+        <animate attributeName="opacity" from="0" to="1" dur="0.4s" begin="0.4s" fill="freeze"/>
+        <rect x="440" y="140" width="280" height="240" rx="16" fill="#1c2333" stroke="rgba(26,115,232,.25)" stroke-width="2"/>
+        <text x="580" y="185" text-anchor="middle" font-family="'Material Symbols Outlined'" font-size="32" fill="#4da3ff">bolt</text>
+        <text x="580" y="215" text-anchor="middle" font-size="18" font-weight="700" fill="#e6edf3">FastAPI</text>
+        <text x="580" y="240" text-anchor="middle" font-size="12" fill="#8b949e">73 Endpoints</text>
+        <text x="580" y="258" text-anchor="middle" font-size="10" fill="#6e7681">Async Python</text>
+      </g>
+      <!-- Arrow 2->3 (to OpenAI) -->
+      <path d="M 720 180 L 840 100" stroke="#4da3ff" stroke-width="2" fill="none" stroke-dasharray="8 4">
+        <animate attributeName="stroke-dashoffset" from="150" to="0" dur="0.5s" begin="0.8s" fill="freeze"/>
+      </path>
+      <circle r="3" fill="#4da3ff"><animateMotion dur="0.5s" begin="0.8s" fill="freeze" path="M 720 180 L 840 100"/></circle>
+      <!-- Block 3 - OPENAI -->
+      <g opacity="0">
+        <animate attributeName="opacity" from="0" to="1" dur="0.4s" begin="1s" fill="freeze"/>
+        <rect x="840" y="20" width="320" height="140" rx="12" fill="#1c2333" stroke="rgba(124,77,255,.2)"/>
+        <text x="860" y="50" font-family="'Material Symbols Outlined'" font-size="22" fill="#b388ff">psychology</text>
+        <text x="900" y="52" font-size="14" font-weight="700" fill="#e6edf3">OpenAI</text>
+        <text x="860" y="75" font-size="10" fill="#8b949e">GPT-5-mini &middot; Chat, Classify, Resolve</text>
+        <text x="860" y="92" font-size="10" fill="#8b949e">GPT-4o &middot; Vision, Extract</text>
+        <text x="860" y="109" font-size="10" fill="#8b949e">text-embedding-3-large &middot; 3072-dim</text>
+      </g>
+      <!-- Arrow 2->4 (to MongoDB) -->
+      <path d="M 720 260 L 840 270" stroke="#4da3ff" stroke-width="2" fill="none" stroke-dasharray="8 4">
+        <animate attributeName="stroke-dashoffset" from="150" to="0" dur="0.5s" begin="1.2s" fill="freeze"/>
+      </path>
+      <circle r="3" fill="#4da3ff"><animateMotion dur="0.5s" begin="1.2s" fill="freeze" path="M 720 260 L 840 270"/></circle>
+      <!-- Block 4 - MONGODB -->
+      <g opacity="0">
+        <animate attributeName="opacity" from="0" to="1" dur="0.4s" begin="1.4s" fill="freeze"/>
+        <rect x="840" y="290" width="250" height="120" rx="12" fill="#1c2333" stroke="rgba(30,142,62,.2)"/>
+        <text x="860" y="320" font-family="'Material Symbols Outlined'" font-size="22" fill="#69f0ae">database</text>
+        <text x="900" y="322" font-size="14" font-weight="700" fill="#e6edf3">MongoDB</text>
+        <text x="860" y="342" font-size="10" fill="#8b949e">7 Collections</text>
+        <rect x="850" y="350" width="110" height="30" rx="6" fill="#21283b"/>
+        <text x="905" y="368" text-anchor="middle" font-size="9" fill="#8b949e">GridFS</text>
+        <text x="905" y="378" text-anchor="middle" font-size="8" fill="#6e7681">Attachments</text>
+      </g>
+      <!-- Arrow 2->5 (to Qdrant) -->
+      <path d="M 720 350 L 840 435" stroke="#4da3ff" stroke-width="2" fill="none" stroke-dasharray="8 4">
+        <animate attributeName="stroke-dashoffset" from="150" to="0" dur="0.5s" begin="1.6s" fill="freeze"/>
+      </path>
+      <circle r="3" fill="#4da3ff"><animateMotion dur="0.5s" begin="1.6s" fill="freeze" path="M 720 350 L 840 435"/></circle>
+      <!-- Block 5 - QDRANT -->
+      <g opacity="0">
+        <animate attributeName="opacity" from="0" to="1" dur="0.4s" begin="1.8s" fill="freeze"/>
+        <rect x="840" y="380" width="250" height="110" rx="12" fill="#1c2333" stroke="rgba(0,188,212,.2)"/>
+        <text x="860" y="410" font-family="'Material Symbols Outlined'" font-size="22" fill="#4dd0e1">search</text>
+        <text x="900" y="412" font-size="14" font-weight="700" fill="#e6edf3">Qdrant</text>
+        <text x="860" y="432" font-size="10" fill="#8b949e">3 Vector Collections</text>
+        <text x="860" y="448" font-size="9" fill="#6e7681">Cosine Similarity</text>
+      </g>
+      <!-- Arrow 2->6 (to Weather) -->
+      <path d="M 720 140 L 1200 60" stroke="#4da3ff" stroke-width="2" fill="none" stroke-dasharray="8 4">
+        <animate attributeName="stroke-dashoffset" from="500" to="0" dur="0.6s" begin="2s" fill="freeze"/>
+      </path>
+      <circle r="3" fill="#4da3ff"><animateMotion dur="0.6s" begin="2s" fill="freeze" path="M 720 140 L 1200 60"/></circle>
+      <!-- Block 6 - WEATHER -->
+      <g opacity="0">
+        <animate attributeName="opacity" from="0" to="1" dur="0.4s" begin="2s" fill="freeze"/>
+        <rect x="1200" y="20" width="200" height="80" rx="10" fill="#1c2333" stroke="rgba(227,116,0,.2)"/>
+        <text x="1220" y="48" font-family="'Material Symbols Outlined'" font-size="18" fill="#ffb74d">cloud</text>
+        <text x="1260" y="50" font-size="12" font-weight="700" fill="#e6edf3">OpenWeatherMap</text>
+        <text x="1220" y="68" font-size="9" fill="#8b949e">Forecasting</text>
+      </g>
+    </svg>
+  </div>
+</div>
