@@ -1,11 +1,11 @@
-# Seed data: Government Schemes (12 schemes, each with eligibility_questions)
+# Seed data: Government Schemes (15 schemes, each with eligibility_questions)
 
 from qdrant_client.models import PointStruct
 
 from .config import new_id, now_utc, get_embedding
 
 # ---------------------------------------------------------------------------
-# Schemes — original 10 + 2 new, all with eligibility_questions
+# Schemes — 15 total, all with eligibility_questions
 # ---------------------------------------------------------------------------
 SCHEMES = [
     # 1
@@ -145,7 +145,7 @@ SCHEMES = [
          {"question": "Is the habitation listed in the District Rural Road Plan?", "eligible_answer": "yes"},
      ]},
 
-    # 12 — NEW
+    # 12
     {"name": "Gopabandhu Gramin Yojana (GGY)",
      "description": "State rural development programme for comprehensive village development in aspirational blocks. Covers drinking water, sanitation, housing, livelihood, health, education, and digital connectivity. Each selected GP receives Rs. 50 lakh over 3 years. 100 most backward GPs selected in Phase I.",
      "eligibility": "Gram Panchayats in aspirational blocks identified by the State Government. Multi-dimensional poverty index used for selection. GP must submit a Village Development Plan approved by Gram Sabha.",
@@ -155,6 +155,45 @@ SCHEMES = [
          {"question": "Is your Gram Panchayat located in an aspirational block identified by the State?", "eligible_answer": "yes"},
          {"question": "Has the GP prepared a Village Development Plan?", "eligible_answer": "yes"},
          {"question": "Has the plan been approved by the Gram Sabha?", "eligible_answer": "yes"},
+     ]},
+
+    # 13
+    {"name": "Odisha Rural Housing Mission (ORHM)",
+     "description": "State-level complement to PMAY-G providing additional housing assistance for families that do not qualify under PMAY-G SECC criteria but are still houseless. Covers kutcha-house-dwelling families identified through state-level survey. Financial assistance of Rs. 1.00 lakh in convergence with MGNREGS unskilled labour days. Special provision for natural disaster-affected households and single-woman-headed families.",
+     "eligibility": "Rural households in Odisha that do not have a pucca house and are not eligible under PMAY-G (not in SECC list). Priority: disaster-affected families, single women, elderly without support, PwD households. Must have land ownership or patta.",
+     "department": "rural_housing",
+     "how_to_apply": "Apply at GP office with Aadhaar, bank passbook, land document, and declaration of not having pucca house. GP Secretary verifies eligibility. Gram Sabha approves the list. Block office sanctions. Installments released on construction progress verification.",
+     "eligibility_questions": [
+         {"question": "Do you live in a rural area of Odisha?", "eligible_answer": "yes"},
+         {"question": "Do you currently own a pucca (permanent) house?", "eligible_answer": "no"},
+         {"question": "Are you NOT listed in the PMAY-G/SECC beneficiary list?", "eligible_answer": "yes"},
+         {"question": "Do you have land ownership or a government patta for house construction?", "eligible_answer": "yes"},
+     ]},
+
+    # 14
+    {"name": "MGNREGS-NRLM Convergence Programme",
+     "description": "Convergence between MGNREGS and NRLM for sustainable livelihood activities. SHG members can access MGNREGS work days for livelihood asset creation: poultry sheds, goat shelters, vermicompost pits, fish ponds, and kitchen gardens. Up to Rs. 1 lakh per household for individual beneficiary works. Skill training component under DDU-GKY for wage employment.",
+     "eligibility": "Members of SHGs registered under NRLM/OLM. Must have MGNREGS Job Card. SHG must be active with regular savings. Individual beneficiary scheme available for BPL/SECC households.",
+     "department": "mgnregs",
+     "how_to_apply": "SHG members apply through GP with Job Card, SHG membership certificate, and proposed activity plan. Block OLM and MGNREGS offices jointly approve. Work days allocated under MGNREGS, materials under NRLM CIF. Apply at GP office or through Block OLM Coordinator.",
+     "eligibility_questions": [
+         {"question": "Are you a member of an SHG registered under NRLM/OLM?", "eligible_answer": "yes"},
+         {"question": "Do you have a MGNREGS Job Card?", "eligible_answer": "yes"},
+         {"question": "Is the proposed activity related to livelihood asset creation (poultry, fish pond, etc.)?", "eligible_answer": "yes"},
+         {"question": "Is your SHG active with regular savings and meetings?", "eligible_answer": "yes"},
+     ]},
+
+    # 15
+    {"name": "Mo Pokhari (State Fisheries Pond Scheme through MGNREGS)",
+     "description": "State scheme to excavate and renovate fish ponds using MGNREGS labour days. Each beneficiary GP gets one community pond (minimum 0.5 acre). Fish fingerlings provided free by the State Fisheries Department. Training on fish culture provided to SHG/Farmer groups. Expected annual income of Rs. 50,000-1,00,000 per pond. 5-year maintenance responsibility with the GP.",
+     "eligibility": "Gram Panchayats with available community land or revenue land near habitation. SHGs or farmer groups willing to manage the fish pond. Land must not be under dispute. GP resolution required.",
+     "department": "rural_livelihoods",
+     "how_to_apply": "GP passes resolution identifying pond site and management group (SHG/farmer group). GP submits proposal with land details to Block office. Block MGNREGS and Fisheries departments jointly inspect and approve. Excavation through MGNREGS work days. Fisheries department stocks fingerlings and provides training.",
+     "eligibility_questions": [
+         {"question": "Is there community or revenue land available for pond excavation in your GP?", "eligible_answer": "yes"},
+         {"question": "Has a GP resolution been passed for the fish pond project?", "eligible_answer": "yes"},
+         {"question": "Is there an SHG or farmer group willing to manage the pond?", "eligible_answer": "yes"},
+         {"question": "Is the proposed land free from disputes?", "eligible_answer": "yes"},
      ]},
 ]
 

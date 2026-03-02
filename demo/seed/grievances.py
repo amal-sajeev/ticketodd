@@ -1,15 +1,18 @@
-# Seed data: Grievances (~45 entries exercising every feature)
+# Seed data: Grievances (91 entries exercising every feature)
+#
+# Dates: created_at spread evenly from 6 months ago to today for charts/reports.
 #
 # Coverage matrix:
-#   Statuses   : pending (18), in_progress (8), resolved (12), escalated (5)
-#   Departments: all 8 represented (5-7 each)
+#   Statuses   : resolved (25), in_progress (15), escalated (10), pending (41)
+#   Departments: all 8 represented
 #   Priorities : low, medium, high, urgent
 #   Sentiments : positive, neutral, negative, frustrated
 #   Res. tiers : self_resolvable, officer_action, escalation
 #   Res. types : ai, manual, hybrid
-#   Special    : is_public, is_anonymous, scheme_match, sub_tasks,
-#                impact_score, estimated_resolution_deadline, notes,
-#                multiple languages, location on all entries
+#   Feedback   : 1, 2, 3, 4, 5 (full range)
+#   Special    : is_public, is_anonymous, scheme_match (with eligibility_likely),
+#                sub_tasks, impact_score, estimated_resolution_deadline, notes,
+#                citizen_phone, multiple languages, location on all entries
 
 from datetime import timedelta
 
@@ -91,7 +94,7 @@ GRIEVANCES = [
      "assigned_officer": "Smt. Sarojini Das, Block Sanitation Coord.", "confidence_score": 0.78,
      "resolution_feedback": 4, "impact_score": 42,
      "scheme_match": {"scheme_name": "Swachh Bharat Mission - Gramin (SBM-G)", "relevance_score": 0.91,
-                      "reasoning": "Grievance directly relates to SBM-G IHHL incentive payment delay."},
+                      "eligibility_likely": True, "eligibility_reasoning": "Grievance directly relates to SBM-G IHHL incentive payment delay."},
      "notes": [
          {"officer": "Smt. Sarojini Das, Block Sanitation Coord.", "content": "AI draft was accurate — IMIS entry was indeed incomplete. Approved and supplemented with specific resolution details.", "note_type": "internal"},
      ],
@@ -150,7 +153,7 @@ GRIEVANCES = [
      "ai_resolution": "## SBM-G Toilet Nirman Pain Aabashyak Kagajpatra\n\n### Darkar Heba:\n1. **Aadhaar Card** — paribar mukhya nka\n2. **Bank passbook** — incentive jama pain\n3. **BPL certificate** (jadi applicable)\n4. **GP office re aavedan** — likhi kar diantu\n\n### Prakriya:\n- GP Secretary verify karibe eligibility\n- Toilet baniba pare **photo evidence** diantu\n- **Rs. 12,000** incentive bank account re jama heba\n- Kono fee lagibani — free of cost\n\n### Sahayata:\n- Block SBM Coordinator nku call karantu\n- GP Sarpanch nku bhetantu",
      "confidence_score": 0.87, "resolution_feedback": 5,
      "scheme_match": {"scheme_name": "Swachh Bharat Mission - Gramin (SBM-G)", "relevance_score": 0.94,
-                      "reasoning": "Citizen is asking about SBM-G toilet construction documents — direct scheme match."},
+                      "eligibility_likely": True, "eligibility_reasoning": "Citizen is asking about SBM-G toilet construction documents — direct scheme match."},
      "citizen_name": "Sushant Sahoo", "citizen_email": "sushant.sahoo@email.com",
      "citizen_key": "citizen1"},
 
@@ -198,7 +201,7 @@ GRIEVANCES = [
      "manual_resolution": "Block office verified applicant's registration with Building Workers Welfare Board. Found registration had expired 2 months before application. Helped applicant renew registration at Labour office (Rs. 25 fee). Fresh housing application submitted through GP and accepted. Construction assistance sanctioned within 30 days.",
      "assigned_officer": "Smt. Lopamudra Jena, BDO Housing", "resolution_feedback": 4,
      "scheme_match": {"scheme_name": "Nirman Shramik Pucca Ghar Yojana", "relevance_score": 0.96,
-                      "reasoning": "Direct application under Nirman Shramik housing scheme for construction workers."},
+                      "eligibility_likely": True, "eligibility_reasoning": "Direct application under Nirman Shramik housing scheme for construction workers."},
      "citizen_name": "Bhagirathi Suna", "citizen_email": "bhagirathi.suna@email.com",
      "citizen_key": "citizen3"},
 
@@ -264,7 +267,7 @@ GRIEVANCES = [
      "impact_score": 52,
      "estimated_resolution_days": 15,
      "scheme_match": {"scheme_name": "PMAY-Gramin (Pradhan Mantri Awas Yojana - Gramin)", "relevance_score": 0.97,
-                      "reasoning": "Grievance is about delayed PMAY-G installment release at lintel stage."},
+                      "eligibility_likely": True, "eligibility_reasoning": "Grievance is about delayed PMAY-G installment release at lintel stage."},
      "notes": [
          {"officer": "Smt. Lopamudra Jena, BDO Housing", "content": "Block TA visited. Geo-tag photo was rejected by Awaas+ portal due to GPS inaccuracy. Re-photographing scheduled.", "note_type": "internal"},
      ],
@@ -455,7 +458,7 @@ GRIEVANCES = [
      "language": "english",
      "scheme_match": {"scheme_name": "Basudha (Buxi Jagabandhu Assured Water Supply to Habitations)",
                       "relevance_score": 0.88,
-                      "reasoning": "Citizen is requesting bore well under Basudha scheme. Direct scheme match for water supply to unserved habitation."},
+                      "eligibility_likely": True, "eligibility_reasoning": "Citizen is requesting bore well under Basudha scheme. Direct scheme match for water supply to unserved habitation."},
      "citizen_name": "Birsa Munda", "citizen_email": "birsa.munda@email.com",
      "citizen_key": "citizen3"},
 
@@ -585,13 +588,639 @@ GRIEVANCES = [
      "language": "english",
      "citizen_name": "Prasanna Sahoo", "citizen_email": "prasanna.sahoo@email.com",
      "citizen_key": "citizen1"},
+
+    # ======================================================================
+    # NEW RESOLVED (13) — indices 44–56
+    # ======================================================================
+
+    # 44 — Hybrid, water supply, Cuttack, feedback 3 (average)
+    {"title": "JJM tap connection leaking at meter — water wastage",
+     "description": "Our JJM tap connection in Cuttack block has been leaking at the meter junction for 3 weeks. Water is being wasted continuously. We reported to the GP Jalasathi but the leak has not been fixed.",
+     "district": "Cuttack", "department": "rural_water_supply", "priority": "medium",
+     "sentiment": "negative", "status": "resolved", "resolution_tier": "officer_action",
+     "resolution_type": "hybrid", "language": "english",
+     "ai_resolution": "JJM tap connection leaks at the meter junction are typically caused by loose compression fittings or damaged washers. The GP Jalasathi should be able to fix this within 24 hours using standard repair kits provided under JJM O&M budget.",
+     "manual_resolution": "RWSS JE visited site. Leak was caused by a cracked PVC elbow joint, not just a washer issue. Replacement fitting installed. However, the repair took 3 weeks due to material procurement delays. Jalasathi reprimanded for not escalating sooner.",
+     "assigned_officer": "Er. Anil Panigrahi, EE-RWSS", "confidence_score": 0.55,
+     "resolution_feedback": 3, "impact_score": 25,
+     "notes": [
+         {"officer": "Er. Anil Panigrahi, EE-RWSS", "content": "Leak more severe than AI assessment indicated. Cracked PVC elbow, not a simple washer issue. Ordering replacement.", "note_type": "internal"},
+     ],
+     "citizen_name": "Sachidananda Mishra", "citizen_email": "sachida.mishra@email.com",
+     "citizen_key": "citizen5"},
+
+    # 45 — Officer manual, infrastructure, Jagatsinghpur, feedback 2 (poor)
+    {"title": "BGBO road built last year already has potholes and cracks",
+     "description": "A rural road constructed under BGBO scheme in Jagatsinghpur GP just 10 months ago has already developed deep potholes and surface cracks. The road cost Rs. 12 lakh but quality is very poor. We suspect the contractor used less bitumen.",
+     "district": "Jagatsinghpur", "department": "infrastructure", "priority": "high",
+     "sentiment": "frustrated", "status": "resolved", "resolution_tier": "officer_action",
+     "resolution_type": "manual", "language": "english",
+     "manual_resolution": "Block JE conducted quality assessment and confirmed substandard construction. However, the contractor has already received full payment and the defect liability period clause was not enforced by the GP. Partial repair done under FC untied grants at additional cost of Rs. 3.5 lakh. Contractor issued warning letter but no penalty recovered.",
+     "assigned_officer": "Sri Debashis Swain, Sr. District Officer", "resolution_feedback": 2,
+     "impact_score": 50,
+     "notes": [
+         {"officer": "Sri Debashis Swain, Sr. District Officer", "content": "Inspection confirms poor quality. Full payment already released — no leverage for penalty. Patching repair only option.", "note_type": "internal"},
+     ],
+     "citizen_name": "Akshay Nayak", "citizen_email": "akshay.nayak@email.com",
+     "citizen_key": "citizen6"},
+
+    # 46 — Officer manual, panchayati_raj, Bhadrak, feedback 1 (very poor)
+    {"title": "GP Secretary refusing to issue certificates — demanding informal payments",
+     "description": "The GP Secretary in our GP in Bhadrak is demanding Rs. 200-500 for issuing income certificates, residence certificates, and caste certificates. These should be free. When we complain, he threatens to delay our applications.",
+     "district": "Bhadrak", "department": "panchayati_raj", "priority": "high",
+     "sentiment": "frustrated", "status": "resolved", "resolution_tier": "officer_action",
+     "resolution_type": "manual", "language": "english",
+     "manual_resolution": "BDO investigated the complaint. GP Secretary denied the charges. Due to lack of recorded evidence (payments were in cash), only a verbal warning was issued. Citizens were advised to file RTI applications and record future interactions. The resolution was unsatisfactory as the GP Secretary continues in the same position.",
+     "assigned_officer": "Smt. Priya Pattnaik, BDO", "resolution_feedback": 1,
+     "impact_score": 62,
+     "notes": [
+         {"officer": "Smt. Priya Pattnaik, BDO", "content": "Investigated — GP Secretary denies charges. No documentary evidence from complainants. Verbal warning issued.", "note_type": "internal"},
+     ],
+     "citizen_name": "Nilambar Sethi", "citizen_email": "nilambar.sethi@email.com",
+     "citizen_key": "citizen5"},
+
+    # 47 — Hybrid, sanitation, Kendrapara, resolved with only internal notes
+    {"title": "Community soak pit overflowing into village pathway",
+     "description": "The community soak pit built under SBM-G in Kendrapara GP is overflowing. Grey water is flowing onto the main village pathway making it slippery and unhygienic. The pit seems undersized for the number of households connected.",
+     "district": "Kendrapara", "department": "sanitation", "priority": "medium",
+     "sentiment": "negative", "status": "resolved", "resolution_tier": "officer_action",
+     "resolution_type": "hybrid", "language": "english",
+     "ai_resolution": "Community soak pit overflow is commonly caused by undersized design, clogged filter layers, or excessive greywater inflow. Recommend Block SBM Coordinator to inspect pit dimensions versus connected households and arrange desludging if filter media is clogged.",
+     "manual_resolution": "Block SBM Coordinator inspected. Soak pit designed for 20 households but 35 were connected. Filter gravel layer completely clogged. Desludging done immediately. Second soak pit sanctioned under SBM-G Phase II for the additional households. Completed within 30 days.",
+     "assigned_officer": "Smt. Sarojini Das, Block Sanitation Coord.", "confidence_score": 0.70,
+     "resolution_feedback": 4, "impact_score": 35,
+     "notes": [
+         {"officer": "Smt. Sarojini Das, Block Sanitation Coord.", "content": "Pit capacity insufficient — 35 HH connected vs 20 HH design. Emergency desludging done. Second pit estimate prepared.", "note_type": "internal"},
+         {"officer": "Smt. Sarojini Das, Block Sanitation Coord.", "content": "Second soak pit construction order placed. Monitoring overflow daily until completion.", "note_type": "internal"},
+     ],
+     "citizen_name": "Trinath Barik", "citizen_email": "trinath.barik@email.com",
+     "citizen_key": "citizen7"},
+
+    # 48 — AI self-resolved, hindi, general dept
+    {"title": "Gram Panchayat ka helpline number kya hai",
+     "description": "Main Balasore mein rehta hoon. Mujhe Gram Panchayat se sambandhit shikayat karni hai lekin helpline number nahi pata. Kripya batayein ki kahan call karoon.",
+     "district": "Balasore", "department": "general", "priority": "low",
+     "sentiment": "neutral", "status": "resolved", "resolution_tier": "self_resolvable",
+     "resolution_type": "ai", "language": "hindi",
+     "ai_resolution": "## Gram Panchayat Helpline aur Sampark Jaankari\n\n### Mukhya Helpline\n- **PR&DW Department Helpline**: 1800-345-6768 (toll-free)\n- **JJM/Water Supply Helpline**: 1916\n- **MGNREGS Helpline**: 1800-11-2233\n\n### Online Portal\n- **e-Gram Swaraj**: egramswaraj.gov.in\n- **Odisha Panchayat Portal**: panchayat.odisha.gov.in\n\n### Seedha Sampark\n- Apne **Block Development Officer (BDO)** se milein\n- BDO ka number panchayat.odisha.gov.in par mil jayega\n- District-wise BDO list bhi website par hai\n\n### Shikayat Darj Karne Ka Tarika\n1. GP office mein likhi shikayat dein\n2. Raseed zaroor lein\n3. 15 din mein jawab na mile toh BDO se sampark karein",
+     "confidence_score": 0.92, "resolution_feedback": 5,
+     "citizen_name": "Ramesh Patel", "citizen_email": None,
+     "citizen_key": "citizen7"},
+
+    # 49 — Officer manual, rural_livelihoods, Angul
+    {"title": "SHG members denied bank loan despite good credit history",
+     "description": "Our SHG 'Maa Mangala' in Angul has Grade-I rating and 3 years of regular savings. The bank branch manager rejected our loan application of Rs. 3 lakh without giving any reason. We have maintained 100% repayment on our previous Rs. 50,000 loan.",
+     "district": "Angul", "department": "rural_livelihoods", "priority": "medium",
+     "sentiment": "frustrated", "status": "resolved", "resolution_tier": "officer_action",
+     "resolution_type": "manual", "language": "english",
+     "manual_resolution": "Block OLM Coordinator escalated to Lead District Manager (LDM). Found bank branch had informally capped SHG lending due to NPA concerns from other groups. LDM directed the branch to process the loan per RBI-NRLM guidelines which mandate SHG lending. Loan of Rs. 3 lakh sanctioned within 15 days. Branch manager counseled on SHG lending norms.",
+     "assigned_officer": "Sri Ranjit Mishra, DRDA PD", "resolution_feedback": 5,
+     "impact_score": 40,
+     "scheme_match": {"scheme_name": "NRLM / Odisha Livelihood Mission (OLM)", "relevance_score": 0.93,
+                      "eligibility_likely": True, "eligibility_reasoning": "SHG with Grade-I rating seeking bank linkage loan under NRLM guidelines."},
+     "citizen_name": "Suchitra Panda", "citizen_email": None,
+     "citizen_key": "citizen6"},
+
+    # 50 — Officer manual, mgnregs, Bargarh, odia language
+    {"title": "MGNREGS re kaam chalichi kintu attendance fake achhi",
+     "description": "Amara gaon Bargarh re MGNREGS re tala khodibar kaam chalichi. Kintu muster roll re jemane kaam karuchanti semane nku record karuchanti nahin, anya naama lekhuchanti. Fake attendance chaluchi. Dayakari tanta karantu.",
+     "district": "Bargarh", "department": "mgnregs", "priority": "high",
+     "sentiment": "frustrated", "status": "resolved", "resolution_tier": "officer_action",
+     "resolution_type": "manual", "language": "odia",
+     "manual_resolution": "Block MGNREGS PO conducted surprise inspection at worksite. Confirmed discrepancies — 12 names on muster roll were not present at worksite. Aadhaar-based attendance verification initiated. Mate (supervisor) suspended pending inquiry. Corrected muster rolls prepared with actual workers. Wages for affected period recalculated and paid to genuine workers.",
+     "assigned_officer": "Smt. Gitanjali Behera, MGNREGS APO", "resolution_feedback": 4,
+     "impact_score": 58,
+     "notes": [
+         {"officer": "Smt. Gitanjali Behera, MGNREGS APO", "content": "Surprise inspection confirmed fake attendance. 12 ghost names found. Mate suspended. Aadhaar verification initiated for all active worksites.", "note_type": "internal"},
+         {"officer": "Smt. Gitanjali Behera, MGNREGS APO", "content": "Fake attendance issue resolved. Mate suspended. Corrected muster rolls prepared. Your wages will be recalculated and credited within 7 days.", "note_type": "citizen_facing"},
+     ],
+     "citizen_name": "Gobinda Sahu", "citizen_email": None,
+     "citizen_key": "citizen5"},
+
+    # 51 — Hybrid, rural_housing, Puri, is_public
+    {"title": "PMAY-G third installment delayed — house roof incomplete before monsoon",
+     "description": "My PMAY-G house in Puri is at roof level but the third installment of Rs. 30,000 has not been released for 4 months. The roof is open and monsoon is approaching. I cannot complete the house without funds and my family has no shelter.",
+     "district": "Puri", "department": "rural_housing", "priority": "urgent",
+     "sentiment": "frustrated", "status": "resolved", "resolution_tier": "officer_action",
+     "resolution_type": "hybrid", "language": "english", "is_public": True,
+     "ai_resolution": "PMAY-G third installment delays at roof level are commonly caused by: (1) Awaas+ portal geo-tag rejection, (2) pending utilization certificate for second installment, or (3) State-level fund flow delay. Recommend checking Awaas+ portal status immediately.",
+     "manual_resolution": "Block TA confirmed roof-level completion with fresh geo-tagged photos. Third installment was stuck due to a system glitch in Awaas+ portal batch processing. IT team at State PMAY-G cell resolved the technical issue. Third installment of Rs. 30,000 released within 10 days. Beneficiary completed roof before monsoon onset.",
+     "assigned_officer": "Smt. Lopamudra Jena, BDO Housing", "confidence_score": 0.62,
+     "resolution_feedback": 4, "impact_score": 70,
+     "scheme_match": {"scheme_name": "PMAY-Gramin (Pradhan Mantri Awas Yojana - Gramin)", "relevance_score": 0.95,
+                      "eligibility_likely": True, "eligibility_reasoning": "Beneficiary at roof-level stage of PMAY-G house, third installment pending."},
+     "citizen_name": "Duryodhan Behera", "citizen_email": "duryodhan.behera@email.com",
+     "citizen_key": "citizen5"},
+
+    # 52 — Officer manual, infrastructure, Sambalpur, hindi
+    {"title": "Gaon ka pul toot gaya hai — gaadi nahi ja sakti",
+     "description": "Hamare gaon Sambalpur mein ek chhota pul barish mein toot gaya hai. Ab gaadi aur auto nahi ja sakti. Bachchon ko school jaane mein mushkil ho rahi hai. Hospital bhi door hai aur emergency mein koi ambulance nahi aa sakti.",
+     "district": "Sambalpur", "department": "infrastructure", "priority": "urgent",
+     "sentiment": "frustrated", "status": "resolved", "resolution_tier": "officer_action",
+     "resolution_type": "manual", "language": "hindi",
+     "manual_resolution": "Block JE conducted emergency assessment. Found 6-meter span bridge washed out due to monsoon flash flood. Emergency measures: (1) Temporary steel plate crossing placed within 72 hours for light vehicles, (2) Permanent RCC culvert sanctioned under BGBO emergency provision — Rs. 12 lakh, (3) Construction completed within 45 days. Quality certificate issued after load testing.",
+     "assigned_officer": "Sri Debashis Swain, Sr. District Officer", "resolution_feedback": 5,
+     "impact_score": 78,
+     "citizen_name": "Ramesh Patel", "citizen_email": None,
+     "citizen_key": "citizen7"},
+
+    # 53 — Hybrid, general, Mayurbhanj, positive sentiment
+    {"title": "Excellent response to tribal welfare inquiry — thank you",
+     "description": "I had filed a grievance asking about schemes for tribal households. The AI response was very comprehensive and helpful. I was able to apply for PMAY-G and MGNREGS job card based on the information. Thank you to the department.",
+     "district": "Mayurbhanj", "department": "general", "priority": "low",
+     "sentiment": "positive", "status": "resolved", "resolution_tier": "self_resolvable",
+     "resolution_type": "hybrid", "language": "english",
+     "ai_resolution": "Thank you for your positive feedback. We are glad the scheme information was helpful. For any future queries about tribal welfare schemes, you can also contact the Integrated Tribal Development Agency (ITDA) office in Mayurbhanj district.",
+     "manual_resolution": "Citizen confirmed satisfaction with AI response. GP Secretary also provided physical copies of scheme application forms. Case closed with positive outcome.",
+     "assigned_officer": "Sri Tapan Kumar Nayak, General Officer", "confidence_score": 0.88,
+     "resolution_feedback": 5,
+     "citizen_name": "Gurubari Hansda", "citizen_email": "gurubari.hansda@email.com",
+     "citizen_key": "citizen3"},
+
+    # 54 — Officer manual, sanitation, Ganjam
+    {"title": "Faecal sludge from septic tanks being dumped in open fields",
+     "description": "In our GP area in Ganjam, private tanker operators are dumping faecal sludge from septic tanks into agricultural fields at night. This is causing health hazards and contaminating the soil. The GP has no faecal sludge treatment plant.",
+     "district": "Ganjam", "department": "sanitation", "priority": "high",
+     "sentiment": "frustrated", "status": "resolved", "resolution_tier": "officer_action",
+     "resolution_type": "manual", "language": "english",
+     "manual_resolution": "Block SBM Coordinator initiated action: (1) Identified 3 private tanker operators through night surveillance, (2) Penalties imposed under Municipal Solid Waste Management Rules, (3) Emergency FSTP (Faecal Sludge Treatment Plant) sanctioned under SBM-G Phase II for the GP cluster — Rs. 28 lakh, (4) Until FSTP is operational, tankers directed to use the nearest municipal treatment facility (12 km away) with subsidy for transport cost.",
+     "assigned_officer": "Smt. Sarojini Das, Block Sanitation Coord.", "resolution_feedback": 4,
+     "impact_score": 65,
+     "notes": [
+         {"officer": "Smt. Sarojini Das, Block Sanitation Coord.", "content": "Night surveillance identified 3 tanker operators. Penalties levied. FSTP proposal submitted under SBM-G Phase II.", "note_type": "internal"},
+         {"officer": "Smt. Sarojini Das, Block Sanitation Coord.", "content": "Illegal dumping stopped. Tankers redirected to municipal facility. New FSTP sanctioned for your GP cluster.", "note_type": "citizen_facing"},
+     ],
+     "citizen_name": "Nilambar Sethi", "citizen_email": "nilambar.sethi@email.com",
+     "citizen_key": "citizen5"},
+
+    # 55 — AI self-resolved, mgnregs, Deogarh, odia
+    {"title": "MGNREGS re kaam pain demand kaise karibe",
+     "description": "Mu MGNREGS re kaam chahe kintu GP office re kahinle demand likhita re deba kahile. Mu likhita demand kaise kariba se janinahin. Process kana se janaantu.",
+     "district": "Deogarh", "department": "mgnregs", "priority": "low",
+     "sentiment": "neutral", "status": "resolved", "resolution_tier": "self_resolvable",
+     "resolution_type": "ai", "language": "odia",
+     "ai_resolution": "## MGNREGS re Kaam Pain Likhita Demand Prakriya\n\n### Step 1: Aavedan Lekhanti\n- Saadha kagaj re likhanti: \"Mu MGNREGS antargata kaam maaguchhi\"\n- **Job Card number** likhanti\n- **Tarikh** aur **dastaakhat** diantu\n\n### Step 2: GP Office re Jama Karantu\n- **GP Sarpanch** ba **GP Secretary** nku diantu\n- **Raseed** zaroor niantu\n\n### Step 3: Kaam Miliba\n- GP nku **15 din** bhitare kaam deba darkar\n- 15 din re na mile, **berojgaari bhatta** miliba\n\n### Mazdoori\n- Rs. **289/din** (Odisha, 2025-26)\n- Bank account re seedha jama heba",
+     "confidence_score": 0.88, "resolution_feedback": 4,
+     "citizen_name": "Trinath Barik", "citizen_email": "trinath.barik@email.com",
+     "citizen_key": "citizen7"},
+
+    # 56 — Hybrid, rural_water_supply, Kendujhar, scheme_match, feedback 3
+    {"title": "Basudha bore well installed but yields very low water",
+     "description": "A bore well was installed under Basudha scheme in our habitation in Kendujhar 2 months ago. But the yield is very low — only 2-3 households can get water before it runs dry. We are 80 families. The hydrogeological survey was not done properly.",
+     "district": "Kendujhar", "department": "rural_water_supply", "priority": "high",
+     "sentiment": "negative", "status": "resolved", "resolution_tier": "officer_action",
+     "resolution_type": "hybrid", "language": "english",
+     "ai_resolution": "Low bore well yield in Kendujhar district is often due to drilling into shallow aquifers in hard rock terrain. Recommend: (1) RWSS hydrogeological resurvey, (2) Possible deeper bore well or alternative surface water source, (3) Connection to nearest JJM multi-village scheme if available.",
+     "manual_resolution": "RWSS hydrogeologist resurveyed the site. Original bore well drilled to only 60m in hard rock — yield test showed only 800 LPH (need 3,000 LPH for 80 families). Second bore well drilled at new location identified by geophysical survey — 120m depth, yield 4,500 LPH. Both connected to overhead tank with dual pump system. Supply now adequate.",
+     "assigned_officer": "Er. Anil Panigrahi, EE-RWSS", "confidence_score": 0.60,
+     "resolution_feedback": 3, "impact_score": 55,
+     "scheme_match": {"scheme_name": "Basudha (Buxi Jagabandhu Assured Water Supply to Habitations)",
+                      "relevance_score": 0.92,
+                      "eligibility_likely": True, "eligibility_reasoning": "Habitation received Basudha bore well but with inadequate yield — requires remediation under same scheme."},
+     "notes": [
+         {"officer": "Er. Anil Panigrahi, EE-RWSS", "content": "Original bore well yield inadequate. Hydrogeological resurvey ordered. Second drilling location identified.", "note_type": "internal"},
+         {"officer": "Er. Anil Panigrahi, EE-RWSS", "content": "Second bore well completed at 120m with adequate yield. Both wells connected to OHT. Water supply should now be sufficient for all 80 families.", "note_type": "citizen_facing"},
+     ],
+     "citizen_name": "Mamata Nayak", "citizen_email": "mamata.nayak@email.com",
+     "citizen_key": "citizen4"},
+
+    # ======================================================================
+    # NEW IN PROGRESS (7) — indices 57–63
+    # ======================================================================
+
+    # 57 — In progress, sanitation, Balasore, SLA breached
+    {"title": "SBM-G community toilet locked — no caretaker assigned",
+     "description": "The community sanitary complex built under SBM-G in our market area in Balasore has been locked for 2 months. No caretaker has been assigned. The GP says there is no budget for a caretaker. People are using open defecation again.",
+     "district": "Balasore", "department": "sanitation", "priority": "high",
+     "sentiment": "frustrated", "status": "in_progress", "resolution_tier": "officer_action",
+     "language": "english",
+     "assigned_officer": "Smt. Sarojini Das, Block Sanitation Coord.",
+     "impact_score": 45,
+     "sla_breached": True,
+     "estimated_resolution_days": 20,
+     "notes": [
+         {"officer": "Smt. Sarojini Das, Block Sanitation Coord.", "content": "GP does not have O&M budget for community toilet. Exploring SHG-based management model. Mission Shakti SHG 'Maa Durga' has expressed interest.", "note_type": "internal"},
+     ],
+     "citizen_name": "Suchitra Panda", "citizen_email": None,
+     "citizen_key": "citizen6"},
+
+    # 58 — In progress, rural_housing, Malkangiri, SLA breached, sub_tasks mixed
+    {"title": "PMAY-G beneficiary list excludes eligible families — Gram Sabha not consulted",
+     "description": "In our GP in Malkangiri, the PMAY-G beneficiary list was prepared without Gram Sabha approval. 15 eligible families from the permanent wait list were excluded. The Sarpanch included families that already have pucca houses. We demand re-verification.",
+     "district": "Malkangiri", "department": "rural_housing", "priority": "high",
+     "sentiment": "frustrated", "status": "in_progress", "resolution_tier": "officer_action",
+     "language": "english",
+     "assigned_officer": "Smt. Lopamudra Jena, BDO Housing",
+     "impact_score": 72,
+     "sla_breached": True,
+     "estimated_resolution_days": 25,
+     "sub_tasks": [
+         {"id": "st-mlk-1", "department": "panchayati_raj", "task": "Conduct special Gram Sabha for PMAY-G beneficiary list re-verification",
+          "status": "resolved", "assigned_officer": "Smt. Priya Pattnaik, BDO"},
+         {"id": "st-mlk-2", "department": "rural_housing", "task": "Cross-verify excluded families against SECC/Awaas+ permanent wait list and correct beneficiary list",
+          "status": "in_progress", "assigned_officer": "Smt. Lopamudra Jena, BDO Housing"},
+     ],
+     "notes": [
+         {"officer": "Smt. Priya Pattnaik, BDO", "content": "Gram Sabha held. 15 excluded families confirmed eligible per SECC data. 4 included families found to own pucca houses — removed.", "note_type": "citizen_facing"},
+         {"officer": "Smt. Lopamudra Jena, BDO Housing", "content": "Cross-verification with Awaas+ in progress. Corrected list to be uploaded within 10 days.", "note_type": "internal"},
+     ],
+     "citizen_name": "Padman Sabar", "citizen_email": "padman.sabar@email.com",
+     "citizen_key": "citizen4"},
+
+    # 59 — In progress, mgnregs, Nuapada, estimated overdue
+    {"title": "MGNREGS drought-proofing work incomplete — monsoon approaching",
+     "description": "Farm bunding and check dam work under MGNREGS was started in our village in Nuapada 3 months ago. Only 40% completed and work stopped. Workers have been demanding wages for completed portion. Monsoon will start in 6 weeks and incomplete structures will wash away.",
+     "district": "Nuapada", "department": "mgnregs", "priority": "urgent",
+     "sentiment": "frustrated", "status": "in_progress", "resolution_tier": "officer_action",
+     "language": "english",
+     "assigned_officer": "Sri Bikram Sahu, MGNREGS PO",
+     "impact_score": 65,
+     "estimated_resolution_days": 10,
+     "notes": [
+         {"officer": "Sri Bikram Sahu, MGNREGS PO", "content": "Work stoppage due to mate dispute. New mate appointed. Additional workers mobilized. Target: complete before monsoon onset.", "note_type": "internal"},
+         {"officer": "Sri Bikram Sahu, MGNREGS PO", "content": "Pending wages for completed portion being processed via FTO. New supervisor assigned. Work will resume within 3 days.", "note_type": "citizen_facing"},
+     ],
+     "citizen_name": "Ratan Majhi", "citizen_email": "ratan.majhi@email.com",
+     "citizen_key": "citizen3"},
+
+    # 60 — In progress, panchayati_raj, Subarnapur
+    {"title": "Panchayat office has no internet — e-Gram Swaraj not functional",
+     "description": "Our Panchayat office in Subarnapur has no internet connection for 6 months. The e-Gram Swaraj portal cannot be accessed. Fund utilization reports are not being uploaded. Citizens cannot track GP expenditure online. The GP says BSNL has not connected broadband.",
+     "district": "Subarnapur", "department": "panchayati_raj", "priority": "medium",
+     "sentiment": "negative", "status": "in_progress", "resolution_tier": "officer_action",
+     "language": "english",
+     "assigned_officer": "Sri Hemanta Pradhan, GP Secretary",
+     "estimated_resolution_days": 30,
+     "notes": [
+         {"officer": "Sri Hemanta Pradhan, GP Secretary", "content": "BSNL broadband complaint escalated to SDO. Alternate 4G dongle procured as temporary measure for e-Gram Swaraj access.", "note_type": "internal"},
+     ],
+     "citizen_name": "Niranjan Meher", "citizen_email": None,
+     "citizen_key": "citizen1"},
+
+    # 61 — In progress, infrastructure, Gajapati
+    {"title": "BGBO bridge approach road washed out — village cut off during rains",
+     "description": "The approach road to a small bridge in Gajapati GP built under BGBO last year has been washed out during recent heavy rains. The bridge itself is intact but vehicles cannot reach it. Our village of 200 families is cut off during every rain event.",
+     "district": "Gajapati", "department": "infrastructure", "priority": "urgent",
+     "sentiment": "frustrated", "status": "in_progress", "resolution_tier": "officer_action",
+     "language": "english", "is_public": True,
+     "assigned_officer": "Sri Debashis Swain, Sr. District Officer",
+     "impact_score": 80,
+     "estimated_resolution_days": 35,
+     "notes": [
+         {"officer": "Sri Debashis Swain, Sr. District Officer", "content": "Bridge intact but both approach roads eroded. Gabion wall protection sanctioned. Rs. 5 lakh estimate under FC untied grants.", "note_type": "citizen_facing"},
+     ],
+     "citizen_name": "Kuni Sabar", "citizen_email": "kuni.sabar@email.com",
+     "citizen_key": "citizen4"},
+
+    # 62 — In progress, general, Jharsuguda, with citizen_phone
+    {"title": "Cannot find information about government pension schemes for elderly",
+     "description": "My father is 68 years old and lives in Jharsuguda village. He does not receive any pension. We have heard about Madhu Babu Pension Yojana and IGNOAPS but do not know how to apply. The GP office redirects us to Block office and Block office sends us back.",
+     "district": "Jharsuguda", "department": "general", "priority": "low",
+     "sentiment": "negative", "status": "in_progress", "resolution_tier": "officer_action",
+     "language": "english",
+     "assigned_officer": "Sri Tapan Kumar Nayak, General Officer",
+     "citizen_phone": "9876501234",
+     "ai_resolution": "For elderly citizens in Odisha, the following pension schemes are available:\n\n1. **Madhu Babu Pension Yojana (MBPY)**: Rs. 500/month for BPL persons aged 60+\n2. **IGNOAPS**: Rs. 300/month (Central) + Rs. 200/month (State top-up) for BPL persons aged 60+\n\nApply at the GP office with: Aadhaar, age proof, BPL card, bank passbook. GP Secretary forwards to Block for approval.",
+     "confidence_score": 0.75,
+     "notes": [
+         {"officer": "Sri Tapan Kumar Nayak, General Officer", "content": "Citizen redirected multiple times. Coordinating with Block office for direct application processing. Pension eligibility check initiated.", "note_type": "internal"},
+     ],
+     "citizen_name": "Trinath Barik", "citizen_email": "trinath.barik@email.com",
+     "citizen_key": "citizen7"},
+
+    # 63 — In progress, rural_water_supply, Boudh
+    {"title": "JJM overhead tank leaking — water pressure too low for upper habitations",
+     "description": "The JJM overhead tank built in Boudh block has developed cracks and is leaking from the base. Because of low water level, habitations on higher ground get no water while lower areas get excess flow. 120 families in upper areas affected.",
+     "district": "Boudh", "department": "rural_water_supply", "priority": "high",
+     "sentiment": "frustrated", "status": "in_progress", "resolution_tier": "officer_action",
+     "language": "english",
+     "assigned_officer": "Er. Anil Panigrahi, EE-RWSS",
+     "impact_score": 68,
+     "estimated_resolution_days": 25,
+     "notes": [
+         {"officer": "Er. Anil Panigrahi, EE-RWSS", "content": "OHT structural assessment shows cracks due to poor curing during construction. Epoxy grouting repair insufficient. Full tank relining required. Estimate Rs. 4.5 lakh under JJM O&M.", "note_type": "internal"},
+         {"officer": "Er. Anil Panigrahi, EE-RWSS", "content": "Tank repair work sanctioned. Temporary direct pumping arrangement to upper habitations until repair is complete (est. 3-4 weeks).", "note_type": "citizen_facing"},
+     ],
+     "citizen_name": "Brundaban Sahu", "citizen_email": "brundaban.sahu@email.com",
+     "citizen_key": "citizen1"},
+
+    # ======================================================================
+    # NEW ESCALATED (5) — indices 64–68
+    # ======================================================================
+
+    # 64 — Escalated, general, anonymous, corruption
+    {"title": "Block office staff demanding bribes for processing MGNREGS and PMAY-G applications",
+     "description": "At the Block Development Office in Nabarangpur, staff members are demanding Rs. 500-2000 to process MGNREGS job card applications and PMAY-G housing applications. Poor tribal families cannot pay and their applications are kept pending indefinitely. This is a systematic corruption issue.",
+     "district": "Nabarangpur", "department": "general", "priority": "urgent",
+     "sentiment": "frustrated", "status": "escalated", "resolution_tier": "escalation",
+     "language": "english",
+     "impact_score": 88,
+     "notes": [
+         {"officer": "Sri Tapan Kumar Nayak, General Officer", "content": "Serious corruption allegation at Block level. Referred to District Collector and Anti-Corruption Bureau. All pending applications at the Block office being audited.", "note_type": "internal"},
+     ],
+     "citizen_name": None, "citizen_email": None, "is_anonymous": True,
+     "citizen_key": "citizen3"},
+
+    # 65 — Escalated, rural_livelihoods, scheme_match
+    {"title": "Mission Shakti loan recovery agents harassing SHG members",
+     "description": "Recovery agents from the bank are visiting our SHG members' homes in Kalahandi and threatening them about late loan repayment. Some members are only 15 days overdue due to crop failure. The agents are using abusive language and threatening to seize household items. This is not how Mission Shakti loans should work.",
+     "district": "Kalahandi", "department": "rural_livelihoods", "priority": "urgent",
+     "sentiment": "frustrated", "status": "escalated", "resolution_tier": "escalation",
+     "language": "english", "is_public": True,
+     "impact_score": 75,
+     "scheme_match": {"scheme_name": "Mission Shakti (SHG Convergence through PR&DW)", "relevance_score": 0.90,
+                      "eligibility_likely": True, "eligibility_reasoning": "SHG formed under Mission Shakti facing harassment from bank recovery agents over loan repayment."},
+     "notes": [
+         {"officer": "Sri Ranjit Mishra, DRDA PD", "content": "Recovery agent harassment reported. Matter escalated to Lead District Manager and NABARD. RBI guidelines prohibit coercive recovery. Demand letter sent to bank branch.", "note_type": "internal"},
+         {"officer": "Sri Ranjit Mishra, DRDA PD", "content": "We have escalated this to the Lead District Manager. Bank recovery agents are not allowed to use abusive language or threaten seizure of household items. You have rights under RBI fair practices code.", "note_type": "citizen_facing"},
+     ],
+     "citizen_name": "Sabita Nayak", "citizen_email": "sabita.nayak@email.com",
+     "citizen_key": "citizen4"},
+
+    # 66 — Escalated, sanitation, Nayagarh, high impact
+    {"title": "Multiple villages report skin diseases after using contaminated well water",
+     "description": "In 4 villages near Nayagarh town, villagers have been reporting skin rashes, itching, and boils after using well water. The wells are near an industrial effluent discharge point. Over 300 families affected. Children are worst hit. No alternative water source available.",
+     "district": "Nayagarh", "department": "sanitation", "priority": "urgent",
+     "sentiment": "frustrated", "status": "escalated", "resolution_tier": "escalation",
+     "language": "english", "is_public": True,
+     "impact_score": 92,
+     "notes": [
+         {"officer": "Smt. Sarojini Das, Block Sanitation Coord.", "content": "Health emergency. Water samples sent to State Pollution Control Board. Emergency tanker water supply arranged for 4 villages. District health team deployed for medical camps.", "note_type": "internal"},
+         {"officer": "Smt. Sarojini Das, Block Sanitation Coord.", "content": "Emergency water tanker supply started for your village. Medical camp scheduled for next week. Water testing underway — results expected in 7 days.", "note_type": "citizen_facing"},
+     ],
+     "citizen_name": "Sushant Sahoo", "citizen_email": "sushant.sahoo@email.com",
+     "citizen_key": "citizen1"},
+
+    # 67 — Escalated, infrastructure, Angul, with assigned officer
+    {"title": "BGBO school building construction collapsed during work — safety violation",
+     "description": "A BGBO school building under construction in Angul GP partially collapsed yesterday. Fortunately no workers were inside at the time. The structure appears to have poor foundation work. This is the second infrastructure failure by the same contractor in our block.",
+     "district": "Angul", "department": "infrastructure", "priority": "urgent",
+     "sentiment": "frustrated", "status": "escalated", "resolution_tier": "escalation",
+     "language": "english",
+     "impact_score": 85,
+     "assigned_officer": "Sri Debashis Swain, Sr. District Officer",
+     "notes": [
+         {"officer": "Sri Debashis Swain, Sr. District Officer", "content": "Structural collapse confirmed by Block JE. FIR being filed against contractor. Same contractor blacklisted in 2 other districts. Contract terminated. Fresh tender with mandatory structural engineer supervision.", "note_type": "internal"},
+         {"officer": "Sri Debashis Swain, Sr. District Officer", "content": "The contractor responsible has been terminated and blacklisted. A fresh tender will be issued with mandatory structural engineer supervision. No workers were injured in the collapse.", "note_type": "citizen_facing"},
+     ],
+     "citizen_name": "Bijay Kumar Sahu", "citizen_email": "bijay.sahu@email.com",
+     "citizen_key": "citizen2"},
+
+    # 68 — Escalated, rural_water_supply, Dhenkanal
+    {"title": "JJM pipeline cement mortar joints leaking at multiple villages — contractor quality issue",
+     "description": "In 8 villages in Dhenkanal block, the JJM pipeline joints are leaking severely. The contractor used cement mortar instead of specified rubber ring joints. Water pressure drops to zero by the last 3 villages. Over 1,200 families affected. The same contractor is working in adjacent blocks.",
+     "district": "Dhenkanal", "department": "rural_water_supply", "priority": "urgent",
+     "sentiment": "frustrated", "status": "escalated", "resolution_tier": "escalation",
+     "language": "english",
+     "impact_score": 93,
+     "assigned_officer": "Er. Anil Panigrahi, EE-RWSS",
+     "notes": [
+         {"officer": "Er. Anil Panigrahi, EE-RWSS", "content": "Quality failure confirmed. Contractor used cement mortar joints (non-specification) for 8 km pipeline. Recall order issued for all 3 blocks where this contractor operates. Joint replacement work to begin immediately.", "note_type": "internal"},
+     ],
+     "citizen_name": "Surekha Pradhan", "citizen_email": "surekha.pradhan@email.com",
+     "citizen_key": "citizen2",
+     "systemic_link": True},
+
+    # ======================================================================
+    # NEW PENDING (22) — indices 69–90
+    # ======================================================================
+
+    # 69 — Pending, self_resolvable, english, rural_water_supply, citizen_phone
+    {"title": "How to get water quality test done for our village bore well",
+     "description": "We suspect our bore well water in Khordha has high TDS and may not be safe. Some people are getting stomach problems. How can we get the water tested? Is it free?",
+     "district": "Khordha", "department": "rural_water_supply", "priority": "low",
+     "sentiment": "neutral", "status": "pending", "resolution_tier": "self_resolvable",
+     "resolution_type": "ai", "language": "english",
+     "citizen_phone": "9876512345",
+     "ai_resolution": "## How to Get Water Quality Testing\n\n### Free Testing\n- **District RWSS Laboratory** provides free water quality testing\n- Collect sample in a clean 1-litre bottle, label with location\n- Submit at district RWSS lab or through GP Jalasathi\n\n### Parameters Tested\n- Bacteriological, pH, TDS, Fluoride, Arsenic, Iron, Nitrate\n- Results within **7 working days**\n\n### How to Request\n1. Contact your **GP Jalasathi** — they have Field Test Kits for basic testing\n2. For detailed lab testing, call **JJM Helpline 1916**\n3. Or visit the **District RWSS office** directly\n\n### If Contamination Found\n- Alternative supply arranged within **48 hours**\n- Long-term treatment plant installed under JJM/Basudha",
+     "confidence_score": 0.90,
+     "citizen_name": "Sachidananda Mishra", "citizen_email": "sachida.mishra@email.com",
+     "citizen_key": "citizen5"},
+
+    # 70 — Pending, self_resolvable, hindi, sanitation
+    {"title": "SBM-G mein toilet banwane ka process kya hai",
+     "description": "Main Mayurbhanj mein rehti hoon. Hamare ghar mein toilet nahi hai. SBM-G yojana ke baare mein suna hai ki sarkar Rs. 12,000 deti hai. Kya process hai aur kahan apply karoon?",
+     "district": "Mayurbhanj", "department": "sanitation", "priority": "low",
+     "sentiment": "neutral", "status": "pending", "resolution_tier": "self_resolvable",
+     "resolution_type": "ai", "language": "hindi",
+     "citizen_phone": "9876523456",
+     "ai_resolution": "## SBM-G Toilet Nirman Prakriya\n\n### Patrta (Eligibility)\n- Ghar mein toilet na ho\n- Gramin kshetra mein rehte hon\n- BPL/SC/ST parivaron ko pehle milta hai\n\n### Aavedan\n1. **GP office** mein jaayein\n2. GP Secretary se milein aur likhit aavedan dein\n3. **Aadhaar Card** aur **bank passbook** saath lein\n\n### Prakriya\n- GP Secretary patrta verify karega\n- Aap toilet banwayein (apni marzi ka design)\n- Photo evidence GP office mein dein\n- **Rs. 12,000** bank account mein jama hoga\n\n### Zaruri Baatein\n- Koi fee nahi lagti — puri tarah muft\n- Photo pehle aur baad mein — GP Secretary lega\n- Paisa toilet banne ke baad milega",
+     "confidence_score": 0.91,
+     "citizen_name": "Gurubari Hansda", "citizen_email": "gurubari.hansda@email.com",
+     "citizen_key": "citizen3"},
+
+    # 71 — Pending, self_resolvable, odia, rural_housing
+    {"title": "PMAY-G re ghar baniba pain ki ki darkar heba",
+     "description": "Mu Koraput re rahuchhi. Mu pucca ghar nahi. PMAY-G yojana re ghar banibaku chahuchhi kintu ki ki lagiba se januni. Application kaise kariba se janaantu.",
+     "district": "Koraput", "department": "rural_housing", "priority": "low",
+     "sentiment": "neutral", "status": "pending", "resolution_tier": "self_resolvable",
+     "resolution_type": "ai", "language": "odia",
+     "ai_resolution": "## PMAY-G re Ghar Nirman Pain Prakriya\n\n### Patrta\n- Pucca ghar nahin thiba darkar\n- SECC 2011 list re naama thiba darkar\n- Awaas+ portal re check karantu\n\n### Darkar Document\n1. **Aadhaar Card**\n2. **Bank passbook**\n3. **SECC data** (GP office re check karantu)\n\n### Sahayata\n- Plain area: **Rs. 1,20,000**\n- Hilly/tribal area: **Rs. 1,30,000**\n- MGNREGS re 90 din kaam o miliba\n\n### Aavedan\n- GP office re jaantu\n- Gram Sabha re approval heba\n- 3 ta installment re paisa miliba\n- Geo-tagging photo darkar — foundation, lintel, completion",
+     "confidence_score": 0.86,
+     "scheme_match": {"scheme_name": "PMAY-Gramin (Pradhan Mantri Awas Yojana - Gramin)", "relevance_score": 0.94,
+                      "eligibility_likely": True, "eligibility_reasoning": "Citizen without pucca house seeking PMAY-G assistance — direct scheme match."},
+     "citizen_name": "Padman Sabar", "citizen_email": None,
+     "citizen_key": "citizen4"},
+
+    # 72 — Pending, is_public (0-vouch target), infrastructure, Cuttack
+    {"title": "Street drain overflow flooding GP road during every rain",
+     "description": "The main street drain in Cuttack GP overflows during every moderate rain, flooding the GP road. Shops and houses get waterlogged. The drain was last cleaned 2 years ago. Solid waste is blocking the drain at multiple points.",
+     "district": "Cuttack", "department": "infrastructure", "priority": "medium",
+     "sentiment": "negative", "status": "pending", "resolution_tier": "officer_action",
+     "language": "english", "is_public": True,
+     "impact_score": 40,
+     "citizen_name": "Akshay Nayak", "citizen_email": "akshay.nayak@email.com",
+     "citizen_key": "citizen6"},
+
+    # 73 — Pending, rural_water_supply, Puri, citizen_phone
+    {"title": "JJM tap providing water only 1 hour per day — insufficient for families",
+     "description": "We received JJM tap connections in Puri block but water comes for only 1 hour in the morning. With 6 family members, we cannot fill enough water in 1 hour. Neighboring villages get 4-6 hours of supply. Why is our supply so limited?",
+     "district": "Puri", "department": "rural_water_supply", "priority": "medium",
+     "sentiment": "negative", "status": "pending", "resolution_tier": "officer_action",
+     "language": "english",
+     "citizen_phone": "9876534567",
+     "citizen_name": "Duryodhan Behera", "citizen_email": "duryodhan.behera@email.com",
+     "citizen_key": "citizen5"},
+
+    # 74 — Pending, mgnregs, Ganjam, positive
+    {"title": "Thank MGNREGS team for excellent pond deepening work — request more employment",
+     "description": "The MGNREGS pond deepening work in our village in Ganjam was done very well. The pond now holds water throughout summer. I want to thank the team and request more MGNREGS work for land leveling in the adjacent area.",
+     "district": "Ganjam", "department": "mgnregs", "priority": "low",
+     "sentiment": "positive", "status": "pending", "resolution_tier": "officer_action",
+     "language": "english",
+     "citizen_name": "Gobinda Sahu", "citizen_email": None,
+     "citizen_key": "citizen5"},
+
+    # 75 — Pending, rural_livelihoods, Rayagada, scheme_match
+    {"title": "SHG wants to start poultry business — need training and loan",
+     "description": "Our SHG 'Maa Santoshi' in Rayagada has 15 members. We want to start a poultry farm as a group enterprise. We need skill training, initial loan, and guidance on where to sell. The Block OLM office has not responded to our request.",
+     "district": "Rayagada", "department": "rural_livelihoods", "priority": "medium",
+     "sentiment": "neutral", "status": "pending", "resolution_tier": "officer_action",
+     "language": "english",
+     "scheme_match": {"scheme_name": "NRLM / Odisha Livelihood Mission (OLM)", "relevance_score": 0.85,
+                      "eligibility_likely": True, "eligibility_reasoning": "SHG seeking livelihood enterprise support under NRLM/OLM for poultry farming."},
+     "citizen_name": "Mamata Nayak", "citizen_email": "mamata.nayak@email.com",
+     "citizen_key": "citizen4"},
+
+    # 76 — Pending, infrastructure, Balangir, citizen_phone
+    {"title": "BGBO community center built but no electricity connection",
+     "description": "A community center was built under BGBO in our GP in Balangir 6 months ago. But there is still no electricity connection. The building cannot be used for meetings or community events in the evening. GP says the electricity connection was not in the project estimate.",
+     "district": "Balangir", "department": "infrastructure", "priority": "medium",
+     "sentiment": "negative", "status": "pending", "resolution_tier": "officer_action",
+     "language": "english",
+     "citizen_phone": "9876545678",
+     "citizen_name": "Harihar Sahu", "citizen_email": "harihar.sahu@email.com",
+     "citizen_key": "citizen1"},
+
+    # 77 — Pending, is_public, sanitation, Subarnapur
+    {"title": "GP declared ODF but 30% households have no toilet — false reporting",
+     "description": "Our GP in Subarnapur was declared ODF (Open Defecation Free) but at least 30% of households still do not have toilets. The SBM verification was done superficially. We request a proper physical verification by the Block team.",
+     "district": "Subarnapur", "department": "sanitation", "priority": "high",
+     "sentiment": "frustrated", "status": "pending", "resolution_tier": "officer_action",
+     "language": "english", "is_public": True,
+     "impact_score": 55,
+     "citizen_name": "Niranjan Meher", "citizen_email": None,
+     "citizen_key": "citizen1"},
+
+    # 78 — Pending, rural_housing, Sundargarh, is_anonymous
+    {"title": "Contractor for PMAY-G houses using single brick walls instead of double",
+     "description": "The contractor hired for PMAY-G house construction in several villages in Sundargarh is building single-brick walls instead of the required double-brick walls. The houses will not be structurally sound. Some villagers have complained but the contractor is threatening them.",
+     "district": "Sundargarh", "department": "rural_housing", "priority": "high",
+     "sentiment": "frustrated", "status": "pending", "resolution_tier": "escalation",
+     "language": "english", "is_anonymous": True,
+     "impact_score": 70,
+     "citizen_name": None, "citizen_email": None,
+     "citizen_key": "citizen5"},
+
+    # 79 — Pending, mgnregs, Kandhamal, scheme_match
+    {"title": "MGNREGS convergence with PMAY-G — 90 days labor component not provided",
+     "description": "I am building my PMAY-G house in Kandhamal. Under the scheme, I should get 90 person-days of unskilled labor under MGNREGS convergence. But the GP says MGNREGS and PMAY-G are separate schemes and refuses to issue work days. I need this labor support to complete my house.",
+     "district": "Kandhamal", "department": "mgnregs", "priority": "medium",
+     "sentiment": "negative", "status": "pending", "resolution_tier": "officer_action",
+     "language": "english",
+     "scheme_match": {"scheme_name": "MGNREGS (Mahatma Gandhi National Rural Employment Guarantee Scheme)", "relevance_score": 0.88,
+                      "eligibility_likely": True, "eligibility_reasoning": "PMAY-G beneficiary entitled to 90 person-days MGNREGS convergence for house construction."},
+     "citizen_name": "Gobinda Kanhar", "citizen_email": "gobinda.kanhar@email.com",
+     "citizen_key": "citizen3"},
+
+    # 80 — Pending, panchayati_raj, Kalahandi, is_public
+    {"title": "GP not displaying expenditure details on notice board as mandated",
+     "description": "Our GP in Kalahandi is not displaying expenditure details, beneficiary lists, or project details on the Panchayat notice board as required by the Odisha Panchayat Raj Act. Citizens have no transparency on how GP funds are being used.",
+     "district": "Kalahandi", "department": "panchayati_raj", "priority": "medium",
+     "sentiment": "negative", "status": "pending", "resolution_tier": "officer_action",
+     "language": "english", "is_public": True,
+     "impact_score": 35,
+     "citizen_name": "Laxman Naik", "citizen_email": "laxman.naik@email.com",
+     "citizen_key": "citizen3"},
+
+    # 81 — Pending, rural_water_supply, Malkangiri, no AI resolution (freshly filed)
+    {"title": "Hand pump installed 6 months ago already broken — no spare parts available",
+     "description": "The India Mark II hand pump installed in our tribal village in Malkangiri has broken down. The connecting rod snapped. The GP says spare parts are not available in the district. Women are walking 4 km to fetch water from a stream.",
+     "district": "Malkangiri", "department": "rural_water_supply", "priority": "urgent",
+     "sentiment": "frustrated", "status": "pending", "resolution_tier": "officer_action",
+     "language": "english",
+     "impact_score": 78,
+     "citizen_name": "Padman Sabar", "citizen_email": "padman.sabar@email.com",
+     "citizen_key": "citizen4"},
+
+    # 82 — Pending, infrastructure, Dhenkanal, positive
+    {"title": "Appreciate new BGBO market shed — request for drainage around it",
+     "description": "The new market shed built under BGBO in Dhenkanal GP is very well constructed and has benefited many vendors. However, during rains, water accumulates around the shed because there is no drainage. Request construction of a small drain to make it fully functional.",
+     "district": "Dhenkanal", "department": "infrastructure", "priority": "low",
+     "sentiment": "positive", "status": "pending", "resolution_tier": "officer_action",
+     "language": "english",
+     "citizen_name": "Surekha Pradhan", "citizen_email": "surekha.pradhan@email.com",
+     "citizen_key": "citizen2"},
+
+    # 83 — Pending, rural_livelihoods, Boudh
+    {"title": "SHG bank account frozen by bank without notice",
+     "description": "Our SHG 'Maa Mangala' in Boudh has been saving regularly for 18 months. The bank suddenly froze our joint account without any notice. We cannot deposit savings or withdraw funds. The bank says it is due to KYC non-compliance but we submitted all documents.",
+     "district": "Boudh", "department": "rural_livelihoods", "priority": "high",
+     "sentiment": "frustrated", "status": "pending", "resolution_tier": "officer_action",
+     "language": "english",
+     "citizen_name": "Suchitra Panda", "citizen_email": None,
+     "citizen_key": "citizen6"},
+
+    # 84 — Pending, sanitation, Jajpur, citizen_phone
+    {"title": "Plastic waste burning in open near school — children inhaling toxic smoke",
+     "description": "Near the GP school in Jajpur, villagers burn plastic waste in an open pit daily. The toxic smoke enters the school during morning hours when wind blows towards the school. Children are coughing and getting respiratory problems. The GP has no waste segregation system.",
+     "district": "Jajpur", "department": "sanitation", "priority": "high",
+     "sentiment": "frustrated", "status": "pending", "resolution_tier": "officer_action",
+     "language": "english",
+     "citizen_phone": "9876556789",
+     "impact_score": 60,
+     "citizen_name": "Lalita Sahoo", "citizen_email": "lalita.sahoo@email.com",
+     "citizen_key": "citizen2"},
+
+    # 85 — Pending, panchayati_raj, Deogarh, hindi
+    {"title": "GP Secretary school certificate ke liye Rs. 500 maang raha hai",
+     "description": "Hamare GP Secretary Deogarh mein har certificate ke liye Rs. 500 maangta hai. Income certificate, residence certificate, sab ke liye paisa lagta hai. Ye galat hai. Humlog garib hain aur ek ek paisa mushkil se kamaate hain.",
+     "district": "Deogarh", "department": "panchayati_raj", "priority": "medium",
+     "sentiment": "frustrated", "status": "pending", "resolution_tier": "officer_action",
+     "language": "hindi",
+     "citizen_name": "Sukanta Mahapatra", "citizen_email": None,
+     "citizen_key": "citizen1"},
+
+    # 86 — Pending, general, Kendrapara, is_anonymous
+    {"title": "Block office staff not present during office hours — no one to help citizens",
+     "description": "The Block Development Office in Kendrapara is frequently empty during office hours. Staff come late, leave early, and take long lunch breaks. When citizens visit for work, they are told to come another day. This happens regularly.",
+     "district": "Kendrapara", "department": "general", "priority": "medium",
+     "sentiment": "negative", "status": "pending", "resolution_tier": "officer_action",
+     "language": "english", "is_anonymous": True,
+     "citizen_name": None, "citizen_email": None,
+     "citizen_key": "citizen2"},
+
+    # 87 — Pending, rural_water_supply, Nabarangpur
+    {"title": "Solar pump for water supply not working — no maintenance team",
+     "description": "The solar-powered water pump installed under JJM in our tribal village in Nabarangpur stopped working 3 weeks ago. The solar panels seem dirty and the pump motor makes strange noises. There is no maintenance team or trained person in the village.",
+     "district": "Nabarangpur", "department": "rural_water_supply", "priority": "high",
+     "sentiment": "negative", "status": "pending", "resolution_tier": "officer_action",
+     "language": "english",
+     "impact_score": 55,
+     "scheme_match": {"scheme_name": "Jal Jeevan Mission (JJM)", "relevance_score": 0.89,
+                      "eligibility_likely": True, "eligibility_reasoning": "JJM solar pump installation requiring maintenance under scheme O&M provisions."},
+     "citizen_name": "Sabita Nayak", "citizen_email": "sabita.nayak@email.com",
+     "citizen_key": "citizen4"},
+
+    # 88 — Pending, mgnregs, Angul
+    {"title": "MGNREGS plantation work — saplings died due to no follow-up watering",
+     "description": "Under MGNREGS, 500 saplings were planted along the village road in Angul 3 months ago. But no watering or maintenance work was provided afterwards. 80% of saplings have died. This is a waste of public money. We demand replanting with proper maintenance plan.",
+     "district": "Angul", "department": "mgnregs", "priority": "low",
+     "sentiment": "negative", "status": "pending", "resolution_tier": "officer_action",
+     "language": "english",
+     "citizen_name": "Bijay Kumar Sahu", "citizen_email": "bijay.sahu@email.com",
+     "citizen_key": "citizen2"},
+
+    # 89 — Pending, infrastructure, Mayurbhanj, is_public
+    {"title": "BGBO road to weekly market unusable — tribal families losing income",
+     "description": "The road connecting 5 tribal villages to the weekly market in Mayurbhanj is in terrible condition. Deep potholes, no shoulder, completely impassable in monsoon. Tribal families cannot transport forest produce to market and are losing income. We requested BGBO repair 8 months ago.",
+     "district": "Mayurbhanj", "department": "infrastructure", "priority": "high",
+     "sentiment": "frustrated", "status": "pending", "resolution_tier": "officer_action",
+     "language": "english", "is_public": True,
+     "impact_score": 72,
+     "citizen_name": "Gurubari Hansda", "citizen_email": "gurubari.hansda@email.com",
+     "citizen_key": "citizen3"},
+
+    # 90 — Pending, rural_housing, Gajapati, positive + scheme_match
+    {"title": "PMAY-G house completed successfully — thank you for the support",
+     "description": "I want to thank the department for the PMAY-G housing assistance. My family now has a pucca house for the first time. The Block TA was very helpful with the geo-tagging process. I request that my neighbor's family also be included in the next beneficiary list as they still live in a kutcha house.",
+     "district": "Gajapati", "department": "rural_housing", "priority": "low",
+     "sentiment": "positive", "status": "pending", "resolution_tier": "officer_action",
+     "language": "english",
+     "scheme_match": {"scheme_name": "PMAY-Gramin (Pradhan Mantri Awas Yojana - Gramin)", "relevance_score": 0.85,
+                      "eligibility_likely": True, "eligibility_reasoning": "Citizen expressing gratitude for PMAY-G and requesting inclusion of neighbor in next beneficiary list."},
+     "citizen_name": "Kuni Sabar", "citizen_email": "kuni.sabar@email.com",
+     "citizen_key": "citizen4"},
 ]
 
 
 # ---------------------------------------------------------------------------
 # Import function
 # ---------------------------------------------------------------------------
-_ATTACHMENT_INDICES = {3, 12, 20, 25}
+_ATTACHMENT_INDICES = {3, 12, 20, 25, 50, 55, 60, 65, 70, 75, 80}
+
+# Spread grievances from 6 months ago to today for charts and reports
+SIX_MONTHS_DAYS = 183
 
 async def import_grievances(db, user_ids: dict[str, str], *, file_ids: dict | None = None) -> list[dict]:
     """Insert all seed grievances. Returns list of inserted docs (for extras to reference)."""
@@ -599,6 +1228,7 @@ async def import_grievances(db, user_ids: dict[str, str], *, file_ids: dict | No
     now = now_utc()
     inserted: list[dict] = []
     attachment_pool = (file_ids or {}).get("grievance_attachments", [])
+    n_total = len(GRIEVANCES)
 
     for i, g in enumerate(GRIEVANCES):
         # Tracking number via counter
@@ -613,8 +1243,13 @@ async def import_grievances(db, user_ids: dict[str, str], *, file_ids: dict | No
         pri     = g["priority"]
         sla_hrs = PRIORITY_SLA_HOURS.get(pri, 168)
 
-        # Timestamps
-        created = now - timedelta(days=42 - i)   # spread so newest land within this week
+        # Timestamps: spread evenly from 6 months ago to today
+        if n_total <= 1:
+            days_ago = SIX_MONTHS_DAYS // 2
+        else:
+            days_ago = SIX_MONTHS_DAYS - (i * SIX_MONTHS_DAYS / (n_total - 1))
+        created = now - timedelta(days=days_ago, hours=i % 24)
+
         if status == "resolved":
             updated = created + timedelta(days=3, hours=i * 2)
             sla     = created + timedelta(hours=sla_hrs)
@@ -633,7 +1268,7 @@ async def import_grievances(db, user_ids: dict[str, str], *, file_ids: dict | No
         if g.get("estimated_resolution_days"):
             est_deadline = created + timedelta(days=g["estimated_resolution_days"])
 
-        # Notes with timestamps
+        # Notes with timestamps (relative to grievance creation, within a few days)
         seed_notes = []
         for n in g.get("notes", []):
             seed_notes.append({
@@ -654,7 +1289,7 @@ async def import_grievances(db, user_ids: dict[str, str], *, file_ids: dict | No
             "description": g["description"],
             "citizen_name": None if is_anon else g.get("citizen_name"),
             "citizen_email": None if is_anon else g.get("citizen_email"),
-            "citizen_phone": None,
+            "citizen_phone": None if is_anon else g.get("citizen_phone"),
             "is_anonymous": is_anon,
             "is_public": g.get("is_public", False) and not is_anon,
             "language": g.get("language", "english"),

@@ -6,7 +6,7 @@ from .config import new_id, now_utc, pwd_context
 # Raw user definitions
 # ---------------------------------------------------------------------------
 USERS = [
-    # ---- Citizens (5) ----
+    # ---- Citizens (9) ----
     {"username": "ram_kumar", "password": "password123",
      "full_name": "Ram Kumar", "email": "ram.kumar@email.com",
      "phone": "9876543209", "role": "citizen", "department": None},
@@ -28,7 +28,24 @@ USERS = [
      "phone": "9876543213", "role": "citizen", "department": None,
      "has_face_id": True},
 
-    # ---- Officers (7) — one per major department + senior officer ----
+    {"username": "citizen5", "password": "citizen123",
+     "full_name": "Nilambar Sethi", "email": "nilambar.sethi@email.com",
+     "phone": "9876543214", "role": "citizen", "department": None,
+     "has_face_id": True},
+
+    {"username": "citizen6", "password": "citizen123",
+     "full_name": "Suchitra Panda", "email": None,
+     "phone": "9876543215", "role": "citizen", "department": None},
+
+    {"username": "citizen7", "password": "citizen123",
+     "full_name": "Trinath Barik", "email": "trinath.barik@email.com",
+     "phone": None, "role": "citizen", "department": None},
+
+    {"username": "citizen_new", "password": "citizen123",
+     "full_name": "Jyoti Ranjan Mohanty", "email": "jyoti.mohanty@email.com",
+     "phone": "9876543216", "role": "citizen", "department": None},
+
+    # ---- Officers (10) — one per major department + senior + extras ----
     {"username": "officer_bdo", "password": "officer123",
      "full_name": "Smt. Priya Pattnaik, BDO", "email": "priya.bdo@panchayat.odisha.gov.in",
      "phone": "9988776655", "role": "officer", "department": "panchayati_raj"},
@@ -56,6 +73,18 @@ USERS = [
     {"username": "officer_senior", "password": "officer123",
      "full_name": "Sri Debashis Swain, Sr. District Officer", "email": "debashis.senior@panchayat.odisha.gov.in",
      "phone": "9988776606", "role": "officer", "department": "infrastructure"},
+
+    {"username": "officer_general", "password": "officer123",
+     "full_name": "Sri Tapan Kumar Nayak, General Officer", "email": "tapan.general@panchayat.odisha.gov.in",
+     "phone": "9988776607", "role": "officer", "department": "general"},
+
+    {"username": "officer_gp_secretary", "password": "officer123",
+     "full_name": "Sri Hemanta Pradhan, GP Secretary", "email": "hemanta.gps@panchayat.odisha.gov.in",
+     "phone": "9988776608", "role": "officer", "department": "panchayati_raj"},
+
+    {"username": "officer_mgnregs2", "password": "officer123",
+     "full_name": "Smt. Gitanjali Behera, MGNREGS APO", "email": "gitanjali.mgnregs@panchayat.odisha.gov.in",
+     "phone": "9988776609", "role": "officer", "department": "mgnregs"},
 
     # ---- Admin (1) ----
     {"username": "admin", "password": "admin123",

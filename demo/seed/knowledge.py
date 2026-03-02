@@ -5,7 +5,7 @@ from qdrant_client.models import PointStruct
 from .config import new_id, now_utc, get_embedding
 
 # ---------------------------------------------------------------------------
-# Documentation (15 entries — carried forward from original importer)
+# Documentation (22 entries)
 # ---------------------------------------------------------------------------
 DOCUMENTATION = [
     {"title": "Jal Jeevan Mission — Tap Water Connection Process",
@@ -53,10 +53,38 @@ DOCUMENTATION = [
     {"title": "Panchayat Election and Representative Information",
      "content": "Panchayat elections in Odisha are conducted at three tiers: Gram Panchayat (Sarpanch, Ward Members), Panchayat Samiti (Block level), and Zilla Parishad (District level). Elections held every 5 years. List of elected representatives available at panchayat.odisha.gov.in. To file complaints about representatives (non-performance, misconduct), approach the BDO or State Election Commission. No-confidence motion requires 2/3rd majority of GP members.",
      "category": "panchayati_raj"},
+
+    {"title": "ODF Plus Sustainability Monitoring Process",
+     "content": "ODF Plus certification requires villages to sustain ODF status and implement solid and liquid waste management (SLWM). Monitoring involves: quarterly physical verification by Block SBM Coordinator, annual third-party assessment, and continuous community feedback. Key indicators: functional toilets in 100% households, no visible open defecation, operational SLWM unit, segregated waste collection. ODF Plus Star rating (Aspiring, Rising, Model) based on achievement of 9 SBM-G parameters. Report ODF slippage to Block SBM Coordinator or call PR&DW helpline. GP monitoring committee should be active with monthly reviews.",
+     "category": "sanitation"},
+
+    {"title": "MGNREGS Worksite Safety and Mandated Facilities",
+     "content": "Under MGNREGS operational guidelines, every worksite must have: (1) Shade shelter for rest periods, (2) Potable drinking water, (3) First-aid kit with basic medicines, (4) Creche facility if 5+ children of working age are present, (5) Signboard with work details and worker list. The Mate (worksite supervisor) is responsible for ensuring facilities. Cost of facilities included in project estimate. Workers can refuse to work until facilities are provided without loss of wages. Report violations to the Block MGNREGS Programme Officer. Penalty for non-compliance: contractor debarment, Mate removal.",
+     "category": "mgnregs"},
+
+    {"title": "Tribal Area Special Provisions Under BGBO",
+     "content": "Under the Bikashita Gaon Bikashita Odisha (BGBO) scheme, 40% of total allocation is reserved for Integrated Tribal Development Agency (ITDA) blocks. Special provisions for Scheduled Areas: (1) Gram Sabha consent mandatory for all projects, (2) Tribal sub-plan (TSP) budgets cannot be diverted, (3) Forest Rights Act (FRA) titles must be respected in road/infrastructure projects, (4) Contractors from tribal cooperative societies get preference, (5) Wage rates for tribal workers cannot be below MGNREGS rate. Any diversion of tribal funds is a violation under the PESA Act. Report violations to the District Collector or Tribal Welfare Commissioner.",
+     "category": "infrastructure"},
+
+    {"title": "JJM Water Quality Testing and Fluoride Remediation",
+     "content": "Under Jal Jeevan Mission, mandatory water quality testing is required before commissioning any water supply source and quarterly thereafter. Key contaminant parameters: Fluoride (safe limit: 1.0 mg/L), Arsenic (0.01 mg/L), Iron (0.3 mg/L), Nitrate (45 mg/L). GP Jalasathi is trained to use Field Test Kits (FTKs) for basic testing. For detailed lab analysis, samples are sent to district RWSS laboratory. In fluoride-affected areas: (1) Iron Removal Plant or defluoridation unit installed, (2) Alternative safe source identified, (3) Community awareness on dental/skeletal fluorosis. JJM helpline: 1916 for reporting contamination.",
+     "category": "rural_water_supply"},
+
+    {"title": "Mission Shakti Loan and Enterprise Support for SHGs",
+     "content": "Mission Shakti integrates women's SHGs with the Panchayati Raj system for convergent service delivery. Key financial support: (1) Interest-free revolving fund of Rs. 15,000 per SHG, (2) Community Investment Fund (CIF) up to Rs. 2.5 lakh per SHG, (3) Bank linkage loans — first dose Rs. 50,000, second dose Rs. 1-3 lakh, (4) Enterprise loans up to Rs. 5 lakh with interest subvention. SHGs can access Mission Shakti Bazaar for market linkage. Block OLM Coordinator conducts SHG grading (Grade I/II/III) which determines loan eligibility. Recovery agents must follow RBI fair practices code — coercive recovery is prohibited. Complaints to Block OLM Coordinator or District Mission Shakti office.",
+     "category": "rural_livelihoods"},
+
+    {"title": "GP Fund Audit and Transparency Process",
+     "content": "Gram Panchayat fund utilization transparency is mandated under Odisha Panchayati Raj Act. GPs must: (1) Display expenditure details on Panchayat notice board quarterly, (2) Present accounts at every Gram Sabha, (3) Upload expenditure on e-Gram Swaraj portal (egramswaraj.gov.in), (4) Submit utilization certificates to Block for fund release. Annual audit by Local Fund Audit (LFA) is mandatory. Social audit through Gram Sabha. Citizens can access GP accounts through RTI Act. Complaints about fund misuse or non-transparency should be filed with BDO with copies of GP resolution. District Panchayat Officer can freeze GP accounts if irregularities found.",
+     "category": "panchayati_raj"},
+
+    {"title": "PMAY-G Geo-Tagging Troubleshooting Guide",
+     "content": "Geo-tagging is mandatory at three stages of PMAY-G house construction: foundation, lintel, and completion. Common issues and solutions: (1) GPS accuracy >50m — use phone in open area, enable high-accuracy mode in settings, wait 30 seconds for GPS lock, (2) Photo rejected by Awaas+ portal — ensure timestamp is visible, take photo with clear sky view, avoid indoor photos, (3) Multiple rejections — contact Block Technical Assistant (BTA) for assisted geo-tagging with GPS device, (4) Portal showing wrong location — report to State PMAY-G IT cell. BTA should use phones with assisted GPS. Installment release is blocked until valid geo-tag is accepted. Emergency bypass available through District Housing Officer in cases of systemic portal issues.",
+     "category": "rural_housing"},
 ]
 
 # ---------------------------------------------------------------------------
-# Service Memory (16 entries — carried forward from original importer)
+# Service Memory (24 entries)
 # ---------------------------------------------------------------------------
 SERVICE_MEMORY = [
     {"query": "Bore well not working in tribal village Koraput for 3 months",
@@ -107,6 +135,38 @@ SERVICE_MEMORY = [
     {"query": "MGNREGS worksite lacks mandated facilities — no shade, water, or first-aid in Bargarh",
      "resolution": "Block MGNREGS PO inspected the worksite. Confirmed absence of mandatory facilities. Contractor issued notice. Temporary shade erected within 24 hours. Drinking water tanker arranged. First-aid kit procured from Block health centre. GP-level monitoring committee activated per MGNREGS operational guidelines.",
      "category": "mgnregs", "agent_name": "BPO Panda"},
+
+    {"query": "SHG leaf plate products have no buyers — need market linkage in Kendujhar",
+     "resolution": "Block OLM Coordinator connected SHG with ORMAS (Odisha Rural Marketing Society) which operates district-level procurement centres. SHG registered as supplier on ORMAS portal. First bulk order of 10,000 plates placed by ORMAS within 20 days. SHG also linked to tribal cooperative society for consistent demand. MGNREGS convergence sanctioned for drying shed construction at SHG production site.",
+     "category": "rural_livelihoods", "agent_name": "Block OLM Coordinator Naik"},
+
+    {"query": "Fluoride contamination in bore well water causing dental fluorosis in children in Jharsuguda",
+     "resolution": "RWSS collected water samples from 8 bore wells in the affected area. Lab results confirmed fluoride levels of 2.5-4.8 mg/L (safe limit: 1.0 mg/L). Immediate actions: (1) Affected bore wells marked with warning signs, (2) Emergency tanker water supply arranged, (3) Defluoridation unit installed at central point within 15 days, (4) JJM surface water scheme fast-tracked — pipeline from nearby river source sanctioned. Long-term: All new bore wells to undergo mandatory pre-commissioning water quality testing.",
+     "category": "rural_water_supply", "agent_name": "EE-RWSS Panigrahi"},
+
+    {"query": "GP election dispute — recount demanded due to 3-vote margin in Jagatsinghpur",
+     "resolution": "BDO forwarded the complaint to the State Election Commission (SEC). SEC ordered scrutiny of postal ballots and challenged votes. Upon recount, the margin remained at 3 votes. SEC upheld the original result. Complainant advised that further appeal lies with the SEC or district court within 30 days of result declaration. Dispute resolved through established legal process.",
+     "category": "panchayati_raj", "agent_name": "BDO Rath"},
+
+    {"query": "MGNREGS worker died at worksite due to wall collapse — compensation not paid in Koraput",
+     "resolution": "Block MGNREGS PO confirmed the worksite death through FIR and post-mortem report. MGNREGS guidelines mandate Rs. 5 lakh ex-gratia for worksite death. File processed on priority through District Programme Coordinator. Compensation of Rs. 5 lakh sanctioned and transferred to nominee's bank account within 30 days. Safety audit of all active pond deepening worksites in Koraput ordered. Contractor penalized for inadequate safety measures.",
+     "category": "mgnregs", "agent_name": "DPC Mohapatra"},
+
+    {"query": "Cross-department complaint — waterlogged road and clogged drain in Jajpur",
+     "resolution": "Sr. District Officer coordinated multi-department response. Infrastructure team repaired road surface and corrected camber for proper drainage (Rs. 2.1 lakh under FC grants). Sanitation team cleaned drain and activated SLWM unit. Weekly solid waste collection started through GP-appointed contractor. Health department conducted fogging for mosquito control. Cross-department task tracked through sub-task mechanism to ensure accountability from both departments.",
+     "category": "infrastructure", "agent_name": "Sr. District Officer Swain"},
+
+    {"query": "ODF Plus village lost status — SLWM unit operator left due to non-payment in Kendrapara",
+     "resolution": "Block SBM Coordinator investigated. SLWM operator had not been paid for 4 months due to GP fund crunch. Resolution: (1) Pending salary of Rs. 24,000 cleared from GP untied grants, (2) New operator recruited with 6-month advance salary guarantee, (3) GP monitoring committee reactivated with monthly review mandate, (4) Waste segregation drive conducted with IEC materials. ODF Plus status review scheduled in 60 days.",
+     "category": "sanitation", "agent_name": "Block Coordinator Rout"},
+
+    {"query": "Solar street light not working in village — warranty repair needed in Cuttack",
+     "resolution": "GP Secretary contacted the solar street light manufacturer through the warranty card. Manufacturer's service team visited within 5 days. Found: battery degraded due to excessive discharge (no auto-cutoff circuit). Battery replaced under warranty at no cost. Additional 2 lights in same GP also had similar issue — all replaced. GP Secretary trained on basic troubleshooting and warranty claim process.",
+     "category": "panchayati_raj", "agent_name": "GP Secretary Mohanty"},
+
+    {"query": "BGBO contractor using substandard material — blacklisting procedure in Angul",
+     "resolution": "Block JE conducted quality assessment including concrete cube test, brick compression test, and bitumen layer measurement. All failed specification standards. Actions: (1) Stop-work order issued, (2) Contractor asked to demolish and rebuild at own cost, (3) 10% penalty deducted from running bills, (4) Contractor blacklisted in district contractor registry for 3 years, (5) FIR filed for criminal breach of contract. New tender issued with mandatory structural engineer supervision clause.",
+     "category": "infrastructure", "agent_name": "Block JE Mishra"},
 ]
 
 # ---------------------------------------------------------------------------
