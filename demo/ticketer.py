@@ -1,5 +1,5 @@
 # AI-Powered Grievance Redressal System
-# FastAPI + MongoDB + Qdrant + OpenAI
+# FastAPI + MongoDB + Qdrant + OpenAI + Redis
 
 import os
 import re
@@ -12,12 +12,12 @@ import math
 import statistics
 import difflib
 import ipaddress
+import struct
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Dict, Any
 from enum import Enum
 from contextlib import asynccontextmanager
-from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 
 FACE_MATCH_THRESHOLD = 0.5  # Strict threshold for high security
@@ -27,25 +27,30 @@ import io
 import httpx
 import openai as openai_mod
 import uvicorn
-import gridfs
+import structlog
 from bson import ObjectId
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends, status, Query, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse, FileResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse, FileResponse, JSONResponse
 from starlette.requests import Request
 from pydantic import BaseModel, Field, field_validator, model_validator
-from pymongo import MongoClient, ReturnDocument, GEOSPHERE
+from pymongo import AsyncMongoClient, ReturnDocument, GEOSPHERE
+from gridfs import AsyncGridFS
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams, PointStruct, Filter, FieldCondition, MatchValue, PointIdsList
 from openai import AsyncOpenAI
 from jose import JWTError, jwt
-# passlib removed — password hashing uses bcrypt directly
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+try:
+    from redis.asyncio import Redis as AsyncRedis
+except ImportError:
+    AsyncRedis = None
+from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -67,8 +72,29 @@ for _env_path in _env_candidates:
 if not _env_loaded:
     load_dotenv(override=True)  # fall back to python-dotenv's own search
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# ---------------------------------------------------------------------------
+# Structured Logging
+# ---------------------------------------------------------------------------
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+
+structlog.configure(
+    processors=[
+        structlog.contextvars.merge_contextvars,
+        structlog.processors.add_log_level,
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.dev.ConsoleRenderer() if os.getenv("LOG_FORMAT") != "json"
+        else structlog.processors.JSONRenderer(),
+    ],
+    wrapper_class=structlog.make_filtering_bound_logger(getattr(logging, LOG_LEVEL, logging.INFO)),
+    context_class=dict,
+    logger_factory=structlog.PrintLoggerFactory(),
+    cache_logger_on_first_use=True,
+)
+logger = structlog.get_logger()
+
+# Silence noisy third-party loggers
+for _noisy in ("pymongo", "httpx", "httpcore", "openai", "qdrant_client"):
+    logging.getLogger(_noisy).setLevel(logging.WARNING)
 
 BASE_DIR = Path(__file__).resolve().parent
 MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
@@ -84,16 +110,49 @@ if not JWT_SECRET or len(JWT_SECRET) < 32:
         "Generate one with: python -c \"import secrets; print(secrets.token_urlsafe(48))\""
     )
 JWT_ALGORITHM = "HS256"
-JWT_EXPIRE_HOURS = 24
+JWT_ACCESS_EXPIRE_MINUTES = int(os.getenv("JWT_ACCESS_EXPIRE_MINUTES", "30"))
+JWT_REFRESH_EXPIRE_DAYS = int(os.getenv("JWT_REFRESH_EXPIRE_DAYS", "7"))
 EMBEDDING_DIM = 3072  # text-embedding-3-large
 
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/1")
 OPENWEATHERMAP_API_KEY = os.getenv("OPENWEATHERMAP_API_KEY", "")
+
+S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME", "")
+S3_ENDPOINT_URL = os.getenv("S3_ENDPOINT_URL", "")
 
 openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
 
+# Prometheus metrics
+REQUEST_COUNT = Counter("http_requests_total", "Total HTTP requests", ["method", "endpoint", "status"])
+REQUEST_LATENCY = Histogram("http_request_duration_seconds", "HTTP request latency", ["method", "endpoint"])
+OPENAI_CALLS = Counter("openai_api_calls_total", "Total OpenAI API calls", ["model", "type"])
+OPENAI_LATENCY = Histogram("openai_api_duration_seconds", "OpenAI API latency", ["model"])
+
 # GridFS instance (initialized in startup_db)
 gfs = None
+# Redis client (initialized in lifespan)
+redis_client: Optional[AsyncRedis] = None
+# S3 client (initialized in lifespan if configured)
+s3_client = None
+
+
+async def store_file(content: bytes, filename: str, content_type: str,
+                     metadata: Optional[Dict] = None) -> str:
+    """Upload to S3 if configured, otherwise GridFS. Returns file ID string."""
+    meta = metadata or {}
+    meta.setdefault("uploaded_at", datetime.now(timezone.utc).isoformat())
+    if s3_client and S3_BUCKET_NAME:
+        key = f"uploads/{uuid.uuid4()}/{filename}"
+        s3_client.put_object(
+            Bucket=S3_BUCKET_NAME, Key=key, Body=content,
+            ContentType=content_type,
+            Metadata={k: str(v) for k, v in meta.items()},
+        )
+        return f"s3:{key}"
+    fid = await gfs.put(content, filename=filename, content_type=content_type, metadata=meta)
+    return str(fid)
 
 # Census data for impact scoring (loaded at startup)
 CENSUS_DATA: Dict[str, Any] = {}
@@ -262,6 +321,7 @@ class UserResponse(BaseModel):
 
 class TokenResponse(BaseModel):
     access_token: str
+    refresh_token: Optional[str] = None
     token_type: str = "bearer"
     user: UserResponse
 
@@ -461,23 +521,37 @@ class GeoAnalyticsResponse(BaseModel):
 # App & Globals
 # ---------------------------------------------------------------------------
 app = FastAPI(title="Panchayati Raj & Drinking Water Department — Grievance Portal")
-limiter = Limiter(key_func=get_remote_address)
+try:
+    import redis as _redis_check
+    _redis_check.from_url(REDIS_URL).ping()
+    limiter = Limiter(key_func=get_remote_address, storage_uri=REDIS_URL)
+except Exception:
+    limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # ---------------------------------------------------------------------------
-# Security Headers Middleware
+# Middleware: Security Headers + Request ID + Metrics
 # ---------------------------------------------------------------------------
+import time as _time
 from starlette.middleware.base import BaseHTTPMiddleware
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
+        request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
+        structlog.contextvars.clear_contextvars()
+        structlog.contextvars.bind_contextvars(request_id=request_id)
+
+        start = _time.perf_counter()
         response = await call_next(request)
+        elapsed = _time.perf_counter() - start
+
+        response.headers["X-Request-ID"] = request_id
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "SAMEORIGIN"
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        response.headers["Permissions-Policy"] = "geolocation=(self), camera=(), microphone=()"
+        response.headers["Permissions-Policy"] = "camera=*, microphone=*, geolocation=(self)"
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
             "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
@@ -489,6 +563,11 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "frame-src 'self'; "
             "frame-ancestors 'self'"
         )
+
+        endpoint = request.url.path
+        REQUEST_COUNT.labels(request.method, endpoint, response.status_code).inc()
+        REQUEST_LATENCY.labels(request.method, endpoint).observe(elapsed)
+
         return response
 
 app.add_middleware(SecurityHeadersMiddleware)
@@ -508,7 +587,6 @@ db_client = None
 db = None
 qdrant = None
 gfs = None
-executor = ThreadPoolExecutor(max_workers=10)
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 _jinja_env = Environment(
@@ -524,16 +602,45 @@ app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="stat
 # ---------------------------------------------------------------------------
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    global redis_client, s3_client
+    if AsyncRedis is not None:
+        try:
+            redis_client = AsyncRedis.from_url(REDIS_URL, decode_responses=False)
+            await redis_client.ping()
+            logger.info("redis_connected", url=REDIS_URL)
+        except Exception as _redis_err:
+            logger.warning("redis_unavailable", error=str(_redis_err),
+                           msg="Running without Redis — rate limiting and embedding cache disabled")
+            redis_client = None
+    else:
+        logger.warning("redis_skipped", reason="redis package not installed")
+
+    if S3_BUCKET_NAME:
+        try:
+            import boto3
+            s3_client = boto3.client(
+                "s3",
+                endpoint_url=S3_ENDPOINT_URL or None,
+                aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+                aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+                region_name=os.getenv("AWS_DEFAULT_REGION", "us-east-1"),
+            )
+            logger.info("s3_connected", bucket=S3_BUCKET_NAME)
+        except Exception as e:
+            logger.warning("s3_init_failed", error=str(e))
+
     await startup_db()
     await startup_qdrant()
-    logger.info("OpenAI model: %s | Embedding: %s", OPENAI_MODEL, EMBEDDING_MODEL)
+    logger.info("startup_complete", openai_model=OPENAI_MODEL, embedding=EMBEDDING_MODEL)
     yield
     if db_client:
         db_client.close()
+    if redis_client:
+        await redis_client.aclose()
 
 app.router.lifespan_context = lifespan
 
-def _dedupe_and_create_vouch_index():
+async def _dedupe_and_create_vouch_index():
     """Remove duplicate vouches then (re-)create the unique compound index."""
     pipeline = [
         {"$group": {
@@ -543,51 +650,54 @@ def _dedupe_and_create_vouch_index():
         }},
         {"$match": {"count": {"$gt": 1}}},
     ]
-    for doc in db.vouches.aggregate(pipeline):
-        # Keep the first document, delete the rest
+    cursor = await db.vouches.aggregate(pipeline)
+    async for doc in cursor:
         dups = doc["ids"][1:]
         if dups:
-            db.vouches.delete_many({"_id": {"$in": dups}})
-            logger.warning(
-                "Removed %d duplicate vouch(es) for grievance_id=%s user_id=%s",
-                len(dups), doc["_id"]["grievance_id"], doc["_id"]["user_id"],
-            )
-    db.vouches.create_index(
+            await db.vouches.delete_many({"_id": {"$in": dups}})
+            logger.warning("vouch_dedup", removed=len(dups),
+                           grievance_id=doc["_id"]["grievance_id"],
+                           user_id=doc["_id"]["user_id"])
+    await db.vouches.create_index(
         [("grievance_id", 1), ("user_id", 1)], unique=True,
     )
 
 async def startup_db():
     global db_client, db, gfs
-    db_client = MongoClient(MONGODB_URL)
+    db_client = AsyncMongoClient(
+        MONGODB_URL,
+        maxPoolSize=200,
+        minPoolSize=10,
+        maxIdleTimeMS=30000,
+        retryWrites=True,
+        retryReads=True,
+        w="majority",
+        wtimeoutms=5000,
+        readPreference="secondaryPreferred",
+    )
     db = db_client.grievance_system
-    gfs = gridfs.GridFS(db)
-    loop = asyncio.get_event_loop()
-    await loop.run_in_executor(executor, db.grievances.create_index, "created_at")
-    await loop.run_in_executor(executor, db.grievances.create_index, "status")
-    await loop.run_in_executor(executor, db.grievances.create_index, "department")
-    await loop.run_in_executor(executor, db.grievances.create_index, "priority")
-    await loop.run_in_executor(executor, db.grievances.create_index, "tracking_number")
-    await loop.run_in_executor(executor, lambda: db.users.create_index([("username", 1)], unique=True))
-    # 2dsphere index for geospatial queries on public feed
-    await loop.run_in_executor(executor, lambda: db.grievances.create_index([("location", GEOSPHERE)]))
-    await loop.run_in_executor(executor, lambda: db.grievances.create_index("citizen_user_id"))
-    await loop.run_in_executor(executor, lambda: db.grievances.create_index("is_public"))
-    # Spam tracking indexes
-    await loop.run_in_executor(executor, lambda: db.spam_tracking.create_index("_id"))
-    # Vouches indexes
-    await loop.run_in_executor(executor, lambda: db.vouches.create_index("grievance_id"))
-    await loop.run_in_executor(executor, _dedupe_and_create_vouch_index)
-    # Systemic issues
-    await loop.run_in_executor(executor, lambda: db.systemic_issues.create_index("status"))
-    await loop.run_in_executor(executor, lambda: db.systemic_issues.create_index("department"))
-    # Officer analytics
-    await loop.run_in_executor(executor, lambda: db.officer_analytics.create_index("_id"))
-    # Forecasts
-    await loop.run_in_executor(executor, lambda: db.forecasts.create_index([("forecast_date", -1)]))
-    # Revoked tokens — TTL index auto-deletes expired entries
-    await loop.run_in_executor(executor, lambda: db.revoked_tokens.create_index(
-        "expires_at", expireAfterSeconds=0))
-    logger.info("Database initialized with all indexes")
+    gfs = AsyncGridFS(db)
+    await db.grievances.create_index("created_at")
+    await db.grievances.create_index("status")
+    await db.grievances.create_index("department")
+    await db.grievances.create_index("priority")
+    await db.grievances.create_index("tracking_number")
+    await db.users.create_index([("username", 1)], unique=True)
+    await db.grievances.create_index([("location", GEOSPHERE)])
+    await db.grievances.create_index("citizen_user_id")
+    await db.grievances.create_index("is_public")
+    await db.spam_tracking.create_index("_id")
+    await db.vouches.create_index("grievance_id")
+    await _dedupe_and_create_vouch_index()
+    await db.systemic_issues.create_index("status")
+    await db.systemic_issues.create_index("department")
+    await db.officer_analytics.create_index("_id")
+    await db.forecasts.create_index([("forecast_date", -1)])
+    await db.revoked_tokens.create_index("expires_at", expireAfterSeconds=0)
+    # Refresh tokens collection
+    await db.refresh_tokens.create_index("expires_at", expireAfterSeconds=0)
+    await db.refresh_tokens.create_index("user_id")
+    logger.info("db_initialized")
 
 async def startup_qdrant():
     global qdrant
@@ -639,26 +749,40 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 def create_access_token(data: dict) -> str:
     to_encode = data.copy()
-    to_encode["exp"] = datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRE_HOURS)
+    to_encode["exp"] = datetime.now(timezone.utc) + timedelta(minutes=JWT_ACCESS_EXPIRE_MINUTES)
+    to_encode["type"] = "access"
     return jwt.encode(to_encode, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+def create_refresh_token(data: dict) -> str:
+    to_encode = data.copy()
+    to_encode["exp"] = datetime.now(timezone.utc) + timedelta(days=JWT_REFRESH_EXPIRE_DAYS)
+    to_encode["type"] = "refresh"
+    to_encode["jti"] = str(uuid.uuid4())
+    return jwt.encode(to_encode, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+async def _is_token_revoked(token: str) -> bool:
+    """Check Redis first (fast path), then MongoDB."""
+    if redis_client:
+        if await redis_client.get(f"revoked:{token}"):
+            return True
+    revoked = await db.revoked_tokens.find_one({"_id": token})
+    return revoked is not None
 
 async def get_current_user(token: Optional[str] = Depends(oauth2_scheme), db=Depends(get_db)):
     if token is None:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    # Check MongoDB-persisted token blacklist
-    loop = asyncio.get_event_loop()
-    revoked = await loop.run_in_executor(executor, lambda: db.revoked_tokens.find_one({"_id": token}))
-    if revoked:
+    if await _is_token_revoked(token):
         raise HTTPException(status_code=401, detail="Token has been revoked")
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        if payload.get("type") != "access":
+            raise HTTPException(status_code=401, detail="Invalid token type")
         username: str = payload.get("sub")
         if username is None:
             raise HTTPException(status_code=401, detail="Invalid token")
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
-    loop = asyncio.get_event_loop()
-    user = await loop.run_in_executor(executor, db.users.find_one, {"username": username})
+    user = await db.users.find_one({"username": username})
     if user is None:
         raise HTTPException(status_code=401, detail="User not found")
     return user
@@ -667,16 +791,15 @@ async def get_optional_user(token: Optional[str] = Depends(oauth2_scheme), db=De
     if token is None:
         return None
     try:
-        # Check token blacklist (same as get_current_user)
-        loop = asyncio.get_event_loop()
-        revoked = await loop.run_in_executor(executor, lambda: db.revoked_tokens.find_one({"_id": token}))
-        if revoked:
+        if await _is_token_revoked(token):
             return None
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        if payload.get("type") != "access":
+            return None
         username = payload.get("sub")
         if username is None:
             return None
-        return await loop.run_in_executor(executor, db.users.find_one, {"username": username})
+        return await db.users.find_one({"username": username})
     except JWTError:
         return None
 
@@ -697,24 +820,38 @@ def user_to_response(user: dict) -> UserResponse:
 # ---------------------------------------------------------------------------
 # AI Helpers: Cache, Retry, Truncation
 # ---------------------------------------------------------------------------
-_embedding_cache: Dict[str, List[float]] = {}
 
 def truncate_text(text: str, max_chars: int = 3000) -> str:
     if len(text) <= max_chars:
         return text
     return text[:max_chars] + "..."
 
+def _pack_vector(vec: List[float]) -> bytes:
+    return struct.pack(f"{len(vec)}f", *vec)
+
+def _unpack_vector(data: bytes) -> List[float]:
+    n = len(data) // 4
+    return list(struct.unpack(f"{n}f", data))
+
 async def get_openai_embedding(text: str) -> List[float]:
     text = truncate_text(text, 2000)
-    key = hashlib.sha256(text.encode()).hexdigest()
-    if key in _embedding_cache:
-        return _embedding_cache[key]
+    cache_key = f"emb:{hashlib.sha256(text.encode()).hexdigest()}"
+
+    if redis_client:
+        cached = await redis_client.get(cache_key)
+        if cached:
+            return _unpack_vector(cached)
+
+    OPENAI_CALLS.labels(EMBEDDING_MODEL, "embedding").inc()
+    import time as _t
+    _start = _t.perf_counter()
     response = await openai_client.embeddings.create(model=EMBEDDING_MODEL, input=text)
+    OPENAI_LATENCY.labels(EMBEDDING_MODEL).observe(_t.perf_counter() - _start)
     vec = response.data[0].embedding
-    _embedding_cache[key] = vec
-    if len(_embedding_cache) > 500:
-        oldest = next(iter(_embedding_cache))
-        del _embedding_cache[oldest]
+
+    if redis_client:
+        await redis_client.set(cache_key, _pack_vector(vec), ex=86400)
+
     return vec
 
 async def openai_chat(messages: list, json_mode: bool = False, max_retries: int = 3,
@@ -724,29 +861,64 @@ async def openai_chat(messages: list, json_mode: bool = False, max_retries: int 
         kwargs["response_format"] = {"type": "json_object"}
     for attempt in range(max_retries):
         try:
+            OPENAI_CALLS.labels(OPENAI_MODEL, "chat").inc()
+            import time as _t
+            _start = _t.perf_counter()
             resp = await openai_client.chat.completions.create(
                 model=OPENAI_MODEL, messages=messages, **kwargs)
+            OPENAI_LATENCY.labels(OPENAI_MODEL).observe(_t.perf_counter() - _start)
             return resp.choices[0].message.content.strip()
         except (openai_mod.RateLimitError, openai_mod.APIConnectionError) as e:
-            logger.warning("OpenAI retry %d: %s", attempt + 1, e)
+            logger.warning("openai_retry", attempt=attempt + 1, error=str(e))
             if attempt == max_retries - 1:
                 raise
             await asyncio.sleep(2 ** attempt)
         except Exception as e:
-            logger.error("OpenAI error: %s", e)
+            logger.error("openai_error", error=str(e))
             return None
     return None
 
 # ---------------------------------------------------------------------------
+# File Upload Validation (magic-byte check)
+# ---------------------------------------------------------------------------
+MAGIC_SIGNATURES = {
+    b"\xff\xd8\xff": "image/jpeg",
+    b"\x89PNG\r\n\x1a\n": "image/png",
+    b"RIFF": "image/webp",  # WebP starts with RIFF...WEBP
+    b"GIF87a": "image/gif",
+    b"GIF89a": "image/gif",
+    b"%PDF": "application/pdf",
+    b"PK\x03\x04": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+}
+
+def validate_file_magic(content: bytes, declared_type: str) -> bool:
+    """Verify that file content matches declared MIME type via magic bytes."""
+    if len(content) < 8:
+        return False
+    header = content[:8]
+    for sig, mime in MAGIC_SIGNATURES.items():
+        if header.startswith(sig):
+            if declared_type == mime:
+                return True
+            if sig == b"PK\x03\x04" and declared_type.startswith("application/"):
+                return True
+            if sig == b"RIFF" and declared_type == "image/webp" and b"WEBP" in content[:12]:
+                return True
+            return False
+    for audio_video_type in ("audio/", "video/"):
+        if declared_type.startswith(audio_video_type):
+            return True
+    return True
+
+# ---------------------------------------------------------------------------
 # Utility Helpers
 # ---------------------------------------------------------------------------
-def generate_tracking_number(db) -> str:
+async def generate_tracking_number(db) -> str:
     import secrets
     import string
-    counter = db.counters.find_one_and_update(
+    counter = await db.counters.find_one_and_update(
         {"_id": "grievance"}, {"$inc": {"seq": 1}},
         upsert=True, return_document=ReturnDocument.AFTER)
-    # Append a random alphanumeric suffix to prevent enumeration
     random_suffix = ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(6))
     return f"GRV-{datetime.now(timezone.utc).year}-{counter['seq']:06d}{random_suffix}"
 
@@ -805,10 +977,7 @@ async def find_user_by_face(descriptor: List[float], db) -> Optional[dict]:
     """Find a user with a matching face descriptor."""
     if not descriptor:
         return None
-    loop = asyncio.get_event_loop()
-    # Fetch all users with face descriptors (optimize in prod with vector DB if needed)
-    users_with_faces = await loop.run_in_executor(
-        executor, lambda: list(db.users.find({"face_descriptor": {"$exists": True}})))
+    users_with_faces = await db.users.find({"face_descriptor": {"$exists": True}}).to_list(length=1000)
     
     best_match = None
     best_distance = float('inf')
@@ -1069,8 +1238,7 @@ class SpamDetector:
     @staticmethod
     async def check_and_update(user_id: str, title: str, description: str, ip: str) -> tuple:
         """Returns (is_blocked: bool, reason: str). Updates spam_tracking."""
-        loop = asyncio.get_event_loop()
-        record = await loop.run_in_executor(executor, db.spam_tracking.find_one, {"_id": user_id})
+        record = await db.spam_tracking.find_one({"_id": user_id})
         if not record:
             record = {
                 "_id": user_id, "filing_timestamps": [], "duplicate_hashes": [],
@@ -1121,8 +1289,8 @@ class SpamDetector:
         }
         if is_blocked and not record.get("blocked_at"):
             update["$set"]["blocked_at"] = now
-        await loop.run_in_executor(executor, lambda: db.spam_tracking.update_one(
-            {"_id": user_id}, update, upsert=True))
+        await db.spam_tracking.update_one(
+            {"_id": user_id}, update, upsert=True)
         if is_blocked:
             return True, "Account blocked: " + ", ".join(reason_parts)
         return False, ""
@@ -1135,12 +1303,10 @@ class PatternAnalyzer:
     async def analyze(user_id: str, title: str, description: str, ip: str):
         """Background task: analyze filing patterns and update spam score."""
         try:
-            loop = asyncio.get_event_loop()
             text = f"{title} {description}"
             flags = []
             # Content similarity with user's recent filings
-            recent = await loop.run_in_executor(executor, lambda: list(
-                db.grievances.find({"citizen_user_id": user_id}).sort("created_at", -1).limit(10)))
+            recent = await db.grievances.find({"citizen_user_id": user_id}).sort("created_at", -1).limit(10).to_list(length=None)
             if len(recent) >= 3 and qdrant:
                 try:
                     new_emb = await get_openai_embedding(text)
@@ -1165,17 +1331,17 @@ class PatternAnalyzer:
                                   "timestamp": datetime.now(timezone.utc)})
             # Cross-user duplicate detection
             content_hash = hashlib.sha256(f"{title}|{description}".lower().strip().encode()).hexdigest()
-            dup_count = await loop.run_in_executor(executor, lambda: db.spam_tracking.count_documents({
+            dup_count = await db.spam_tracking.count_documents({
                 "_id": {"$ne": user_id},
-                "duplicate_hashes.hash": content_hash}))
+                "duplicate_hashes.hash": content_hash})
             if dup_count > 0:
                 flags.append({"type": "cross_user_duplicate",
                               "detail": f"Same content from {dup_count} other account(s)",
                               "timestamp": datetime.now(timezone.utc)})
             # IP correlation
             if ip:
-                ip_users = await loop.run_in_executor(executor, lambda: db.spam_tracking.count_documents({
-                    "_id": {"$ne": user_id}, "ip_addresses": ip}))
+                ip_users = await db.spam_tracking.count_documents({
+                    "_id": {"$ne": user_id}, "ip_addresses": ip})
                 if ip_users >= 2:
                     flags.append({"type": "ip_correlation",
                                   "detail": f"IP shared with {ip_users} other accounts",
@@ -1183,11 +1349,11 @@ class PatternAnalyzer:
             if flags:
                 # Compute weighted score adjustment
                 score_add = len(flags) * 0.1
-                await loop.run_in_executor(executor, lambda: db.spam_tracking.update_one(
+                await db.spam_tracking.update_one(
                     {"_id": user_id},
                     {"$push": {"pattern_flags": {"$each": flags, "$slice": -50}},
                      "$inc": {"spam_score": min(score_add, 0.3)}},
-                    upsert=True))
+                    upsert=True)
         except Exception as e:
             logger.error("Pattern analysis error: %s", e)
 
@@ -1199,10 +1365,9 @@ class OfficerAnomalyDetector:
     async def check_after_resolution(officer_id: str, officer_name: str, resolution_text: str):
         """Background task: check for anomalous officer resolution patterns."""
         try:
-            loop = asyncio.get_event_loop()
             now = datetime.now(timezone.utc)
             today_str = now.strftime("%Y-%m-%d")
-            record = await loop.run_in_executor(executor, db.officer_analytics.find_one, {"_id": officer_id})
+            record = await db.officer_analytics.find_one({"_id": officer_id})
             if not record:
                 record = {"_id": officer_id, "daily_resolution_counts": {},
                           "avg_resolution_text_length": 0.0, "avg_time_to_resolve_hours": 0.0,
@@ -1227,9 +1392,8 @@ class OfficerAnomalyDetector:
                     "detail": f"Resolution text only {len(resolution_text.strip())} chars",
                     "timestamp": now, "severity": "medium"})
             # Cherry-picking check: get officer's resolved priority distribution
-            resolved_by_officer = await loop.run_in_executor(executor, lambda: list(
-                db.grievances.find({"assigned_officer": officer_name, "status": "resolved",
-                                    "created_at": {"$gte": now - timedelta(days=30)}})))
+            resolved_by_officer = await db.grievances.find({"assigned_officer": officer_name, "status": "resolved",
+                                    "created_at": {"$gte": now - timedelta(days=30)}}).to_list(length=None)
             pri_dist = {}
             for g in resolved_by_officer:
                 pri_dist[g.get("priority", "medium")] = pri_dist.get(g.get("priority", "medium"), 0) + 1
@@ -1242,11 +1406,11 @@ class OfficerAnomalyDetector:
                     "timestamp": now, "severity": "medium"})
             existing_flags = record.get("anomaly_flags", [])[-20:]
             existing_flags.extend(new_flags)
-            await loop.run_in_executor(executor, lambda: db.officer_analytics.update_one(
+            await db.officer_analytics.update_one(
                 {"_id": officer_id},
                 {"$set": {"daily_resolution_counts": daily, "priority_distribution": pri_dist,
                           "anomaly_flags": existing_flags[-30:], "baseline_computed_at": now}},
-                upsert=True))
+                upsert=True)
         except Exception as e:
             logger.error("Officer anomaly detection error: %s", e)
 
@@ -1282,14 +1446,12 @@ class ImpactScorer:
         score += duration_score
         # 4. Recurrence (0-15)
         try:
-            loop = asyncio.get_event_loop()
             location = grievance_doc.get("location")
             recurrence_filter = {"department": dept,
                                  "created_at": {"$gte": datetime.now(timezone.utc) - timedelta(days=365)}}
             if district:
                 recurrence_filter["district"] = district
-            prev_count = await loop.run_in_executor(executor,
-                                                     lambda: db.grievances.count_documents(recurrence_filter))
+            prev_count = await db.grievances.count_documents(recurrence_filter)
             score += min(prev_count * 3, 15)
         except Exception as exc:
             logger.debug("ImpactScorer recurrence count failed: %s", exc)
@@ -1318,10 +1480,9 @@ class ConstellationEngine:
             coords = location.get("coordinates", [])
             if len(coords) != 2:
                 return
-            loop = asyncio.get_event_loop()
             cutoff = datetime.now(timezone.utc) - timedelta(days=30)
             # Find nearby same-department grievances
-            nearby = await loop.run_in_executor(executor, lambda: list(db.grievances.find({
+            nearby = await db.grievances.find({
                 "department": dept,
                 "status": {"$in": ["pending", "in_progress", "escalated"]},
                 "created_at": {"$gte": cutoff},
@@ -1332,7 +1493,7 @@ class ConstellationEngine:
                     }
                 },
                 "_id": {"$ne": grievance_doc["_id"]}
-            }).limit(20)))
+            }).limit(20).to_list(length=None)
             if len(nearby) < 4:  # need 5 total including current
                 return
             # Check semantic similarity
@@ -1391,11 +1552,11 @@ class ConstellationEngine:
                 "updated_at": datetime.now(timezone.utc),
                 "assigned_officer": None,
             }
-            await loop.run_in_executor(executor, db.systemic_issues.insert_one, issue_doc)
+            await db.systemic_issues.insert_one(issue_doc)
             # Mark all grievances with systemic_issue_id
-            await loop.run_in_executor(executor, lambda: db.grievances.update_many(
+            await db.grievances.update_many(
                 {"_id": {"$in": similar_ids}},
-                {"$set": {"systemic_issue_id": issue_doc["_id"]}}))
+                {"$set": {"systemic_issue_id": issue_doc["_id"]}})
             logger.info("Systemic issue detected: %s with %d grievances", issue_doc["title"], len(similar_ids))
         except Exception as e:
             logger.error("Constellation engine error: %s", e)
@@ -1407,13 +1568,11 @@ class PredictiveForecaster:
     @staticmethod
     async def generate_forecast(weeks_ahead: int = 2) -> dict:
         """Generate a predictive forecast based on historical data and external signals."""
-        loop = asyncio.get_event_loop()
         now = datetime.now(timezone.utc)
         # Step 1: Historical baselines (past 1 year by district+department+week)
         year_ago = now - timedelta(days=365)
-        all_grievances = await loop.run_in_executor(executor, lambda: list(
-            db.grievances.find({"created_at": {"$gte": year_ago}},
-                               {"district": 1, "department": 1, "created_at": 1}).limit(10000)))
+        all_grievances = await db.grievances.find({"created_at": {"$gte": year_ago}},
+                               {"district": 1, "department": 1, "created_at": 1}).limit(10000).to_list(length=None)
         baselines = {}
         for g in all_grievances:
             d = g.get("district") or "Unknown"
@@ -1510,7 +1669,7 @@ class PredictiveForecaster:
             "weather_data_used": {d: True for d in weather_data},
             "generated_by": "system",
         }
-        await loop.run_in_executor(executor, db.forecasts.insert_one, forecast_doc)
+        await db.forecasts.insert_one(forecast_doc)
         return forecast_doc
 
 # ---------------------------------------------------------------------------
@@ -1613,13 +1772,11 @@ class DeadlineEstimator:
             if not results.points:
                 return None
             durations = []
-            loop = asyncio.get_event_loop()
             for p in results.points:
                 gid = p.payload.get("grievance_id")
                 if not gid:
                     continue
-                g = await loop.run_in_executor(executor, db.grievances.find_one,
-                                               {"_id": gid, "status": "resolved"})
+                g = await db.grievances.find_one({"_id": gid, "status": "resolved"})
                 if g and g.get("updated_at") and g.get("created_at"):
                     dur = (g["updated_at"] - g["created_at"]).total_seconds()
                     if dur > 0:
@@ -1637,11 +1794,11 @@ class DeadlineEstimator:
 # ---------------------------------------------------------------------------
 SELF_RESOLVE_CONFIDENCE_THRESHOLD = 0.60
 
-def find_officer_for_department(db, department: str) -> Optional[str]:
+async def find_officer_for_department(db, department: str) -> Optional[str]:
     """Find an officer assigned to a department and return their full_name, or None."""
     if not department:
         return None
-    officer = db.users.find_one({"role": "officer", "department": department})
+    officer = await db.users.find_one({"role": "officer", "department": department})
     return officer["full_name"] if officer else None
 
 async def process_grievance(data: GrievanceCreate, db, user: Optional[dict] = None,
@@ -1684,9 +1841,9 @@ async def process_grievance(data: GrievanceCreate, db, user: Optional[dict] = No
     # Auto-assign officer when escalated at creation
     assigned_officer_name = None
     if g_status == GrievanceStatus.ESCALATED:
-        assigned_officer_name = find_officer_for_department(db, department.value)
+        assigned_officer_name = await find_officer_for_department(db, department.value)
 
-    tracking = generate_tracking_number(db)
+    tracking = await generate_tracking_number(db)
     sla = calculate_sla_deadline(priority)
     now = datetime.now(timezone.utc)
 
@@ -1728,13 +1885,12 @@ async def process_grievance(data: GrievanceCreate, db, user: Optional[dict] = No
         "systemic_issue_id": None,
         "impact_score": None,
     }
-    loop = asyncio.get_event_loop()
-    await loop.run_in_executor(executor, db.grievances.insert_one, doc)
+    await db.grievances.insert_one(doc)
 
     # Compute impact score (needs doc in DB for recurrence check)
     impact_score = await ImpactScorer.compute_score(doc)
-    await loop.run_in_executor(executor, lambda: db.grievances.update_one(
-        {"_id": doc["_id"]}, {"$set": {"impact_score": impact_score}}))
+    await db.grievances.update_one(
+        {"_id": doc["_id"]}, {"$set": {"impact_score": impact_score}})
     doc["impact_score"] = impact_score
 
     return GrievanceResponse(**doc, id=doc["_id"])
@@ -1748,8 +1904,7 @@ async def register(request: Request, user_data: UserCreate, db=Depends(get_db)):
     # Public registration is citizen-only; officers/admins created via admin panel
     if user_data.role != UserRole.CITIZEN:
         raise HTTPException(status_code=403, detail="Public registration is for citizens only. Officer/admin accounts must be created by an administrator.")
-    loop = asyncio.get_event_loop()
-    existing = await loop.run_in_executor(executor, db.users.find_one, {"username": user_data.username})
+    existing = await db.users.find_one({"username": user_data.username})
     if existing:
         raise HTTPException(status_code=400, detail="Username already exists")
     user_doc = {
@@ -1768,22 +1923,22 @@ async def register(request: Request, user_data: UserCreate, db=Depends(get_db)):
         if existing_face_user:
             raise HTTPException(status_code=400, detail="This face is already registered with another account.")
             
-    await loop.run_in_executor(executor, db.users.insert_one, user_doc)
+    await db.users.insert_one(user_doc)
     token = create_access_token({"sub": user_data.username, "role": user_data.role.value})
-    return TokenResponse(access_token=token, user=user_to_response(user_doc))
+    refresh = create_refresh_token({"sub": user_data.username, "role": user_data.role.value})
+    return TokenResponse(access_token=token, refresh_token=refresh, user=user_to_response(user_doc))
 
 @app.post("/auth/login", response_model=TokenResponse)
 @limiter.limit("30/minute")
 async def login(request: Request, form: UserLogin, db=Depends(get_db)):
-    loop = asyncio.get_event_loop()
-
     # Face Login
     # Face Login
     if form.face_descriptor:
         best_match = await find_user_by_face(form.face_descriptor, db)
         if best_match:
             token = create_access_token({"sub": best_match["username"], "role": best_match["role"]})
-            return TokenResponse(access_token=token, user=user_to_response(best_match))
+            refresh = create_refresh_token({"sub": best_match["username"], "role": best_match["role"]})
+            return TokenResponse(access_token=token, refresh_token=refresh, user=user_to_response(best_match))
         
         raise HTTPException(status_code=401, detail="Face not recognized or match confidence too low")
 
@@ -1791,11 +1946,12 @@ async def login(request: Request, form: UserLogin, db=Depends(get_db)):
     if not form.username or not form.password:
         raise HTTPException(status_code=400, detail="Username and password required")
 
-    user = await loop.run_in_executor(executor, db.users.find_one, {"username": form.username})
+    user = await db.users.find_one({"username": form.username})
     if not user or not verify_password(form.password, user["hashed_password"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     token = create_access_token({"sub": user["username"], "role": user["role"]})
-    return TokenResponse(access_token=token, user=user_to_response(user))
+    refresh = create_refresh_token({"sub": user["username"], "role": user["role"]})
+    return TokenResponse(access_token=token, refresh_token=refresh, user=user_to_response(user))
 
 @app.get("/auth/me", response_model=UserResponse)
 async def get_me(user=Depends(get_current_user)):
@@ -1821,37 +1977,64 @@ async def update_me(body: UpdateProfileRequest, user=Depends(get_current_user), 
         update_fields["has_face_id"] = len(body.face_descriptor) > 0
     if not update_fields:
         raise HTTPException(status_code=400, detail="No fields to update")
-    loop = asyncio.get_event_loop()
-    await loop.run_in_executor(executor, lambda: db.users.update_one(
-        {"_id": user["_id"]}, {"$set": update_fields}))
-    updated_user = await loop.run_in_executor(executor, lambda: db.users.find_one({"_id": user["_id"]}))
+    await db.users.update_one(
+        {"_id": user["_id"]}, {"$set": update_fields})
+    updated_user = await db.users.find_one({"_id": user["_id"]})
     return user_to_response(updated_user)
 
-@app.middleware("http")
-async def add_permissions_policy(request, call_next):
-    response = await call_next(request)
-    response.headers["Permissions-Policy"] = "camera=*, microphone=*"
-    response.headers["Feature-Policy"] = "camera *; microphone *"
-    return response
-    
 @app.post("/auth/logout")
 async def logout(token: Optional[str] = Depends(oauth2_scheme), db=Depends(get_db)):
     if token:
-        loop = asyncio.get_event_loop()
-        expires_at = datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRE_HOURS)
-        await loop.run_in_executor(executor, lambda: db.revoked_tokens.update_one(
+        expires_at = datetime.now(timezone.utc) + timedelta(minutes=JWT_ACCESS_EXPIRE_MINUTES)
+        await db.revoked_tokens.update_one(
             {"_id": token},
             {"$set": {"_id": token, "expires_at": expires_at}},
             upsert=True
-        ))
+        )
+        if redis_client:
+            await redis_client.set(f"revoked:{token}", b"1",
+                                   ex=JWT_ACCESS_EXPIRE_MINUTES * 60)
     return {"detail": "Logged out successfully"}
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+@app.post("/auth/refresh", response_model=TokenResponse)
+async def refresh_token_endpoint(req: RefreshRequest, db=Depends(get_db)):
+    """Exchange a valid refresh token for a new access + refresh token pair."""
+    try:
+        payload = jwt.decode(req.refresh_token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        if payload.get("type") != "refresh":
+            raise HTTPException(status_code=401, detail="Invalid token type")
+        jti = payload.get("jti")
+        if jti:
+            existing = await db.refresh_tokens.find_one({"_id": jti, "revoked": True})
+            if existing:
+                raise HTTPException(status_code=401, detail="Refresh token has been revoked")
+        username = payload.get("sub")
+        role = payload.get("role")
+        if not username:
+            raise HTTPException(status_code=401, detail="Invalid token")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+    user = await db.users.find_one({"username": username})
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+
+    if jti:
+        await db.refresh_tokens.update_one(
+            {"_id": jti}, {"$set": {"revoked": True}}, upsert=True)
+
+    new_access = create_access_token({"sub": username, "role": role})
+    new_refresh = create_refresh_token({"sub": username, "role": role})
+    return TokenResponse(access_token=new_access, user=user_to_response(user),
+                         refresh_token=new_refresh)
 
 @app.get("/auth/officers", response_model=List[UserResponse])
 async def list_officers(user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value)),
                         db=Depends(get_db)):
-    loop = asyncio.get_event_loop()
-    officers = await loop.run_in_executor(
-        executor, lambda: list(db.users.find({"role": {"$in": ["officer", "admin"]}})))
+    officers = await db.users.find({"role": {"$in": ["officer", "admin"]}}).to_list(length=None)
     return [user_to_response(o) for o in officers]
 
 # ---------------------------------------------------------------------------
@@ -1864,16 +2047,14 @@ async def admin_list_users(role: Optional[str] = None,
     query = {}
     if role and role in [r.value for r in UserRole]:
         query["role"] = role
-    loop = asyncio.get_event_loop()
-    users = await loop.run_in_executor(executor, lambda: list(db.users.find(query).sort("created_at", -1)))
+    users = await db.users.find(query).sort("created_at", -1).to_list(length=None)
     return [user_to_response(u) for u in users]
 
 @app.post("/admin/users", response_model=UserResponse)
 async def admin_create_user(user_data: UserCreate,
                             user=Depends(require_role(UserRole.ADMIN.value)),
                             db=Depends(get_db)):
-    loop = asyncio.get_event_loop()
-    existing = await loop.run_in_executor(executor, db.users.find_one, {"username": user_data.username})
+    existing = await db.users.find_one({"username": user_data.username})
     if existing:
         raise HTTPException(status_code=400, detail="Username already exists")
     user_doc = {
@@ -1892,7 +2073,7 @@ async def admin_create_user(user_data: UserCreate,
         if existing_face_user:
             raise HTTPException(status_code=400, detail="This face is already registered with another account.")
 
-    await loop.run_in_executor(executor, db.users.insert_one, user_doc)
+    await db.users.insert_one(user_doc)
     logger.info("Admin %s created user %s (%s)", user["username"], user_data.username, user_data.role.value)
     return user_to_response(user_doc)
 
@@ -1904,8 +2085,7 @@ async def admin_block_user(user_id: str, action: str = Query(...),
     if action not in ("block", "unblock", "flag_spam"):
         raise HTTPException(status_code=400, detail="action must be block, unblock, or flag_spam")
     user_id = validate_uuid(user_id, "user_id")
-    loop = asyncio.get_event_loop()
-    target = await loop.run_in_executor(executor, db.users.find_one, {"_id": user_id})
+    target = await db.users.find_one({"_id": user_id})
     if not target:
         raise HTTPException(status_code=404, detail="User not found")
     if target["role"] != UserRole.CITIZEN.value:
@@ -1913,29 +2093,29 @@ async def admin_block_user(user_id: str, action: str = Query(...),
 
     now = datetime.now(timezone.utc)
     if action == "block":
-        await loop.run_in_executor(executor, lambda: db.spam_tracking.update_one(
+        await db.spam_tracking.update_one(
             {"_id": user_id},
             {"$set": {"is_blocked": True, "blocked_at": now, "photo_id_status": "none"},
              "$push": {"pattern_flags": {"type": "manual_block", "detail": reason,
                                           "by": user["username"], "at": now.isoformat()}}},
-            upsert=True))
+            upsert=True)
         logger.info("Admin %s blocked user %s: %s", user["username"], target["username"], reason)
         return {"detail": f"User '{target['username']}' blocked"}
     elif action == "unblock":
-        await loop.run_in_executor(executor, lambda: db.spam_tracking.update_one(
+        await db.spam_tracking.update_one(
             {"_id": user_id},
             {"$set": {"is_blocked": False, "spam_score": 0.0, "photo_id_status": "approved",
                       "pattern_flags": []}},
-            upsert=True))
+            upsert=True)
         logger.info("Admin %s unblocked user %s", user["username"], target["username"])
         return {"detail": f"User '{target['username']}' unblocked"}
     else:  # flag_spam
-        await loop.run_in_executor(executor, lambda: db.spam_tracking.update_one(
+        await db.spam_tracking.update_one(
             {"_id": user_id},
             {"$set": {"is_blocked": True, "blocked_at": now, "photo_id_status": "none"},
              "$push": {"pattern_flags": {"type": "admin_flag_spam", "detail": reason,
                                           "by": user["username"], "at": now.isoformat()}}},
-            upsert=True))
+            upsert=True)
         logger.info("Admin %s flagged user %s as spam: %s", user["username"], target["username"], reason)
         return {"detail": f"User '{target['username']}' flagged — must upload photo ID"}
 
@@ -1944,8 +2124,7 @@ async def admin_update_user(user_id: str, update: UserUpdate,
                             user=Depends(require_role(UserRole.ADMIN.value)),
                             db=Depends(get_db)):
     user_id = validate_uuid(user_id, "user_id")
-    loop = asyncio.get_event_loop()
-    target = await loop.run_in_executor(executor, db.users.find_one, {"_id": user_id})
+    target = await db.users.find_one({"_id": user_id})
     if not target:
         raise HTTPException(status_code=404, detail="User not found")
     set_fields: Dict[str, Any] = {}
@@ -1972,11 +2151,10 @@ async def admin_update_user(user_id: str, update: UserUpdate,
 
     if not set_fields:
         raise HTTPException(status_code=400, detail="No fields to update")
-    result = await loop.run_in_executor(
-        executor, lambda: db.users.update_one({"_id": user_id}, {"$set": set_fields}))
+    result = await db.users.update_one({"_id": user_id}, {"$set": set_fields})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="User not found")
-    updated = await loop.run_in_executor(executor, db.users.find_one, {"_id": user_id})
+    updated = await db.users.find_one({"_id": user_id})
     logger.info("Admin %s updated user %s", user["username"], target["username"])
     return user_to_response(updated)
 
@@ -1987,11 +2165,10 @@ async def admin_delete_user(user_id: str,
     user_id = validate_uuid(user_id, "user_id")
     if str(user["_id"]) == user_id:
         raise HTTPException(status_code=400, detail="Cannot delete your own account")
-    loop = asyncio.get_event_loop()
-    target = await loop.run_in_executor(executor, db.users.find_one, {"_id": user_id})
+    target = await db.users.find_one({"_id": user_id})
     if not target:
         raise HTTPException(status_code=404, detail="User not found")
-    await loop.run_in_executor(executor, db.users.delete_one, {"_id": user_id})
+    await db.users.delete_one({"_id": user_id})
     logger.info("Admin %s deleted user %s", user["username"], target["username"])
     return {"detail": f"User '{target['username']}' deleted"}
 
@@ -2008,22 +2185,17 @@ async def admin_deadline_alerts(
     threshold_24h = now + timedelta(hours=24)
     threshold_48h = now + timedelta(hours=48)
 
-    def fetch():
-        # All unresolved grievances that have an SLA deadline within 48h or already breached
-        cursor = db.grievances.find(
-            {
-                "status": {"$in": ["pending", "in_progress", "escalated"]},
-                "sla_deadline": {"$exists": True, "$ne": None, "$lte": threshold_48h},
-            },
-            {
-                "_id": 1, "tracking_number": 1, "title": 1, "department": 1,
-                "priority": 1, "status": 1, "sla_deadline": 1, "created_at": 1,
-            },
-        ).sort("sla_deadline", 1)
-        return list(cursor)
-
-    loop = asyncio.get_event_loop()
-    results = await loop.run_in_executor(executor, fetch)
+    cursor = db.grievances.find(
+        {
+            "status": {"$in": ["pending", "in_progress", "escalated"]},
+            "sla_deadline": {"$exists": True, "$ne": None, "$lte": threshold_48h},
+        },
+        {
+            "_id": 1, "tracking_number": 1, "title": 1, "department": 1,
+            "priority": 1, "status": 1, "sla_deadline": 1, "created_at": 1,
+        },
+    ).sort("sla_deadline", 1)
+    results = await cursor.to_list(length=None)
 
     breached, critical, warning = [], [], []
     for g in results:
@@ -2120,7 +2292,6 @@ async def create_grievance(
             if len(files) > MAX_FILES_PER_GRIEVANCE:
                 raise HTTPException(status_code=400,
                                     detail=f"Maximum {MAX_FILES_PER_GRIEVANCE} files allowed")
-            loop = asyncio.get_event_loop()
             for f in files:
                 if f.content_type and f.content_type not in ALLOWED_MIME_TYPES:
                     raise HTTPException(status_code=400,
@@ -2129,22 +2300,25 @@ async def create_grievance(
                 if len(content) > MAX_FILE_SIZE:
                     raise HTTPException(status_code=400,
                                         detail=f"File {f.filename} exceeds 50MB limit")
-                fid = await loop.run_in_executor(executor, lambda c=content, fn=f.filename, ct=f.content_type: gfs.put(
-                    c, filename=fn, content_type=ct,
-                    metadata={"uploaded_at": datetime.now(timezone.utc).isoformat()}))
+                fid = await gfs.put(
+                    content, filename=f.filename, content_type=f.content_type,
+                    metadata={"uploaded_at": datetime.now(timezone.utc).isoformat()})
                 attachment_ids.append(str(fid))
 
         result = await process_grievance(data, db, user, attachment_ids=attachment_ids)
 
-        # Background tasks: pattern analysis and constellation engine
-        if user:
-            background_tasks.add_task(PatternAnalyzer.analyze,
-                                      str(user["_id"]), data.title, data.description, client_ip)
-        # Get the full doc for constellation engine
-        loop = asyncio.get_event_loop()
-        full_doc = await loop.run_in_executor(executor, db.grievances.find_one, {"_id": result.id})
-        if full_doc:
-            background_tasks.add_task(ConstellationEngine.analyze_new_grievance, full_doc)
+        # Dispatch background tasks via Celery
+        try:
+            from tasks import pattern_analyze, constellation_analyze
+            if user:
+                pattern_analyze.delay(str(user["_id"]), data.title, data.description, client_ip)
+            full_doc = await db.grievances.find_one({"_id": result.id})
+            if full_doc:
+                full_doc["_id"] = str(full_doc["_id"])
+                constellation_analyze.delay(full_doc)
+        except Exception:
+            logger.warning("celery_dispatch_skipped", endpoint="create_grievance",
+                           reason="Celery/Redis unavailable")
 
         # Strip officer-only AI drafts for citizens
         is_citizen = user is None or user.get("role") == UserRole.CITIZEN.value
@@ -2185,37 +2359,29 @@ async def get_grievances(
 
         if group_by_date:
             # Aggregation: group by date, sort by priority within each date
-            def fetch_grouped():
-                pipeline = [
-                    {"$match": fq},
-                    {"$addFields": {
-                        "date_group": {"$dateToString": {"format": "%Y-%m-%d", "date": "$created_at"}},
-                        "priority_order": {"$switch": {
-                            "branches": [
-                                {"case": {"$eq": ["$priority", "urgent"]}, "then": 0},
-                                {"case": {"$eq": ["$priority", "high"]}, "then": 1},
-                                {"case": {"$eq": ["$priority", "medium"]}, "then": 2},
-                            ], "default": 3
-                        }}
-                    }},
-                    {"$sort": {"date_group": -1, "priority_order": 1}},
-                    {"$skip": skip}, {"$limit": limit}
-                ]
-                return [convert_db_grievance(g) for g in db.grievances.aggregate(pipeline)]
-            loop = asyncio.get_event_loop()
-            grievances = await loop.run_in_executor(executor, fetch_grouped)
+            pipeline = [
+                {"$match": fq},
+                {"$addFields": {
+                    "date_group": {"$dateToString": {"format": "%Y-%m-%d", "date": "$created_at"}},
+                    "priority_order": {"$switch": {
+                        "branches": [
+                            {"case": {"$eq": ["$priority", "urgent"]}, "then": 0},
+                            {"case": {"$eq": ["$priority", "high"]}, "then": 1},
+                            {"case": {"$eq": ["$priority", "medium"]}, "then": 2},
+                        ], "default": 3
+                    }}
+                }},
+                {"$sort": {"date_group": -1, "priority_order": 1}},
+                {"$skip": skip}, {"$limit": limit}
+            ]
+            agg_cursor = await db.grievances.aggregate(pipeline)
+            grievances = [convert_db_grievance(g) async for g in agg_cursor]
         elif sort_by == "impact_score":
-            def fetch_by_impact():
-                return [convert_db_grievance(g) for g in
-                        db.grievances.find(fq).sort("impact_score", -1).skip(skip).limit(limit)]
-            loop = asyncio.get_event_loop()
-            grievances = await loop.run_in_executor(executor, fetch_by_impact)
+            cursor = db.grievances.find(fq).sort("impact_score", -1).skip(skip).limit(limit)
+            grievances = [convert_db_grievance(g) async for g in cursor]
         else:
-            def fetch():
-                return [convert_db_grievance(g) for g in
-                        db.grievances.find(fq).sort("created_at", -1).skip(skip).limit(limit)]
-            loop = asyncio.get_event_loop()
-            grievances = await loop.run_in_executor(executor, fetch)
+            cursor = db.grievances.find(fq).sort("created_at", -1).skip(skip).limit(limit)
+            grievances = [convert_db_grievance(g) async for g in cursor]
 
         if user["role"] == UserRole.CITIZEN.value:
             for g in grievances:
@@ -2235,8 +2401,7 @@ async def track_grievance(request: Request, tracking_number: str, db=Depends(get
     tracking_number = sanitize_str(tracking_number)
     if not re.match(r'^GRV-\d{4}-[A-Za-z0-9]{6,16}$', tracking_number):
         raise HTTPException(status_code=400, detail="Invalid tracking number format")
-    loop = asyncio.get_event_loop()
-    g = await loop.run_in_executor(executor, db.grievances.find_one, {"tracking_number": tracking_number})
+    g = await db.grievances.find_one({"tracking_number": tracking_number})
     if not g:
         raise HTTPException(status_code=404, detail="Grievance not found")
     # Only expose AI resolution to the public tracking endpoint for self-resolvable grievances;
@@ -2254,8 +2419,7 @@ async def track_grievance(request: Request, tracking_number: str, db=Depends(get
 @app.get("/grievances/{grievance_id}", response_model=GrievanceResponse)
 async def get_grievance(grievance_id: str, user=Depends(get_current_user), db=Depends(get_db)):
     grievance_id = validate_uuid(grievance_id, "grievance_id")
-    loop = asyncio.get_event_loop()
-    g = await loop.run_in_executor(executor, db.grievances.find_one, {"_id": grievance_id})
+    g = await db.grievances.find_one({"_id": grievance_id})
     if not g:
         raise HTTPException(status_code=404, detail="Grievance not found")
     if user["role"] == UserRole.CITIZEN.value and g.get("citizen_user_id") != str(user["_id"]):
@@ -2277,18 +2441,18 @@ async def resolve_grievance(grievance_id: str, resolution: ManualResolution,
         "manual_resolution": resolution.resolution, "resolution_type": ResolutionType.MANUAL.value,
         "status": GrievanceStatus.RESOLVED.value, "assigned_officer": resolution.officer,
         "updated_at": datetime.now(timezone.utc)}
-    if resolution.add_to_service_memory:
-        loop2 = asyncio.get_event_loop()
-        g = await loop2.run_in_executor(executor, db.grievances.find_one, {"_id": grievance_id})
-        if g:
-            background_tasks.add_task(add_to_service_memory, g, resolution.resolution, resolution.officer)
-    # Officer anomaly detection
-    background_tasks.add_task(OfficerAnomalyDetector.check_after_resolution,
-                              str(user["_id"]), user["full_name"], resolution.resolution)
-    def update():
-        return db.grievances.update_one({"_id": grievance_id}, {"$set": update_data})
-    loop = asyncio.get_event_loop()
-    result = await loop.run_in_executor(executor, update)
+    try:
+        from tasks import add_to_service_memory_task, officer_anomaly_check
+        if resolution.add_to_service_memory:
+            g = await db.grievances.find_one({"_id": grievance_id})
+            if g:
+                g["_id"] = str(g["_id"])
+                add_to_service_memory_task.delay(g, resolution.resolution, resolution.officer)
+        officer_anomaly_check.delay(str(user["_id"]), user["full_name"], resolution.resolution)
+    except Exception:
+        logger.warning("celery_dispatch_skipped", endpoint="resolve_grievance",
+                       reason="Celery/Redis unavailable")
+    result = await db.grievances.update_one({"_id": grievance_id}, {"$set": update_data})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Grievance not found")
     return await get_grievance(grievance_id, user, db)
@@ -2300,11 +2464,8 @@ async def add_note(grievance_id: str, note: GrievanceNote,
     grievance_id = validate_uuid(grievance_id, "grievance_id")
     new_note = {"id": str(uuid.uuid4()), "content": note.content, "officer": note.officer,
                 "note_type": note.note_type.value, "created_at": datetime.now(timezone.utc)}
-    def update():
-        return db.grievances.update_one({"_id": grievance_id},
+    result = await db.grievances.update_one({"_id": grievance_id},
             {"$push": {"notes": new_note}, "$set": {"updated_at": datetime.now(timezone.utc)}})
-    loop = asyncio.get_event_loop()
-    result = await loop.run_in_executor(executor, update)
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Grievance not found")
     return await get_grievance(grievance_id, user, db)
@@ -2314,17 +2475,14 @@ async def update_status(grievance_id: str, new_status: GrievanceStatus,
                         user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value)),
                         db=Depends(get_db)):
     grievance_id = validate_uuid(grievance_id, "grievance_id")
-    loop = asyncio.get_event_loop()
     update_fields: dict = {"status": new_status.value, "updated_at": datetime.now(timezone.utc)}
     if new_status == GrievanceStatus.ESCALATED:
-        g = await loop.run_in_executor(executor, db.grievances.find_one, {"_id": grievance_id})
+        g = await db.grievances.find_one({"_id": grievance_id})
         if g and not g.get("assigned_officer"):
-            officer_name = find_officer_for_department(db, g.get("department"))
+            officer_name = await find_officer_for_department(db, g.get("department"))
             if officer_name:
                 update_fields["assigned_officer"] = officer_name
-    def update():
-        return db.grievances.update_one({"_id": grievance_id}, {"$set": update_fields})
-    result = await loop.run_in_executor(executor, update)
+    result = await db.grievances.update_one({"_id": grievance_id}, {"$set": update_fields})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Grievance not found")
     return await get_grievance(grievance_id, user, db)
@@ -2334,16 +2492,13 @@ async def add_feedback(grievance_id: str, feedback: ResolutionFeedback,
                        user=Depends(get_current_user), db=Depends(get_db)):
     grievance_id = validate_uuid(grievance_id, "grievance_id")
     # Verify ownership: only the citizen who filed this grievance can leave feedback
-    loop = asyncio.get_event_loop()
-    g = await loop.run_in_executor(executor, db.grievances.find_one, {"_id": grievance_id})
+    g = await db.grievances.find_one({"_id": grievance_id})
     if not g:
         raise HTTPException(status_code=404, detail="Grievance not found")
     if user["role"] == UserRole.CITIZEN.value and g.get("citizen_user_id") != str(user["_id"]):
         raise HTTPException(status_code=403, detail="You can only provide feedback on your own grievances")
-    def update():
-        return db.grievances.update_one({"_id": grievance_id},
+    result = await db.grievances.update_one({"_id": grievance_id},
             {"$set": {"resolution_feedback": feedback.rating, "updated_at": datetime.now(timezone.utc)}})
-    result = await loop.run_in_executor(executor, update)
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Grievance not found")
     return await get_grievance(grievance_id, user, db)
@@ -2353,13 +2508,10 @@ async def assign_grievance(grievance_id: str, assignment: GrievanceAssignment,
                            user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value)),
                            db=Depends(get_db)):
     grievance_id = validate_uuid(grievance_id, "grievance_id")
-    def update():
-        return db.grievances.update_one({"_id": grievance_id},
+    result = await db.grievances.update_one({"_id": grievance_id},
             {"$set": {"assigned_officer": assignment.officer_name,
                       "status": GrievanceStatus.IN_PROGRESS.value,
                       "updated_at": datetime.now(timezone.utc)}})
-    loop = asyncio.get_event_loop()
-    result = await loop.run_in_executor(executor, update)
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Grievance not found")
     return await get_grievance(grievance_id, user, db)
@@ -2376,9 +2528,7 @@ async def confirm_resolution(request: Request, req: ConfirmResolutionRequest,
     tracking_number = sanitize_str(req.tracking_number)
     if not re.match(r'^GRV-\d{4}-[A-Za-z0-9]{6,16}$', tracking_number):
         raise HTTPException(status_code=400, detail="Invalid tracking number format")
-    loop = asyncio.get_event_loop()
-    g = await loop.run_in_executor(executor, db.grievances.find_one,
-                                   {"tracking_number": tracking_number})
+    g = await db.grievances.find_one({"tracking_number": tracking_number})
     if not g:
         raise HTTPException(status_code=404, detail="Grievance not found")
     # Verify the current user owns this grievance
@@ -2401,8 +2551,8 @@ async def confirm_resolution(request: Request, req: ConfirmResolutionRequest,
             "resolution_tier": ResolutionTier.OFFICER_ACTION.value,
             "updated_at": datetime.now(timezone.utc),
         }
-    await loop.run_in_executor(executor, lambda: db.grievances.update_one(
-        {"_id": g["_id"]}, {"$set": update_data}))
+    await db.grievances.update_one(
+        {"_id": g["_id"]}, {"$set": update_data})
     return {"status": "ok", "new_status": update_data.get("status", g["status"]),
             "new_tier": update_data.get("resolution_tier", g.get("resolution_tier"))}
 
@@ -2416,8 +2566,7 @@ async def approve_draft(grievance_id: str, req: ApproveDraftRequest,
                         user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value)),
                         db=Depends(get_db)):
     grievance_id = validate_uuid(grievance_id, "grievance_id")
-    loop = asyncio.get_event_loop()
-    g = await loop.run_in_executor(executor, db.grievances.find_one, {"_id": grievance_id})
+    g = await db.grievances.find_one({"_id": grievance_id})
     if not g:
         raise HTTPException(status_code=404, detail="Grievance not found")
     final_text = req.resolution if req.resolution else g.get("ai_resolution", "")
@@ -2430,13 +2579,16 @@ async def approve_draft(grievance_id: str, req: ApproveDraftRequest,
         "assigned_officer": user["full_name"],
         "updated_at": datetime.now(timezone.utc),
     }
-    # Also add to service memory
-    background_tasks.add_task(add_to_service_memory, g, final_text, user["full_name"])
-    # Officer anomaly detection
-    background_tasks.add_task(OfficerAnomalyDetector.check_after_resolution,
-                              str(user["_id"]), user["full_name"], final_text)
-    await loop.run_in_executor(executor, lambda: db.grievances.update_one(
-        {"_id": grievance_id}, {"$set": update_data}))
+    try:
+        from tasks import add_to_service_memory_task, officer_anomaly_check
+        g_serialized = {**g, "_id": str(g["_id"])}
+        add_to_service_memory_task.delay(g_serialized, final_text, user["full_name"])
+        officer_anomaly_check.delay(str(user["_id"]), user["full_name"], final_text)
+    except Exception:
+        logger.warning("celery_dispatch_skipped", endpoint="approve_draft",
+                       reason="Celery/Redis unavailable")
+    await db.grievances.update_one(
+        {"_id": grievance_id}, {"$set": update_data})
     return await get_grievance(grievance_id, user, db)
 
 # ---------------------------------------------------------------------------
@@ -2570,20 +2722,16 @@ async def chat_upload_files(
         raise HTTPException(400, f"Maximum {MAX_FILES_PER_GRIEVANCE} files allowed")
 
     uploaded = []
-    loop = asyncio.get_event_loop()
     for f in files:
         if f.content_type and f.content_type not in ALLOWED_MIME_TYPES:
             raise HTTPException(400, f"File type {f.content_type} not allowed. Accepted: images, audio, video.")
         content = await f.read()
         if len(content) > MAX_FILE_SIZE:
             raise HTTPException(400, f"{f.filename} exceeds 50 MB limit")
-        fid = await loop.run_in_executor(
-            executor,
-            lambda c=content, fn=f.filename, ct=f.content_type: gfs.put(
-                c, filename=fn, content_type=ct,
-                metadata={"type": "chat_attachment",
-                          "uploaded_at": datetime.now(timezone.utc).isoformat()}
-            )
+        fid = await gfs.put(
+            content, filename=f.filename, content_type=f.content_type,
+            metadata={"type": "chat_attachment",
+                      "uploaded_at": datetime.now(timezone.utc).isoformat()}
         )
         uploaded.append({
             "id": str(fid),
@@ -2973,7 +3121,6 @@ async def process_scheme_documents(
     all_text = []
     vision_images = []
     stored_docs = []
-    loop = asyncio.get_event_loop()
 
     for f in files:
         content_type = f.content_type or ""
@@ -2985,11 +3132,9 @@ async def process_scheme_documents(
 
         # Store in GridFS
         try:
-            file_id = await loop.run_in_executor(
-                executor,
-                lambda fb=file_bytes, fn=f.filename, ct=content_type: gfs.put(
-                    fb, filename=fn, content_type=ct, metadata={"type": "scheme_document"}
-                )
+            file_id = await gfs.put(
+                file_bytes, filename=f.filename, content_type=content_type,
+                metadata={"type": "scheme_document"}
             )
             stored_docs.append({
                 "id": str(file_id),
@@ -3003,19 +3148,19 @@ async def process_scheme_documents(
 
         # Extract text based on file type
         if content_type == "application/pdf":
-            text = await loop.run_in_executor(executor, _extract_text_from_pdf, file_bytes)
+            text = await asyncio.to_thread(_extract_text_from_pdf, file_bytes)
             if text and len(text.strip()) > 50:
                 all_text.append(text)
             else:
                 # Scanned PDF — try extracting embedded images for Vision API
-                images = await loop.run_in_executor(executor, _pdf_pages_to_images, file_bytes)
+                images = await asyncio.to_thread(_pdf_pages_to_images, file_bytes)
                 if images:
                     vision_images.extend(images)
                 else:
                     # Last resort: encode entire PDF first page as generic image
                     logger.warning("Scanned PDF %s: no extractable text or images", f.filename)
         elif content_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-            text = await loop.run_in_executor(executor, _extract_text_from_docx, file_bytes)
+            text = await asyncio.to_thread(_extract_text_from_docx, file_bytes)
             if text:
                 all_text.append(text)
         elif content_type.startswith("image/"):
@@ -3084,15 +3229,17 @@ async def process_scheme_documents(
     }
 
 
+class UpdateSchemeDocumentsRequest(BaseModel):
+    documents: List[Dict[str, Any]] = Field(default_factory=list)
+
 @app.put("/knowledge/schemes/{scheme_id}/documents")
 async def update_scheme_documents(scheme_id: str,
-                                   request: Request,
+                                   req: UpdateSchemeDocumentsRequest,
                                    user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value))):
     """Update the documents list for an existing scheme."""
     if not qdrant:
         raise HTTPException(status_code=503, detail="Knowledge base (Qdrant) is not available")
-    body = await request.json()
-    documents = body.get("documents", [])
+    documents = req.documents
     points = qdrant.retrieve(collection_name="schemes", ids=[scheme_id], with_payload=True)
     if not points:
         raise HTTPException(status_code=404, detail="Scheme not found")
@@ -3114,70 +3261,73 @@ async def get_analytics(days: int = Query(30, ge=1, le=365),
     base: dict = {"created_at": {"$gte": start_date}}
     if department:
         base["department"] = department
-    def fetch():
-        total = db.grievances.count_documents(base)
-        self_resolved = db.grievances.count_documents({
-            **base, "status": "resolved",
-            "resolution_tier": "self_resolvable", "resolution_type": "ai"})
-        ai_drafted = db.grievances.count_documents({
-            **base, "ai_resolution": {"$exists": True, "$ne": None}})
-        escalated = db.grievances.count_documents({**base, "status": "escalated"})
-        sent_results = list(db.grievances.aggregate([
-            {"$match": base},
-            {"$group": {"_id": "$sentiment", "count": {"$sum": 1}}}]))
-        dept_results = list(db.grievances.aggregate([
-            {"$match": base},
-            {"$group": {"_id": "$department", "count": {"$sum": 1}}}]))
-        # Real avg resolution time
-        avg_pipe = [
-            {"$match": {**base, "status": "resolved"}},
-            {"$project": {"duration": {"$subtract": ["$updated_at", "$created_at"]}}},
-            {"$group": {"_id": None, "avg_ms": {"$avg": "$duration"}}}]
-        avg_result = list(db.grievances.aggregate(avg_pipe))
-        avg_hours = (avg_result[0]["avg_ms"] / 3600000) if avg_result and avg_result[0].get("avg_ms") else 0.0
-        # Pending and SLA breached counts
-        now = datetime.now(timezone.utc)
-        pending_count = db.grievances.count_documents({
-            **base, "status": {"$in": ["pending", "in_progress", "escalated"]}})
-        sla_breached_count = db.grievances.count_documents({
-            **base, "status": {"$in": ["pending", "in_progress", "escalated"]},
-            "sla_deadline": {"$lt": now}})
-        # Deadline alerts (near-breach: within 25% of remaining time)
-        deadline_alert_count = db.grievances.count_documents({
-            **base, "status": {"$in": ["pending", "in_progress", "escalated"]},
-            "$or": [
-                {"sla_deadline": {"$lt": now}},
-                {"estimated_resolution_deadline": {"$lt": now, "$ne": None}},
-            ]})
-        # Status distribution
-        status_results = list(db.grievances.aggregate([
-            {"$match": base},
-            {"$group": {"_id": "$status", "count": {"$sum": 1}}}]))
-        status_dist = {s["_id"]: s["count"] for s in status_results}
-        # Top districts by grievance count (all, not capped at 10)
-        district_pipe = [
-            {"$match": {**base, "district": {"$ne": None}}},
-            {"$group": {"_id": "$district", "count": {"$sum": 1}}},
-            {"$sort": {"count": -1}}]
-        district_results = list(db.grievances.aggregate(district_pipe))
-        top_districts = [{"district": d["_id"], "count": d["count"]} for d in district_results]
-        # Top complaint titles
-        complaint_pipe = [
-            {"$match": base},
-            {"$group": {"_id": "$title", "department": {"$first": "$department"}, "count": {"$sum": 1}}},
-            {"$sort": {"count": -1}}, {"$limit": 10}]
-        complaint_results = list(db.grievances.aggregate(complaint_pipe))
-        top_complaints = [{"title": c["_id"], "department": c.get("department", "general"),
-                           "count": c["count"]} for c in complaint_results]
-        return {"total": total, "self_resolved": self_resolved, "ai_drafted": ai_drafted,
-                "escalated": escalated,
-                "sent": sent_results, "dept": dept_results, "avg_hours": avg_hours,
-                "pending_count": pending_count, "sla_breached_count": sla_breached_count,
-                "deadline_alert_count": deadline_alert_count,
-                "status_dist": status_dist,
-                "top_districts": top_districts, "top_complaints": top_complaints}
-    loop = asyncio.get_event_loop()
-    data = await loop.run_in_executor(executor, fetch)
+    total = await db.grievances.count_documents(base)
+    self_resolved = await db.grievances.count_documents({
+        **base, "status": "resolved",
+        "resolution_tier": "self_resolvable", "resolution_type": "ai"})
+    ai_drafted = await db.grievances.count_documents({
+        **base, "ai_resolution": {"$exists": True, "$ne": None}})
+    escalated = await db.grievances.count_documents({**base, "status": "escalated"})
+    sent_cursor = await db.grievances.aggregate([
+        {"$match": base},
+        {"$group": {"_id": "$sentiment", "count": {"$sum": 1}}}])
+    sent_results = await sent_cursor.to_list(length=None)
+    dept_cursor = await db.grievances.aggregate([
+        {"$match": base},
+        {"$group": {"_id": "$department", "count": {"$sum": 1}}}])
+    dept_results = await dept_cursor.to_list(length=None)
+    # Real avg resolution time
+    avg_pipe = [
+        {"$match": {**base, "status": "resolved"}},
+        {"$project": {"duration": {"$subtract": ["$updated_at", "$created_at"]}}},
+        {"$group": {"_id": None, "avg_ms": {"$avg": "$duration"}}}]
+    avg_cursor = await db.grievances.aggregate(avg_pipe)
+    avg_result = await avg_cursor.to_list(length=None)
+    avg_hours = (avg_result[0]["avg_ms"] / 3600000) if avg_result and avg_result[0].get("avg_ms") else 0.0
+    # Pending and SLA breached counts
+    now = datetime.now(timezone.utc)
+    pending_count = await db.grievances.count_documents({
+        **base, "status": {"$in": ["pending", "in_progress", "escalated"]}})
+    sla_breached_count = await db.grievances.count_documents({
+        **base, "status": {"$in": ["pending", "in_progress", "escalated"]},
+        "sla_deadline": {"$lt": now}})
+    # Deadline alerts (near-breach: within 25% of remaining time)
+    deadline_alert_count = await db.grievances.count_documents({
+        **base, "status": {"$in": ["pending", "in_progress", "escalated"]},
+        "$or": [
+            {"sla_deadline": {"$lt": now}},
+            {"estimated_resolution_deadline": {"$lt": now, "$ne": None}},
+        ]})
+    # Status distribution
+    status_cursor = await db.grievances.aggregate([
+        {"$match": base},
+        {"$group": {"_id": "$status", "count": {"$sum": 1}}}])
+    status_results = await status_cursor.to_list(length=None)
+    status_dist = {s["_id"]: s["count"] for s in status_results}
+    # Top districts by grievance count (all, not capped at 10)
+    district_pipe = [
+        {"$match": {**base, "district": {"$ne": None}}},
+        {"$group": {"_id": "$district", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}}]
+    district_cursor = await db.grievances.aggregate(district_pipe)
+    district_results = await district_cursor.to_list(length=None)
+    top_districts = [{"district": d["_id"], "count": d["count"]} for d in district_results]
+    # Top complaint titles
+    complaint_pipe = [
+        {"$match": base},
+        {"$group": {"_id": "$title", "department": {"$first": "$department"}, "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}}, {"$limit": 10}]
+    complaint_cursor = await db.grievances.aggregate(complaint_pipe)
+    complaint_results = await complaint_cursor.to_list(length=None)
+    top_complaints = [{"title": c["_id"], "department": c.get("department", "general"),
+                       "count": c["count"]} for c in complaint_results]
+    data = {"total": total, "self_resolved": self_resolved, "ai_drafted": ai_drafted,
+            "escalated": escalated,
+            "sent": sent_results, "dept": dept_results, "avg_hours": avg_hours,
+            "pending_count": pending_count, "sla_breached_count": sla_breached_count,
+            "deadline_alert_count": deadline_alert_count,
+            "status_dist": status_dist,
+            "top_districts": top_districts, "top_complaints": top_complaints}
     return AnalyticsResponse(
         total_grievances=data["total"], self_resolved=data["self_resolved"],
         ai_drafted=data["ai_drafted"],
@@ -3195,18 +3345,16 @@ async def get_geo_analytics(days: int = Query(30, ge=1, le=365),
                             user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value)),
                             db=Depends(get_db)):
     start_date = datetime.now(timezone.utc) - timedelta(days=days)
-    def fetch():
-        hotspots, district_counts = [], {}
-        for g in db.grievances.find({"created_at": {"$gte": start_date}, "location": {"$exists": True, "$ne": None}}).limit(200):
-            coords = g.get("location", {}).get("coordinates", [])
-            if len(coords) == 2:
-                hotspots.append({"latitude": coords[1], "longitude": coords[0],
-                                 "priority": g.get("priority"), "department": g.get("department")})
-            d = g.get("district", "unknown")
-            district_counts[d] = district_counts.get(d, 0) + 1
-        return {"hotspots": hotspots, "district_counts": district_counts}
-    loop = asyncio.get_event_loop()
-    data = await loop.run_in_executor(executor, fetch)
+    hotspots, district_counts = [], {}
+    cursor = db.grievances.find({"created_at": {"$gte": start_date}, "location": {"$exists": True, "$ne": None}}).limit(200)
+    async for g in cursor:
+        coords = g.get("location", {}).get("coordinates", [])
+        if len(coords) == 2:
+            hotspots.append({"latitude": coords[1], "longitude": coords[0],
+                             "priority": g.get("priority"), "department": g.get("department")})
+        d = g.get("district", "unknown")
+        district_counts[d] = district_counts.get(d, 0) + 1
+    data = {"hotspots": hotspots, "district_counts": district_counts}
     return GeoAnalyticsResponse(hotspot_coordinates=data["hotspots"],
                                 region_distribution={}, district_distribution=data["district_counts"])
 
@@ -3216,17 +3364,16 @@ async def get_geo_analytics(days: int = Query(30, ge=1, le=365),
 @app.get("/grievances/{grievance_id}/attachments")
 async def get_attachments(grievance_id: str, user=Depends(get_current_user), db=Depends(get_db)):
     grievance_id = validate_uuid(grievance_id, "grievance_id")
-    loop = asyncio.get_event_loop()
-    g = await loop.run_in_executor(executor, db.grievances.find_one, {"_id": grievance_id})
+    g = await db.grievances.find_one({"_id": grievance_id})
     if not g:
         raise HTTPException(status_code=404, detail="Grievance not found")
     att_ids = g.get("attachments", [])
     result = []
     for aid in att_ids:
         try:
-            fobj = await loop.run_in_executor(executor, lambda a=aid: gfs.get(ObjectId(a)))
-            result.append({"id": aid, "filename": fobj.filename, "content_type": fobj.content_type,
-                           "length": fobj.length})
+            grid_out = await gfs.get(ObjectId(aid))
+            result.append({"id": aid, "filename": grid_out.filename, "content_type": grid_out.content_type,
+                           "length": grid_out.length})
         except Exception as exc:
             logger.warning("Failed to fetch attachment %s: %s", aid, exc)
     return result
@@ -3239,42 +3386,36 @@ async def get_attachment(attachment_id: str,
     # Allow token via query param so <img> tags can authenticate
     if user is None and token:
         try:
-            loop_t = asyncio.get_event_loop()
-            revoked = await loop_t.run_in_executor(executor, lambda: db.revoked_tokens.find_one({"_id": token}))
+            revoked = await db.revoked_tokens.find_one({"_id": token})
             if not revoked:
                 payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
                 username = payload.get("sub")
                 if username:
-                    user = await loop_t.run_in_executor(executor, db.users.find_one, {"username": username})
+                    user = await db.users.find_one({"username": username})
         except Exception:
             pass
     try:
-        loop = asyncio.get_event_loop()
         # Verify attachment belongs to a grievance the requester can access
         oid = ObjectId(attachment_id)
-        grievance = await loop.run_in_executor(executor, lambda: db.grievances.find_one(
-            {"attachments": attachment_id}, {"citizen_user_id": 1, "is_public": 1}))
+        grievance = await db.grievances.find_one(
+            {"attachments": attachment_id}, {"citizen_user_id": 1, "is_public": 1})
         # Check if it's a scheme document (publicly accessible)
-        grid_file = await loop.run_in_executor(executor, lambda: gfs.exists(oid))
-        if grid_file:
-            file_meta = await loop.run_in_executor(executor, lambda: db.fs.files.find_one(
-                {"_id": oid}, {"metadata": 1}))
-            if file_meta and file_meta.get("metadata", {}).get("type") == "scheme_document":
-                # Scheme documents are public — skip access control
-                fobj = await loop.run_in_executor(executor, lambda: gfs.get(oid))
-                def iterfile_scheme():
-                    while True:
-                        chunk = fobj.read(8192)
-                        if not chunk:
-                            break
-                        yield chunk
-                return StreamingResponse(iterfile_scheme(), media_type=fobj.content_type or "application/octet-stream",
-                                         headers={"Content-Disposition": f'inline; filename="{fobj.filename}"'})
+        file_meta = await db.fs.files.find_one({"_id": oid}, {"metadata": 1})
+        if file_meta and file_meta.get("metadata", {}).get("type") == "scheme_document":
+            # Scheme documents are public — skip access control
+            grid_out = await gfs.get(oid)
+            async def iterfile_scheme():
+                while True:
+                    chunk = await grid_out.read(8192)
+                    if not chunk:
+                        break
+                    yield chunk
+            return StreamingResponse(iterfile_scheme(), media_type=grid_out.content_type or "application/octet-stream",
+                                     headers={"Content-Disposition": f'inline; filename="{grid_out.filename}"'})
         # Also check if it's vouch evidence
         vouch = None
         if not grievance:
-            vouch = await loop.run_in_executor(executor, lambda: db.vouches.find_one(
-                {"evidence_file_ids": attachment_id}))
+            vouch = await db.vouches.find_one({"evidence_file_ids": attachment_id})
         # Allow access if: user is officer/admin, or it's a public grievance,
         # or the citizen owns the grievance, or it's vouch evidence
         if grievance:
@@ -3289,15 +3430,15 @@ async def get_attachment(attachment_id: str,
             pass  # Staff can access any attachment (e.g. photo IDs)
         else:
             raise HTTPException(status_code=403, detail="Access denied to this attachment")
-        fobj = await loop.run_in_executor(executor, lambda: gfs.get(oid))
-        def iterfile():
+        grid_out = await gfs.get(oid)
+        async def iterfile():
             while True:
-                chunk = fobj.read(8192)
+                chunk = await grid_out.read(8192)
                 if not chunk:
                     break
                 yield chunk
-        return StreamingResponse(iterfile(), media_type=fobj.content_type or "application/octet-stream",
-                                 headers={"Content-Disposition": f'inline; filename="{fobj.filename}"'})
+        return StreamingResponse(iterfile(), media_type=grid_out.content_type or "application/octet-stream",
+                                 headers={"Content-Disposition": f'inline; filename="{grid_out.filename}"'})
     except HTTPException:
         raise
     except Exception:
@@ -3351,23 +3492,20 @@ async def upload_photo_id(request: Request, file: UploadFile = File(...),
     content = await file.read()
     if len(content) > 10 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="File exceeds 10MB limit")
-    loop = asyncio.get_event_loop()
-    fid = await loop.run_in_executor(executor, lambda: gfs.put(
-        content, filename=f"photo_id_{user['_id']}", content_type=file.content_type))
-    await loop.run_in_executor(executor, lambda: db.spam_tracking.update_one(
+    fid = await gfs.put(
+        content, filename=f"photo_id_{user['_id']}", content_type=file.content_type)
+    await db.spam_tracking.update_one(
         {"_id": str(user["_id"])},
         {"$set": {"photo_id_file_id": str(fid), "photo_id_status": "pending_review"}},
-        upsert=True))
+        upsert=True)
     return {"detail": "Photo ID uploaded for review", "status": "pending_review"}
 
 @app.get("/admin/spam-flagged")
 async def get_spam_flagged(user=Depends(require_role(UserRole.ADMIN.value)), db=Depends(get_db)):
-    loop = asyncio.get_event_loop()
-    records = await loop.run_in_executor(executor, lambda: list(
-        db.spam_tracking.find({"is_blocked": True}).limit(50)))
+    records = await db.spam_tracking.find({"is_blocked": True}).limit(50).to_list(length=None)
     result = []
     for r in records:
-        u = await loop.run_in_executor(executor, db.users.find_one, {"_id": r["_id"]})
+        u = await db.users.find_one({"_id": r["_id"]})
         result.append({
             "user_id": r["_id"],
             "username": u["username"] if u else "unknown",
@@ -3385,13 +3523,11 @@ async def get_spam_flag_detail(user_id: str,
                                user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value)),
                                db=Depends(get_db)):
     user_id = validate_uuid(user_id, "user_id")
-    loop = asyncio.get_event_loop()
-    record = await loop.run_in_executor(executor, db.spam_tracking.find_one, {"_id": user_id})
+    record = await db.spam_tracking.find_one({"_id": user_id})
     if not record:
         raise HTTPException(status_code=404, detail="No spam record found for this user")
-    u = await loop.run_in_executor(executor, db.users.find_one, {"_id": user_id})
-    grievances = await loop.run_in_executor(executor, lambda: list(
-        db.grievances.find({"citizen_user_id": user_id}).sort("created_at", -1).limit(20)))
+    u = await db.users.find_one({"_id": user_id})
+    grievances = await db.grievances.find({"citizen_user_id": user_id}).sort("created_at", -1).limit(20).to_list(length=None)
     # Build grievance list with content hashes
     grv_list = []
     texts = []
@@ -3444,22 +3580,20 @@ async def get_spam_flag_detail(user_id: str,
 async def review_spam_user(user_id: str, approved: bool = Query(...),
                            user=Depends(require_role(UserRole.ADMIN.value)), db=Depends(get_db)):
     user_id = validate_uuid(user_id, "user_id")
-    loop = asyncio.get_event_loop()
     if approved:
-        await loop.run_in_executor(executor, lambda: db.spam_tracking.update_one(
+        await db.spam_tracking.update_one(
             {"_id": user_id},
             {"$set": {"is_blocked": False, "spam_score": 0.0, "photo_id_status": "approved",
-                      "pattern_flags": []}}))
+                      "pattern_flags": []}})
         return {"detail": "User unblocked and verified"}
     else:
-        await loop.run_in_executor(executor, lambda: db.spam_tracking.update_one(
-            {"_id": user_id}, {"$set": {"photo_id_status": "rejected"}}))
+        await db.spam_tracking.update_one(
+            {"_id": user_id}, {"$set": {"photo_id_status": "rejected"}})
         return {"detail": "Photo ID rejected, user remains blocked"}
 
 @app.get("/auth/spam-status")
 async def get_spam_status(user=Depends(get_current_user), db=Depends(get_db)):
-    loop = asyncio.get_event_loop()
-    record = await loop.run_in_executor(executor, db.spam_tracking.find_one, {"_id": str(user["_id"])})
+    record = await db.spam_tracking.find_one({"_id": str(user["_id"])})
     if not record:
         return {"is_blocked": False, "photo_id_status": "none"}
     return {"is_blocked": record.get("is_blocked", False),
@@ -3471,17 +3605,14 @@ async def get_spam_status(user=Depends(get_current_user), db=Depends(get_db)):
 @app.post("/grievances/check-deadlines")
 async def check_deadlines(user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value)),
                           db=Depends(get_db)):
-    loop = asyncio.get_event_loop()
     now = datetime.now(timezone.utc)
-    def find_breached():
-        return list(db.grievances.find({
-            "status": {"$in": ["pending", "in_progress"]},
-            "$or": [
-                {"sla_deadline": {"$lt": now}},
-                {"estimated_resolution_deadline": {"$lt": now, "$ne": None}}
-            ]
-        }).limit(100))
-    breached = await loop.run_in_executor(executor, find_breached)
+    breached = await db.grievances.find({
+        "status": {"$in": ["pending", "in_progress"]},
+        "$or": [
+            {"sla_deadline": {"$lt": now}},
+            {"estimated_resolution_deadline": {"$lt": now, "$ne": None}}
+        ]
+    }).limit(100).to_list(length=None)
     escalated_ids = []
     for g in breached:
         if g["status"] != "escalated":
@@ -3490,13 +3621,13 @@ async def check_deadlines(user=Depends(require_role(UserRole.OFFICER.value, User
                     "created_at": now}
             update_fields: dict = {"status": "escalated", "updated_at": now}
             if not g.get("assigned_officer"):
-                officer_name = find_officer_for_department(db, g.get("department"))
+                officer_name = await find_officer_for_department(db, g.get("department"))
                 if officer_name:
                     update_fields["assigned_officer"] = officer_name
-            await loop.run_in_executor(executor, lambda gid=g["_id"], uf=update_fields: db.grievances.update_one(
-                {"_id": gid},
-                {"$set": uf,
-                 "$push": {"notes": note}}))
+            await db.grievances.update_one(
+                {"_id": g["_id"]},
+                {"$set": update_fields,
+                 "$push": {"notes": note}})
             escalated_ids.append(g["_id"])
     return {"escalated_count": len(escalated_ids), "escalated_ids": escalated_ids}
 
@@ -3509,8 +3640,7 @@ async def update_sub_task_status(grievance_id: str, sub_task_id: str,
                                   user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value)),
                                   db=Depends(get_db)):
     grievance_id = validate_uuid(grievance_id, "grievance_id")
-    loop = asyncio.get_event_loop()
-    g = await loop.run_in_executor(executor, db.grievances.find_one, {"_id": grievance_id})
+    g = await db.grievances.find_one({"_id": grievance_id})
     if not g:
         raise HTTPException(status_code=404, detail="Grievance not found")
     sub_tasks = g.get("sub_tasks", [])
@@ -3526,8 +3656,8 @@ async def update_sub_task_status(grievance_id: str, sub_task_id: str,
     update = {"sub_tasks": sub_tasks, "updated_at": datetime.now(timezone.utc)}
     if all_resolved:
         update["status"] = GrievanceStatus.RESOLVED.value
-    await loop.run_in_executor(executor, lambda: db.grievances.update_one(
-        {"_id": grievance_id}, {"$set": update}))
+    await db.grievances.update_one(
+        {"_id": grievance_id}, {"$set": update})
     return {"detail": "Sub-task updated", "all_resolved": all_resolved}
 
 @app.put("/grievances/{grievance_id}/sub-tasks/{sub_task_id}/assign")
@@ -3536,8 +3666,7 @@ async def assign_sub_task(grievance_id: str, sub_task_id: str,
                           user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value)),
                           db=Depends(get_db)):
     grievance_id = validate_uuid(grievance_id, "grievance_id")
-    loop = asyncio.get_event_loop()
-    g = await loop.run_in_executor(executor, db.grievances.find_one, {"_id": grievance_id})
+    g = await db.grievances.find_one({"_id": grievance_id})
     if not g:
         raise HTTPException(status_code=404, detail="Grievance not found")
     sub_tasks = g.get("sub_tasks", [])
@@ -3550,8 +3679,8 @@ async def assign_sub_task(grievance_id: str, sub_task_id: str,
             break
     if not found:
         raise HTTPException(status_code=404, detail="Sub-task not found")
-    await loop.run_in_executor(executor, lambda: db.grievances.update_one(
-        {"_id": grievance_id}, {"$set": {"sub_tasks": sub_tasks, "updated_at": datetime.now(timezone.utc)}}))
+    await db.grievances.update_one(
+        {"_id": grievance_id}, {"$set": {"sub_tasks": sub_tasks, "updated_at": datetime.now(timezone.utc)}})
     return {"detail": "Sub-task assigned"}
 
 @app.get("/grievances/multi-department")
@@ -3559,12 +3688,11 @@ async def get_multi_dept_grievances(
     department: Optional[str] = None,
     user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value)),
     db=Depends(get_db)):
-    loop = asyncio.get_event_loop()
     fq = {"sub_tasks": {"$exists": True, "$ne": []}}
     if department:
         fq["sub_tasks.department"] = department
-    grievances = await loop.run_in_executor(executor, lambda: [
-        convert_db_grievance(g) for g in db.grievances.find(fq).sort("created_at", -1).limit(50)])
+    cursor = db.grievances.find(fq).sort("created_at", -1).limit(50)
+    grievances = [convert_db_grievance(g) async for g in cursor]
     return [GrievanceResponse(**g, id=g["_id"]) for g in grievances]
 
 # ---------------------------------------------------------------------------
@@ -3580,9 +3708,7 @@ async def get_systemic_issues(
     if department: fq["department"] = department
     if district: fq["district"] = district
     if issue_status: fq["status"] = issue_status
-    loop = asyncio.get_event_loop()
-    issues = await loop.run_in_executor(executor, lambda: list(
-        db.systemic_issues.find(fq).sort("created_at", -1).limit(50)))
+    issues = await db.systemic_issues.find(fq).sort("created_at", -1).limit(50).to_list(length=None)
     return [SystemicIssueResponse(**{**i, "id": i["_id"]}) for i in issues]
 
 @app.get("/systemic-issues/{issue_id}")
@@ -3590,8 +3716,7 @@ async def get_systemic_issue(issue_id: str,
                              user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value)),
                              db=Depends(get_db)):
     issue_id = validate_uuid(issue_id, "issue_id")
-    loop = asyncio.get_event_loop()
-    issue = await loop.run_in_executor(executor, db.systemic_issues.find_one, {"_id": issue_id})
+    issue = await db.systemic_issues.find_one({"_id": issue_id})
     if not issue:
         raise HTTPException(status_code=404, detail="Systemic issue not found")
     return SystemicIssueResponse(**{**issue, "id": issue["_id"]})
@@ -3601,9 +3726,8 @@ async def update_systemic_issue_status(issue_id: str, new_status: str = Query(..
                                         user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value)),
                                         db=Depends(get_db)):
     issue_id = validate_uuid(issue_id, "issue_id")
-    loop = asyncio.get_event_loop()
-    result = await loop.run_in_executor(executor, lambda: db.systemic_issues.update_one(
-        {"_id": issue_id}, {"$set": {"status": new_status, "updated_at": datetime.now(timezone.utc)}}))
+    result = await db.systemic_issues.update_one(
+        {"_id": issue_id}, {"$set": {"status": new_status, "updated_at": datetime.now(timezone.utc)}})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Systemic issue not found")
     return {"detail": "Status updated"}
@@ -3613,10 +3737,9 @@ async def assign_systemic_issue(issue_id: str, assignment: GrievanceAssignment,
                                  user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value)),
                                  db=Depends(get_db)):
     issue_id = validate_uuid(issue_id, "issue_id")
-    loop = asyncio.get_event_loop()
-    result = await loop.run_in_executor(executor, lambda: db.systemic_issues.update_one(
+    result = await db.systemic_issues.update_one(
         {"_id": issue_id}, {"$set": {"assigned_officer": assignment.officer_name,
-                                      "status": "acknowledged", "updated_at": datetime.now(timezone.utc)}}))
+                                      "status": "acknowledged", "updated_at": datetime.now(timezone.utc)}})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Systemic issue not found")
     return {"detail": "Officer assigned"}
@@ -3632,8 +3755,7 @@ async def generate_forecast(user=Depends(require_role(UserRole.ADMIN.value)), db
 @app.get("/forecasts/latest")
 async def get_latest_forecast(user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value)),
                               db=Depends(get_db)):
-    loop = asyncio.get_event_loop()
-    f = await loop.run_in_executor(executor, lambda: db.forecasts.find_one(sort=[("forecast_date", -1)]))
+    f = await db.forecasts.find_one(sort=[("forecast_date", -1)])
     if not f:
         return {"detail": "No forecasts available"}
     return ForecastResponse(**{**f, "id": f["_id"]})
@@ -3642,9 +3764,7 @@ async def get_latest_forecast(user=Depends(require_role(UserRole.OFFICER.value, 
 async def get_forecasts(limit: int = Query(10, ge=1, le=50),
                         user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value)),
                         db=Depends(get_db)):
-    loop = asyncio.get_event_loop()
-    forecasts = await loop.run_in_executor(executor, lambda: list(
-        db.forecasts.find().sort("forecast_date", -1).limit(limit)))
+    forecasts = await db.forecasts.find().sort("forecast_date", -1).limit(limit).to_list(length=None)
     return [ForecastResponse(**{**f, "id": f["_id"]}) for f in forecasts]
 
 # ---------------------------------------------------------------------------
@@ -3654,12 +3774,11 @@ async def get_forecasts(limit: int = Query(10, ge=1, le=50),
 async def get_scheme_matched_grievances(
     user=Depends(require_role(UserRole.OFFICER.value, UserRole.ADMIN.value)),
     db=Depends(get_db)):
-    loop = asyncio.get_event_loop()
-    grievances = await loop.run_in_executor(executor, lambda: [
-        convert_db_grievance(g) for g in db.grievances.find({
-            "scheme_match": {"$exists": True, "$ne": None},
-            "status": {"$in": ["pending", "in_progress", "escalated"]}
-        }).sort("created_at", -1).limit(50)])
+    cursor = db.grievances.find({
+        "scheme_match": {"$exists": True, "$ne": None},
+        "status": {"$in": ["pending", "in_progress", "escalated"]}
+    }).sort("created_at", -1).limit(50)
+    grievances = [convert_db_grievance(g) async for g in cursor]
     return [GrievanceResponse(**g, id=g["_id"]) for g in grievances]
 
 # ---------------------------------------------------------------------------
@@ -3667,12 +3786,10 @@ async def get_scheme_matched_grievances(
 # ---------------------------------------------------------------------------
 @app.get("/admin/officer-anomalies")
 async def get_officer_anomalies(user=Depends(require_role(UserRole.ADMIN.value)), db=Depends(get_db)):
-    loop = asyncio.get_event_loop()
-    records = await loop.run_in_executor(executor, lambda: list(
-        db.officer_analytics.find({"anomaly_flags": {"$exists": True, "$ne": []}}).limit(50)))
+    records = await db.officer_analytics.find({"anomaly_flags": {"$exists": True, "$ne": []}}).limit(50).to_list(length=None)
     result = []
     for r in records:
-        u = await loop.run_in_executor(executor, db.users.find_one, {"_id": r["_id"]})
+        u = await db.users.find_one({"_id": r["_id"]})
         result.append({
             "officer_id": r["_id"],
             "username": u["username"] if u else "unknown",
@@ -3687,11 +3804,10 @@ async def get_officer_anomalies(user=Depends(require_role(UserRole.ADMIN.value))
 async def get_officer_anomaly_detail(officer_id: str,
                                       user=Depends(require_role(UserRole.ADMIN.value)), db=Depends(get_db)):
     officer_id = validate_uuid(officer_id, "officer_id")
-    loop = asyncio.get_event_loop()
-    record = await loop.run_in_executor(executor, db.officer_analytics.find_one, {"_id": officer_id})
+    record = await db.officer_analytics.find_one({"_id": officer_id})
     if not record:
         raise HTTPException(status_code=404, detail="No analytics for this officer")
-    u = await loop.run_in_executor(executor, db.users.find_one, {"_id": officer_id})
+    u = await db.users.find_one({"_id": officer_id})
     return {**record, "username": u["username"] if u else "unknown",
             "full_name": u["full_name"] if u else "unknown"}
 
@@ -3700,9 +3816,8 @@ async def dismiss_anomaly_flag(officer_id: str, flag_id: str,
                                user=Depends(require_role(UserRole.ADMIN.value)), db=Depends(get_db)):
     officer_id = validate_uuid(officer_id, "officer_id")
     flag_id = sanitize_str(flag_id)
-    loop = asyncio.get_event_loop()
-    await loop.run_in_executor(executor, lambda: db.officer_analytics.update_one(
-        {"_id": officer_id}, {"$pull": {"anomaly_flags": {"id": flag_id}}}))
+    await db.officer_analytics.update_one(
+        {"_id": officer_id}, {"$pull": {"anomaly_flags": {"id": flag_id}}})
     return {"detail": "Flag dismissed"}
 
 # ---------------------------------------------------------------------------
@@ -3714,10 +3829,9 @@ async def get_public_grievances(
     radius_km: float = Query(50, ge=1, le=500),
     limit: int = Query(20, ge=1, le=100), skip: int = Query(0, ge=0),
     db=Depends(get_db)):
-    loop = asyncio.get_event_loop()
     if lat is not None and lon is not None:
-        def fetch_near():
-            return list(db.grievances.find({
+        try:
+            grievances = await db.grievances.find({
                 "is_public": True,
                 "status": {"$ne": "resolved"},
                 "location": {
@@ -3726,24 +3840,16 @@ async def get_public_grievances(
                         "$maxDistance": radius_km * 1000
                     }
                 }
-            }).skip(skip).limit(limit))
-        try:
-            grievances = await loop.run_in_executor(executor, fetch_near)
+            }).skip(skip).limit(limit).to_list(length=None)
         except Exception as exc:
             logger.debug("Geospatial query failed, falling back to date sort: %s", exc)
-            grievances = await loop.run_in_executor(executor, lambda: list(
-                db.grievances.find({"is_public": True, "status": {"$ne": "resolved"}})
-                .sort("created_at", -1).skip(skip).limit(limit)))
+            grievances = await db.grievances.find({"is_public": True, "status": {"$ne": "resolved"}}).sort("created_at", -1).skip(skip).limit(limit).to_list(length=None)
     else:
-        grievances = await loop.run_in_executor(executor, lambda: list(
-            db.grievances.find({"is_public": True, "status": {"$ne": "resolved"}})
-            .sort("created_at", -1).skip(skip).limit(limit)))
+        grievances = await db.grievances.find({"is_public": True, "status": {"$ne": "resolved"}}).sort("created_at", -1).skip(skip).limit(limit).to_list(length=None)
     result = []
     for g in grievances:
-        vouch_count = await loop.run_in_executor(executor,
-            lambda gid=g["_id"]: db.vouches.count_documents({"grievance_id": gid}))
-        evidence_count = await loop.run_in_executor(executor,
-            lambda gid=g["_id"]: db.vouches.count_documents({"grievance_id": gid, "evidence_file_ids": {"$ne": []}}))
+        vouch_count = await db.vouches.count_documents({"grievance_id": g["_id"]})
+        evidence_count = await db.vouches.count_documents({"grievance_id": g["_id"], "evidence_file_ids": {"$ne": []}})
         dist_km = None
         if lat is not None and lon is not None and g.get("location"):
             gc = g["location"].get("coordinates", [])
@@ -3764,13 +3870,10 @@ async def get_public_grievances(
 @app.get("/public/grievances/{grievance_id}")
 async def get_public_grievance_detail(grievance_id: str, db=Depends(get_db)):
     grievance_id = validate_uuid(grievance_id, "grievance_id")
-    loop = asyncio.get_event_loop()
-    g = await loop.run_in_executor(executor, db.grievances.find_one,
-                                   {"_id": grievance_id, "is_public": True})
+    g = await db.grievances.find_one({"_id": grievance_id, "is_public": True})
     if not g:
         raise HTTPException(status_code=404, detail="Public grievance not found")
-    vouches = await loop.run_in_executor(executor, lambda: list(
-        db.vouches.find({"grievance_id": grievance_id}).sort("created_at", -1).limit(50)))
+    vouches = await db.vouches.find({"grievance_id": grievance_id}).sort("created_at", -1).limit(50).to_list(length=None)
     for v in vouches:
         v["id"] = str(v.pop("_id"))
     g = convert_db_grievance(g)
@@ -3789,15 +3892,12 @@ async def vouch_for_grievance(
     files: List[UploadFile] = File(default=[]),
 ):
     grievance_id = validate_uuid(grievance_id, "grievance_id")
-    loop = asyncio.get_event_loop()
-    g = await loop.run_in_executor(executor, db.grievances.find_one,
-                                   {"_id": grievance_id, "is_public": True})
+    g = await db.grievances.find_one({"_id": grievance_id, "is_public": True})
     if not g:
         raise HTTPException(status_code=404, detail="Public grievance not found")
     if g.get("citizen_user_id") == str(user["_id"]):
         raise HTTPException(status_code=400, detail="Cannot vouch for your own grievance")
-    existing = await loop.run_in_executor(executor, lambda: db.vouches.find_one(
-        {"grievance_id": grievance_id, "user_id": str(user["_id"])}))
+    existing = await db.vouches.find_one({"grievance_id": grievance_id, "user_id": str(user["_id"])})
     if existing:
         raise HTTPException(status_code=400, detail="You have already vouched for this grievance")
     evidence_ids = []
@@ -3807,8 +3907,7 @@ async def vouch_for_grievance(
         content = await f.read()
         if len(content) > MAX_FILE_SIZE:
             continue
-        fid = await loop.run_in_executor(executor, lambda c=content, fn=f.filename, ct=f.content_type: gfs.put(
-            c, filename=fn, content_type=ct))
+        fid = await gfs.put(content, filename=f.filename, content_type=f.content_type)
         evidence_ids.append(str(fid))
     is_anonymous = anonymous in ("true", "1", "on")
     vouch_doc = {
@@ -3820,15 +3919,13 @@ async def vouch_for_grievance(
         "evidence_file_ids": evidence_ids,
         "created_at": datetime.now(timezone.utc),
     }
-    await loop.run_in_executor(executor, db.vouches.insert_one, vouch_doc)
+    await db.vouches.insert_one(vouch_doc)
     return {"detail": "Vouch recorded", "vouch_id": vouch_doc["_id"]}
 
 @app.get("/public/grievances/{grievance_id}/vouches")
 async def get_vouches(grievance_id: str, db=Depends(get_db)):
     grievance_id = validate_uuid(grievance_id, "grievance_id")
-    loop = asyncio.get_event_loop()
-    vouches = await loop.run_in_executor(executor, lambda: list(
-        db.vouches.find({"grievance_id": grievance_id}).sort("created_at", -1).limit(50)))
+    vouches = await db.vouches.find({"grievance_id": grievance_id}).sort("created_at", -1).limit(50).to_list(length=None)
     for v in vouches:
         v["id"] = str(v.pop("_id"))
         if v.get("is_anonymous"):
@@ -3837,12 +3934,49 @@ async def get_vouches(grievance_id: str, db=Depends(get_db)):
     return vouches
 
 # ---------------------------------------------------------------------------
-# HEALTH
+# HEALTH & METRICS
 # ---------------------------------------------------------------------------
 @app.get("/health")
 async def health():
-    return {"status": "healthy", "system": "PR&DW Grievance Portal",
-            "timestamp": datetime.now(timezone.utc)}
+    checks = {}
+    overall = True
+    try:
+        await db.command("ping")
+        checks["mongodb"] = "ok"
+    except Exception:
+        checks["mongodb"] = "error"
+        overall = False
+    try:
+        if qdrant:
+            qdrant.get_collections()
+            checks["qdrant"] = "ok"
+        else:
+            checks["qdrant"] = "disabled"
+    except Exception:
+        checks["qdrant"] = "error"
+        overall = False
+    try:
+        if redis_client:
+            await redis_client.ping()
+            checks["redis"] = "ok"
+        else:
+            checks["redis"] = "not_configured"
+    except Exception:
+        checks["redis"] = "error"
+        overall = False
+    return {
+        "status": "healthy" if overall else "degraded",
+        "system": "PR&DW Grievance Portal",
+        "checks": checks,
+        "timestamp": datetime.now(timezone.utc),
+    }
+
+@app.get("/metrics")
+async def metrics():
+    return StreamingResponse(
+        iter([generate_latest()]),
+        media_type=CONTENT_TYPE_LATEST,
+    )
 
 # ---------------------------------------------------------------------------
 # PAGE ROUTES (serve Jinja2 templates)
@@ -3900,17 +4034,16 @@ async def admin_reports_stats(
         # Last 7 days
         start_date = now - timedelta(days=7)
 
-    def fetch_report_data():
+    async def fetch_report_data():
         # 1. Total Active Grievances (Snapshot, independent of timeframe)
-        total_active = db.grievances.count_documents({"status": {"$in": ["pending", "in_progress", "escalated"]}})
+        total_active = await db.grievances.count_documents({"status": {"$in": ["pending", "in_progress", "escalated"]}})
 
         # 2. New Grievances Added in Timeframe
-        new_grievances_cursor = db.grievances.find({"created_at": {"$gte": start_date}}).sort("created_at", -1)
-        new_grievances_list = list(new_grievances_cursor)
+        new_grievances_list = await db.grievances.find({"created_at": {"$gte": start_date}}).sort("created_at", -1).to_list(length=None)
         new_count = len(new_grievances_list)
         
         # 3. Resolved in Timeframe
-        resolved_count = db.grievances.count_documents({
+        resolved_count = await db.grievances.count_documents({
             "updated_at": {"$gte": start_date},
             "status": "resolved"
         })
@@ -3921,7 +4054,8 @@ async def admin_reports_stats(
             {"$match": {"created_at": {"$gte": start_date}}},
             {"$group": {"_id": "$status", "count": {"$sum": 1}}}
         ]
-        status_results = list(db.grievances.aggregate(pipeline))
+        status_cursor = await db.grievances.aggregate(pipeline)
+        status_results = await status_cursor.to_list(length=None)
         status_counts = {r["_id"]: r["count"] for r in status_results}
 
         # District-wise (New)
@@ -3952,7 +4086,8 @@ async def admin_reports_stats(
             {"$sort": {"count": -1}},
             {"$limit": 10}
         ]
-        active_officer_results = list(db.grievances.aggregate(active_officer_pipe))
+        active_officer_cursor = await db.grievances.aggregate(active_officer_pipe)
+        active_officer_results = await active_officer_cursor.to_list(length=None)
         active_officer_load = [{"name": r["_id"], "count": r["count"]} for r in active_officer_results]
 
         return {
@@ -3968,13 +4103,12 @@ async def admin_reports_stats(
             "new_by_officer": [{"name": k, "count": v} for k,v in sorted(officer_counts.items(), key=lambda item: item[1], reverse=True)],
             "current_officer_load": active_officer_load,
             "recent_grievances": [GrievanceResponse(**g, id=g["_id"]) for g in converted_new_list[:50]],
-            "sentiment_by_dept": _fetch_sentiment_heatmap(db, start_date)
+            "sentiment_by_dept": await _fetch_sentiment_heatmap(db, start_date)
         }
 
-    loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(executor, fetch_report_data)
+    return await fetch_report_data()
 
-def _fetch_sentiment_heatmap(db, start_date):
+async def _fetch_sentiment_heatmap(db, start_date):
     """Aggregate sentiment counts per department for a stacked bar chart."""
     pipeline = [
         {"$match": {"created_at": {"$gte": start_date}, "department": {"$ne": None}}},
@@ -3983,7 +4117,8 @@ def _fetch_sentiment_heatmap(db, start_date):
             "count": {"$sum": 1}
         }}
     ]
-    results = list(db.grievances.aggregate(pipeline))
+    agg_cur = await db.grievances.aggregate(pipeline)
+    results = await agg_cur.to_list(length=None)
     output = {}
     for r in results:
         dept = r["_id"].get("dept", "Unknown")
@@ -3994,15 +4129,17 @@ def _fetch_sentiment_heatmap(db, start_date):
         output[dept][sent] = cnt
     return output
 
+class ReportAnalysisRequest(BaseModel):
+    timeframe: str = Field("daily", pattern="^(daily|weekly)$")
+
 @app.post("/admin/reports/analysis")
 async def admin_reports_analysis(
-    request: Request,
+    req: ReportAnalysisRequest,
     user=Depends(require_role(UserRole.ADMIN.value)),
     db=Depends(get_db)
 ):
     """AI-powered executive summary of grievances for the selected timeframe."""
-    body = await request.json()
-    timeframe = body.get("timeframe", "daily")
+    timeframe = req.timeframe
 
     now = datetime.now(timezone.utc)
     if timeframe == "daily":
@@ -4012,15 +4149,15 @@ async def admin_reports_analysis(
         start_date = now - timedelta(days=7)
         period_label = f"Weekly — {start_date.strftime('%b %d')} to {now.strftime('%b %d, %Y')}"
 
-    def build_context():
+    async def build_context():
         match_filter = {"created_at": {"$gte": start_date}}
-        grievances = list(db.grievances.find(match_filter).sort("created_at", -1))
+        grievances = await db.grievances.find(match_filter).sort("created_at", -1).to_list(length=None)
         if not grievances:
             return None, period_label
 
         new_count = len(grievances)
         resolved_count = sum(1 for g in grievances if g.get("status") == "resolved")
-        active_total = db.grievances.count_documents({"status": {"$in": ["pending", "in_progress", "escalated"]}})
+        active_total = await db.grievances.count_documents({"status": {"$in": ["pending", "in_progress", "escalated"]}})
 
         dept_counts = {}
         district_counts = {}
@@ -4052,8 +4189,7 @@ async def admin_reports_analysis(
         )
         return context, period_label
 
-    loop = asyncio.get_event_loop()
-    context, label = await loop.run_in_executor(executor, build_context)
+    context, label = await build_context()
 
     if context is None:
         return {

@@ -13,7 +13,6 @@ import pytest
 import pytest_asyncio
 import httpx
 
-# Ensure the demo package is importable
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from ticketer import app, lifespan, limiter
@@ -30,15 +29,12 @@ def event_loop():
 @pytest_asyncio.fixture(scope="session")
 async def client(event_loop):
     """In-process httpx AsyncClient (session-scoped for performance)."""
-    # Disable rate limiting during tests so login fixtures aren't throttled
     limiter.enabled = False
 
     async with lifespan(app):
-        # Clear spam tracking for seeded test accounts so previous runs
-        # don't cause 403 blocks on grievance creation
         from ticketer import db as _db
         if _db is not None:
-            _db.spam_tracking.delete_many({"_id": {"$regex": "^.*$"}})
+            await _db.spam_tracking.delete_many({"_id": {"$regex": "^.*$"}})
 
         transport = httpx.ASGITransport(app=app)
         async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as c:

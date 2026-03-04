@@ -1,0 +1,17 @@
+[run]
+source = .
+omit =
+    tests/*
+    seed/*
+    runner.py
+    importer.py
+    htmlcov/*
+
+[report]
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.
+    raise NotImplementedError
+    pass
+show_missing = true
+fail_under = 30
